@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
+import CamerasPage from "./pages/CamerasPage";
 import GroupsPage from "./pages/GroupsPage";
 import LoginPage from "./pages/LoginPage";
 
@@ -15,9 +16,10 @@ export default function App() {
     <BrowserRouter>
       <div className="app">
         <Header />
-        <div className="container">
+        <div className="page-body">
           <Routes>
             <Route path="/" element={<GroupsPage />} />
+            <Route path="/cameras" element={<CamerasPage />} />
           </Routes>
         </div>
       </div>

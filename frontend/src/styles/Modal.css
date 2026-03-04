@@ -22,14 +22,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  font-size: 15px;
-  font-weight: 700;
   border-bottom: 1px solid #eae9e4;
 }
 
 .modal-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #1a1a1a;
 }
 
@@ -45,9 +43,16 @@
 .modal-close-icon {
   width: 16px;
   height: 16px;
-  color: #b5b5ae
+  color: #b5b5ae;
 }
 
 .modal-body {
-  padding: 16px 18px;
+  padding: 16px 18px 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 18px 16px;
+  gap: 10px;
 }

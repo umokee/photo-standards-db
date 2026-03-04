@@ -12,17 +12,9 @@ export default function Header({ initials }) {
             <FolderOpen className="header-link-icon" />
             Группы
           </NavLink>
-          <NavLink className="header-link" to="/">
+          <NavLink className="header-link" to="/cameras">
             <FolderOpen className="header-link-icon" />
-            Группы
-          </NavLink>
-          <NavLink className="header-link" to="/">
-            <FolderOpen className="header-link-icon" />
-            Группы
-          </NavLink>
-          <NavLink className="header-link" to="/">
-            <FolderOpen className="header-link-icon" />
-            Группы
+            Камеры
           </NavLink>
         </nav>
         <div className="header-avatar">
