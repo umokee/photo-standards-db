@@ -8,7 +8,7 @@ export default function Header({ initials }) {
       <div className="header-inner">
         <span className="header-title">Photo Standards</span>
         <nav className="header-link-container">
-          <NavLink className="header-link" to="/">
+          <NavLink className="header-link" to="/groups">
             <FolderOpen className="header-link-icon" />
             Группы
           </NavLink>

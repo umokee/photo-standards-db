@@ -1,36 +1,80 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Wifi, WifiOff } from "lucide-react";
 import { useState } from "react";
+import { createCamera, deleteCamera, getCameras, updateCamera } from "../api/cameras";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import Modal from "../components/Modal";
 import "../styles/CamerasPage.css";
 
-const mock = [
-  {
-    id: 1,
-    name: "Камера 1",
-    location: "Место 1",
-    isActive: false,
-    lastSeen: "Дата",
-    url: "URL",
-    resolution: "1080p",
-  },
-];
-
 export default function CamerasPage() {
+  const queryClient = useQueryClient();
+
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [showCheck, setShowCheck] = useState(false);
 
-  const [cameras, setCameras] = useState(mock);
-  const [selectedCamera, setSelectedCamera] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [location, setLocation] = useState("");
 
-  const selected = cameras.find((c) => c.id === selectedCamera?.id);
+  const {
+    data: cameras = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["cameras"],
+    queryFn: getCameras,
+    refetchInterval: 10000,
+  });
+
+  const selected = cameras.find((c) => c.id === selectedId);
+
+  const createMutation = useMutation({
+    mutationFn: createCamera,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cameras"] });
+      setSelectedId(null);
+      setName("");
+      setUrl("");
+      setLocation("");
+      setShowAdd(false);
+    },
+    onError: (error) => {
+      alert(`Не удалось создать камеру: ${error.message}`);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateCamera,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cameras"] });
+      setName("");
+      setUrl("");
+      setLocation("");
+      setShowEdit(false);
+    },
+    onError: (error) => {
+      alert(`Не удалось обновить камеру: ${error.message}`);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCamera,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cameras"]);
+      setSelectedId(null);
+      setShowDelete(false);
+    },
+    onError: (error) => {
+      alert(`Не удалось удалить камеру: ${error.message}`);
+    },
+  });
+
+  if (isLoading) return <div className="camera-list-empty">Загрузка...</div>;
+  if (isError) return <div className="camera-list-empty">Ошибка загрузки данных</div>;
 
   return (
     <div className="camera-layout">
@@ -39,13 +83,12 @@ export default function CamerasPage() {
           <span className="camera-header-title">Камеры</span>
           <Button icon={Plus} variant={"secondary"} onClick={() => setShowAdd(true)} />
         </div>
-
         {cameras.length > 0 ? (
           <div className="camera-list">
             {cameras.map((camera) => (
               <div
-                className={`camera-item ${selectedCamera?.id === camera.id ? "selected" : ""}`}
-                onClick={() => setSelectedCamera(camera)}
+                className={`camera-item ${selectedId === camera.id ? "selected" : ""}`}
+                onClick={() => setSelectedId(camera.id)}
                 key={camera.id}
               >
                 <div className={`camera-item-status ${camera.isActive ? "active" : ""}`}>
@@ -94,10 +137,16 @@ export default function CamerasPage() {
               </div>
             </div>
             <div className="camera-actions">
-              <Button variant={"secondary"} onClick={() => setShowCheck(true)}>
-                Проверить
-              </Button>
-              <Button variant={"secondary"} onClick={() => setShowEdit(true)}>
+              <Button variant={"ghost"}>Проверить</Button>
+              <Button
+                variant={"secondary"}
+                onClick={() => {
+                  setName(selected.name);
+                  setUrl(selected.url);
+                  setLocation(selected.location);
+                  setShowEdit(true);
+                }}
+              >
                 Изменить
               </Button>
               <Button variant={"danger"} onClick={() => setShowDelete(true)}>
@@ -119,7 +168,10 @@ export default function CamerasPage() {
               <Button variant={"secondary"} onClick={() => setShowAdd(false)}>
                 Отмена
               </Button>
-              <Button variant={"primary"} onClick={() => setShowAdd(false)}>
+              <Button
+                variant={"primary"}
+                onClick={() => createMutation.mutate({ name, url, location })}
+              >
                 Создать
               </Button>
             </>
@@ -140,36 +192,29 @@ export default function CamerasPage() {
 
       {showEdit && (
         <Modal
-          title={`Изменить камеру ${selectedCamera?.name}`}
+          title={`Изменить камеру ${selected.name}`}
           onClose={() => setShowEdit(false)}
           footer={
             <>
               <Button variant={"secondary"} onClick={() => setShowEdit(false)}>
                 Отмена
               </Button>
-              <Button variant={"primary"} onClick={() => setShowEdit(false)}>
+              <Button
+                variant={"primary"}
+                onClick={() => updateMutation.mutate({ id: selected.id, name, url, location })}
+              >
                 Сохранить
               </Button>
             </>
           }
         >
           <div>
-            <Input
-              label={"Название"}
-              placeholder={"пример"}
-              value={selected.name}
-              onChange={setName}
-            />
-            <Input
-              label={"URL потока"}
-              placeholder={"пример"}
-              value={selected.url}
-              onChange={setUrl}
-            />
+            <Input label={"Название"} placeholder={"пример"} value={name} onChange={setName} />
+            <Input label={"URL потока"} placeholder={"пример"} value={url} onChange={setUrl} />
             <Input
               label={"Расположение"}
               placeholder={"пример"}
-              value={selected.location}
+              value={location}
               onChange={setLocation}
             />
           </div>
@@ -178,14 +223,14 @@ export default function CamerasPage() {
 
       {showDelete && (
         <Modal
-          title={`Удалить камеру ${selectedCamera?.name}`}
+          title={`Удалить камеру ${selected.name}`}
           onClose={() => setShowDelete(false)}
           footer={
             <>
               <Button variant={"secondary"} onClick={() => setShowDelete(false)}>
                 Отмена
               </Button>
-              <Button variant={"danger"} onClick={() => setShowDelete(false)}>
+              <Button variant={"danger"} onClick={() => deleteMutation.mutate(selectedId)}>
                 Удалить
               </Button>
             </>
@@ -193,7 +238,7 @@ export default function CamerasPage() {
         >
           <div>
             <div className="text-muted">
-              Вы уверены, что хотите удалить камеру <b>{selectedCamera?.name}</b>?
+              Вы уверены, что хотите удалить камеру <b>{selected.name}</b>?
             </div>
           </div>
         </Modal>
