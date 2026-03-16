@@ -1,0 +1,44 @@
+@use "../../variables" as *;
+
+.segment-item {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  border: 2px solid $line;
+  border-radius: $radius-md;
+  padding: $space-2 $space-3;
+  max-width: 200px;
+  min-width: 200px;
+  cursor: pointer;
+
+  &--active {
+    border-color: $primary;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+
+    &-label {
+      font-size: $text-body;
+      font-weight: $fw-bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-icon {
+      border-radius: $radius-sm;
+      padding: $space-1;
+      color: $danger;
+      background: $danger-light;
+    }
+  }
+
+  &__footer {
+    color: $text-hint;
+    font-size: $text-small;
+  }
+}

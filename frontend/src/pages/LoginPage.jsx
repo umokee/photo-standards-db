@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import "../styles/LoginPage.css";
 
 export default function LoginPage({ onLogin }) {
   const [login, setLogin] = useState("");
@@ -9,9 +8,9 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <h1>Вход</h1>
-      <div className="login-form">
-        <Input label="Логин" placeholder="example_nf" value={login} onChange={setLogin} />
+      <span className="login-page__name">Вход</span>
+      <div className="login-page__form">
+        <Input label="Логин" placeholder="пример" value={login} onChange={setLogin} />
         <Input
           label="Пароль"
           placeholder="••••••••"

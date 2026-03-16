@@ -1,0 +1,82 @@
+@use "../variables" as *;
+@use "sass:map";
+
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  font-weight: $fw-semibold;
+  border-radius: $radius-sm;
+  border: none;
+  gap: $space-2;
+  transition: background 0.15s;
+
+  &__icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  &-small &__icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  &-large &__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  &-simple {
+    padding: $space-2 $space-3;
+    font-size: $text-body;
+  }
+
+  &-small {
+    padding: $space-1 $space-2;
+    font-size: $text-small;
+  }
+
+  &-large{
+    padding: $space-3 $space-4;
+    font-size: $text-title;
+  }
+
+  &-primary {
+    background: map.get($btn-primary, bg);
+    color: map.get($btn-primary, text);
+
+    &:hover {
+      background: map.get($btn-primary, hover);
+    }
+  }
+
+  &-secondary {
+    background: map.get($btn-secondary, bg);
+    color: map.get($btn-secondary, text);
+    border: 1.5px solid map.get($btn-secondary, border);
+
+    &:hover {
+      background: map.get($btn-secondary, hover);
+    }
+  }
+
+  &-danger {
+    background: map.get($btn-danger, bg);
+    color: map.get($btn-danger, text);
+    border: 1px solid map.get($btn-danger, border);
+
+    &:hover {
+      background: map.get($btn-danger, hover);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &-full {
+    width: 100%;
+  }
+}

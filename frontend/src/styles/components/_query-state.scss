@@ -1,0 +1,19 @@
+@use "../variables" as *;
+
+.query-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: $text-title;
+  font-weight: $fw-bold;
+
+  &--loading {
+  }
+
+  &--error {
+  }
+
+  &--empty {
+  }
+}

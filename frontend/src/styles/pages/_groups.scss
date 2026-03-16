@@ -1,0 +1,122 @@
+@use "../variables" as *;
+
+.group-sidebar {
+  &__header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: $space-3;
+    border-bottom: 1px solid $line-soft;
+    padding: $space-3 $space-4;
+
+    &-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: $space-3;
+    }
+
+    &-name {
+      font-size: $text-title;
+      font-weight: $fw-bold;
+    }
+
+    .input {
+      margin-bottom: 0;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+
+    &-item {
+      display: flex;
+      flex-direction: column;
+      padding: $space-3 $space-4;
+      border-bottom: 1px solid $line-soft;
+      border-left: 3px solid transparent;
+
+      &:hover {
+        background: $surface-hover;
+      }
+
+      &.selected {
+        background: $primary-ring;
+        border-left: 3px solid $primary;
+      }
+
+      &-name {
+        font-size: $text-body;
+        font-weight: $fw-medium;
+      }
+
+      &-description {
+        font-size: $text-small;
+        color: $text-hint;
+        margin-top: $space-1;
+      }
+    }
+  }
+}
+
+.group-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-5;
+
+  &__title {
+    display: flex;
+    flex-direction: column;
+
+    &-name {
+      font-size: $text-stat;
+      font-weight: $fw-bold;
+    }
+
+    &-description {
+      font-size: $text-title;
+      color: $text-sub;
+      margin-top: $space-1;
+    }
+
+    &-info {
+      display: flex;
+      gap: $space-2;
+      margin-top: $space-2;
+      color: $text-hint;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $space-2;
+  }
+}
+
+.group-standards-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: $text-hint;
+    font-weight: $fw-bold;
+    padding-bottom: $space-4;
+    gap: $space-3;
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: $space-4;
+  }
+}

@@ -1,0 +1,58 @@
+@use "../variables" as *;
+
+.modal-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inset: 0;
+  position: fixed;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+}
+
+.modal {
+  background: $surface;
+  border-radius: $radius-lg;
+  width: 420px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $line-soft;
+  }
+
+  &__name {
+    font-size: $text-title;
+    font-weight: $fw-bold;
+    color: $text;
+  }
+
+  &__close {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: $radius-sm;
+    transition: background 0.15s;
+
+    &:hover {
+      background: $surface-hover;
+      color: $text-sub;
+    }
+  }
+
+  &__body {
+    padding: $space-4;
+  }
+
+  &__footer {
+    padding: $space-4 $space-3;
+    display: flex;
+    justify-content: flex-end;
+    gap: $space-2;
+    border-top: 1px solid $line-soft;
+  }
+}

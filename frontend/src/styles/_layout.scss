@@ -1,0 +1,104 @@
+@use "variables" as *;
+
+.nav {
+  height: $nav-height;
+  background: $nav-bg;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0 $space-5;
+  }
+
+  &__name {
+    color: $nav-text-active;
+    font-size: $text-title;
+    font-weight: $fw-bold;
+    letter-spacing: -0.5px;
+  }
+
+  &__links {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    gap: $space-1;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: 6px 13px;
+    font-size: $text-body;
+    color: $nav-text;
+    border-radius: $radius-sm;
+
+    &:hover {
+      color: $nav-text-hover;
+    }
+
+    &.active {
+      font-weight: $fw-semibold;
+      color: $nav-text-active;
+      background: $nav-bg-active;
+    }
+
+    &-icon {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.5;
+    }
+  }
+
+  &__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: $radius-sm;
+    background: $nav-avatar-bg;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__avatar-label {
+    font-size: $text-small;
+    font-weight: $fw-bold;
+    color: $nav-avatar-text;
+  }
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - $nav-height);
+  padding: $space-6 $space-6 $space-7;
+  max-width: $content-max;
+  margin: 0 auto;
+}
+
+.page-split {
+  display: flex;
+  height: calc(100vh - $nav-height);
+
+  &__sidebar {
+    width: $sidebar-width;
+    border-right: 1px solid $line;
+    background: $surface;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    padding: $space-5 $space-6;
+  }
+}

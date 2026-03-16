@@ -5,21 +5,31 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "json-server --watch db.json --port 3001",
+    "server:install": "cd ../backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt",
+    "server": "cd ../backend && .venv/bin/uvicorn main:app --app-dir src --reload --port 3001",
+    "project": "npm run server & npm run dev",
+    "server-nix": "cd ../backend && nix develop --command uv run uvicorn main:app --app-dir src --reload --port 3001",
+    "project-nix": "npm run server-nix & npm run dev",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ladle": "ladle serve"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
     "axios": "^1.13.6",
+    "konva": "^10.2.0",
     "lucide-react": "^0.576.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.1"
+    "react-konva": "^19.2.3",
+    "react-router-dom": "^7.13.1",
+    "sass": "^1.97.3",
+    "use-image": "^1.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@ladle/react": "^5.1.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
@@ -27,7 +37,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "json-server": "^1.0.0-beta.12",
     "vite": "^7.3.1"
   }
 }

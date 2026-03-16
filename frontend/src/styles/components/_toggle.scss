@@ -1,0 +1,46 @@
+@use "../variables" as *;
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+
+  input {
+    display: none;
+
+    &:checked + .toggle__track {
+      background: $primary;
+
+      &::after {
+        transform: translateX(18px);
+      }
+    }
+  }
+
+  &__track {
+    display: block;
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: $line;
+    position: relative;
+    transition: background 0.2s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+  }
+
+  &__label {
+    font-size: $text-small;
+    margin-left: $space-2;
+  }
+}

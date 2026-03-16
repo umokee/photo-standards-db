@@ -1,0 +1,10 @@
+{
+  "pythonVersion": "3.13",
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "basic",
+  "autoImportCompletions": true,
+  "indexing": true,
+  "extraPaths": [".venv/lib/python3.13/site-packages"]
+}

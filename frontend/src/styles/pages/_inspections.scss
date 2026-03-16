@@ -1,0 +1,87 @@
+@use "../variables" as *;
+
+.inspection-page {
+  &__modes {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: $space-3;
+    margin-bottom: $space-3;
+
+    &-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $space-2;
+      padding: $space-2 $space-3;
+      border-radius: $radius-md;
+      border: 1px solid $line;
+      background: $surface;
+      width: 100%;
+
+      &--active {
+        background: $primary-light;
+        color: $primary;
+        border-color: $primary;
+      }
+    }
+  }
+
+  &__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+    gap: $space-2;
+    margin-bottom: $space-3;
+
+    .select {
+      margin-bottom: 0;
+    }
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    flex: 1;
+    gap: $space-3;
+    overflow: hidden;
+
+    &-info {
+      display: grid;
+      grid-template-rows: 1fr 2fr;
+      gap: $space-2;
+
+      &-result {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid $line;
+        border-radius: $radius-md;
+        padding: $space-3;
+      }
+
+      &-segments {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid $line;
+        border-radius: $radius-md;
+        overflow-y: auto;
+
+        &-title{
+          display: flex;
+          justify-content: space-between;
+          border-bottom: 2px solid $line;
+          padding: $space-2 $space-3;
+        }
+
+        &-item {
+          display: flex;
+          justify-content: space-between;
+          padding: $space-2 $space-3;
+          border-bottom: 1px solid $line;
+        }
+      }
+    }
+  }
+}

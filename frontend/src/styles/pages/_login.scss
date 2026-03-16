@@ -1,0 +1,22 @@
+@use "../variables" as *;
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: $space-3;
+
+  &__name {
+    font-size: $text-page;
+    font-weight: $fw-bold;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    width: 340px;
+  }
+}

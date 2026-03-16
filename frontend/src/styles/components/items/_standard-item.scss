@@ -1,0 +1,142 @@
+@use "../../variables" as *;
+
+.standard-item {
+  display: flex;
+  flex-direction: column;
+  border-radius: $radius-md;
+  border: 1px solid $line;
+
+  &:hover {
+    border: 1px solid $primary;
+  }
+
+  &:hover &__actions-btn {
+    opacity: 1;
+  }
+
+  &--deactivated {
+    opacity: 0.5;
+  }
+
+  &__status {
+    position: absolute;
+    bottom: $space-2;
+    left: $space-2;
+    border-radius: $radius-sm;
+    background: $warning-mid;
+    color: $warning;
+    padding: $space-1 $space-2;
+  }
+
+  &__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: $surface-hover;
+    color: $text-hint;
+    height: 160px;
+    position: relative;
+    border-top-left-radius: $radius-md;
+    border-top-right-radius: $radius-md;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__badge {
+    position: absolute;
+    top: $space-2;
+    left: $space-2;
+    border-radius: $radius-sm;
+    background: $text-hint;
+    color: $text-white;
+    padding: $space-1 $space-2;
+  }
+
+  &__actions {
+    position: absolute;
+    top: $space-2;
+    right: $space-2;
+
+    &-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $radius-sm;
+      height: 28px;
+      width: 28px;
+      padding: $space-1;
+      opacity: 0;
+      background: $text-hint;
+      color: $text-white;
+    }
+
+    &-menu {
+      position: absolute;
+      top: 120%;
+      right: 0;
+      border-radius: $radius-sm;
+      background: $surface;
+
+      &-item {
+        padding: $space-2 $space-3;
+        color: $text;
+        text-align: left;
+        width: 100%;
+
+        &:hover {
+          background: $primary-mid;
+        }
+
+        &:first-child {
+          border-top-left-radius: $radius-sm;
+          border-top-right-radius: $radius-sm;
+        }
+
+        &:last-child {
+          border-bottom-left-radius: $radius-sm;
+          border-bottom-right-radius: $radius-sm;
+          border-top: 1px solid $line-soft;
+          color: $danger-hover;
+
+          &:hover {
+            background: $danger-light;
+          }
+        }
+      }
+    }
+  }
+
+  &__body {
+    display: flex;
+    align-items: center;
+    padding: $space-3 $space-4;
+    cursor: pointer;
+
+    &-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: $space-2;
+
+      span:first-child {
+        font-size: $text-title;
+        font-weight: $fw-bold;
+      }
+
+      span:last-child {
+        font-size: $text-small;
+        color: $text-hint;
+      }
+    }
+
+    &-label {
+      color: $text-hint;
+      font-size: $text-micro;
+    }
+  }
+}

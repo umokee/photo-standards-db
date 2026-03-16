@@ -1,0 +1,29 @@
+@use "../variables" as *;
+@use "sass:map";
+
+.select {
+  margin-bottom: $space-3;
+
+  &__name {
+    display: block;
+    font-size: $text-small;
+    font-weight: $fw-semibold;
+    color: map.get($select, text-label);
+    margin-bottom: $space-1;
+  }
+
+  &__field {
+    width: 100%;
+    padding: $space-2 $space-3;
+    font-size: $text-body;
+    color: map.get($select, text);
+    border: 1.5px solid map.get($select, border);
+    border-radius: $radius-sm;
+    background: map.get($select, bg);
+    outline: none;
+
+    &:focus {
+      border: 1.5px solid map.get($select, border-focus);
+    }
+  }
+}

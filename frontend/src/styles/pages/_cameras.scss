@@ -1,0 +1,105 @@
+@use "../variables" as *;
+
+.camera-sidebar {
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $space-3;
+    border-bottom: 1px solid $line-soft;
+    padding: $space-3 $space-4;
+
+    &-name {
+      font-size: $text-title;
+      font-weight: $fw-bold;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+
+    &-item {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+      padding: $space-3 $space-4;
+      border-bottom: 1px solid $line-soft;
+      border-left: 3px solid transparent;
+
+      &:hover {
+        background: $surface-hover;
+      }
+
+      &.selected {
+        background: $primary-ring;
+        border-left: 3px solid $primary;
+      }
+
+      &-status {
+        display: flex;
+        color: $danger;
+
+        &.active {
+          color: $primary-text;
+        }
+      }
+
+      &-info {
+        display: flex;
+        flex-direction: column;
+
+        &-name {
+          font-size: $text-body;
+          font-weight: $fw-medium;
+        }
+
+        &-description {
+          font-size: $text-small;
+          color: $text-hint;
+          margin-top: $space-1;
+        }
+      }
+    }
+  }
+}
+
+.camera-preview {
+  flex-shrink: 0;
+  aspect-ratio: 16 / 9;
+  background: hsl(220, 15%, 10%);
+  border-radius: $radius-md;
+  margin-bottom: $space-3;
+}
+
+.camera-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: $surface;
+  border-radius: $radius-md;
+  padding: $space-3 $space-4;
+  overflow: hidden;
+  gap: $space-2;
+
+  &__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: $space-3;
+    gap: $space-2;
+
+    &-name {
+      font-size: $text-body;
+      color: $text-sub;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: $space-2;
+  }
+}

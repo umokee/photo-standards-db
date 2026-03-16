@@ -1,0 +1,100 @@
+@use "../variables" as *;
+
+.standard-detail-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - $nav-height);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid $line;
+    padding: $space-2 $space-3;
+
+    &-actions {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+
+      &-back-btn {
+        display: flex;
+        align-items: center;
+        border-radius: $radius-md;
+        padding: $space-2 $space-3;
+        gap: $space-1;
+        color: $text-hint;
+
+        &:hover {
+          background: $page-hover;
+        }
+      }
+
+      &-change-angle {
+        display: flex;
+        align-items: center;
+        border-radius: $radius-md;
+        padding: $space-1;
+        gap: $space-1;
+        background: $surface-hover;
+        color: $text-hint;
+        border: 1px solid $line;
+        flex: 1;
+
+        &-item {
+          padding: $space-2 $space-3;
+          border-radius: $radius-sm;
+
+          &--active {
+            background: $primary;
+            color: $text-white;
+          }
+        }
+      }
+    }
+
+    &-info {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+
+      &-modes {
+        display: flex;
+        align-items: center;
+        border-radius: $radius-md;
+        padding: $space-1;
+        gap: $space-1;
+        background: $surface-hover;
+        color: $text-hint;
+        border: 1px solid $line;
+
+        &-item {
+          padding: $space-2 $space-3;
+          border-radius: $radius-sm;
+
+          &--active {
+            background: $primary;
+            color: $text-white;
+          }
+        }
+      }
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex: 1;
+    overflow-y: hidden;
+    background: $nav-bg;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-top: 2px solid $line;
+    padding: $space-2 $space-3;
+    overflow-x: auto;
+    gap: $space-3;
+  }
+}

@@ -1,0 +1,28 @@
+@use "../variables" as *;
+@use "sass:map";
+
+.input {
+  margin-bottom: $space-3;
+
+  &__label {
+    display: block;
+    font-size: $text-small;
+    font-weight: $fw-semibold;
+    color: map.get($input, text-label);
+    margin-bottom: $space-1;
+  }
+
+  &__field {
+    width: 100%;
+    padding: $space-2 $space-3;
+    font-size: $text-body;
+    color: map.get($input, text);
+    border: 1.5px solid map.get($input, border);
+    border-radius: $radius-sm;
+    background: map.get($input, bg);
+
+    &:focus {
+      border: 1.5px solid map.get($input, border-focus);
+    }
+  }
+}

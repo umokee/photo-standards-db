@@ -1,0 +1,50 @@
+@use "../variables" as *;
+
+.range-input {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+
+  &__info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: $text-small;
+    color: $text-sub;
+  }
+
+  &__value {
+    font-size: $text-small;
+    font-weight: $fw-semibold;
+  }
+
+  &__field {
+    width: 100%;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      $primary calc(var(--val) * 1%),
+      $line calc(var(--val) * 1%)
+    );
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: $primary;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      &:hover {
+        background: $primary-hover;
+      }
+    }
+  }
+}

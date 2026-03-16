@@ -1,0 +1,151 @@
+$font-sans: "Sergoe UI", sans-serif;
+$font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+$text-micro: 11px;
+$text-small: 12px;
+$text-body: 13px;
+$text-title: 14px;
+$text-page: 20px;
+$text-stat: 24px;
+$text-hero: 48px;
+
+$fw-regular: 400;
+$fw-medium: 500;
+$fw-semibold: 600;
+$fw-bold: 700;
+$fw-extrabold: 800;
+
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-5: 24px;
+$space-6: 32px;
+$space-7: 48px;
+
+$radius-sm: 3px;
+$radius-md: 6px;
+$radius-lg: 9px;
+
+$nav-height: 48px;
+$sidebar-width: 350px;
+$content-max: 1100px;
+
+$page: hsl(40, 20%, 97%);
+$page-hover: hsl(40, 20%, 90%);
+$surface: hsl(0, 0%, 100%);
+$surface-hover: hsl(40, 20%, 95%);
+
+$text: hsl(40, 5%, 10%);
+$text-sub: hsl(40, 5%, 30%);
+$text-hint: hsl(40, 5%, 55%);
+$text-off: hsl(40, 10%, 70%);
+$text-white: hsl(0, 0%, 100%);
+
+$line: hsl(40, 15%, 90%);
+$line-soft: hsl(40, 20%, 95%);
+
+$nav-bg: hsl(40, 5%, 10%);
+$nav-bg-active: hsla(0, 0%, 100%, 0.1);
+$nav-text: hsl(40, 5%, 45%);
+$nav-text-hover: hsl(40, 5%, 75%);
+$nav-text-active: hsl(40, 20%, 95%);
+$nav-avatar-bg: hsl(40, 5%, 15%);
+$nav-avatar-text: hsl(40, 5%, 55%);
+$nav-meta: hsl(40, 5%, 35%);
+
+$primary: hsl(160, 45%, 35%);
+$primary-hover: hsl(160, 45%, 30%);
+$primary-active: hsl(160, 45%, 25%);
+$primary-text: hsl(160, 45%, 40%);
+$primary-light: hsl(160, 45%, 95%);
+$primary-mid: hsl(160, 45%, 85%);
+$primary-glow: hsla(160, 45%, 35%, 0.05);
+$primary-ring: hsla(160, 45%, 35%, 0.1);
+
+$danger: hsl(0, 60%, 40%);
+$danger-hover: hsl(0, 60%, 35%);
+$danger-light: hsl(0, 80%, 95%);
+$danger-mid: hsl(0, 80%, 85%);
+$danger-ring: hsla(0, 60%, 40%, 0.1);
+
+$warning: hsl(42, 75%, 35%);
+$warning-light: hsl(42, 90%, 95%);
+$warning-mid: hsl(42, 85%, 80%);
+
+$ml: hsl(264, 60%, 45%);
+$ml-light: hsl(264, 65%, 95%);
+$ml-mid: hsl(264, 65%, 85%);
+$ml-glow: hsla(264, 60%, 45%, 0.1);
+
+$seg-0: hsl(160, 45%, 35%);
+$seg-1: hsl(0, 60%, 40%);
+$seg-2: hsl(42, 75%, 35%);
+$seg-3: hsl(264, 60%, 45%);
+$seg-4: hsl(211, 95%, 45%);
+$seg-5: hsl(330, 55%, 45%);
+$seg-6: hsl(160, 45%, 45%);
+$seg-7: hsl(0, 70%, 50%);
+$seg-8: hsl(199, 95%, 40%);
+$seg-9: hsl(38, 85%, 45%);
+
+$btn-primary: (
+  bg: $primary,
+  hover: $primary-hover,
+  active: $primary-active,
+  text: $text-white,
+);
+
+$btn-secondary: (
+  bg: $surface,
+  hover: $surface-hover,
+  text: $text-sub,
+  border: $line,
+);
+
+$btn-danger: (
+  bg: $danger-light,
+  hover: hsl(0, 80%, 90%),
+  text: $danger,
+  border: $danger-mid,
+);
+
+$input: (
+  bg: $surface,
+  border: $line,
+  border-focus: $primary,
+  text: $text,
+  text-label: $text-sub,
+  placeholder: $text-hint,
+);
+
+$select: (
+  bg: $surface,
+  border: $line,
+  border-focus: $primary,
+  text: $text,
+);
+
+$badge-success: (
+  bg: $primary-light,
+  border: $primary-mid,
+  text: $primary-text,
+);
+
+$badge-danger: (
+  bg: $danger-light,
+  border: $danger-mid,
+  text: $danger,
+);
+
+$badge-warning: (
+  bg: $warning-light,
+  border: $warning-mid,
+  text: $warning,
+);
+
+$badge-ml: (
+  bg: $ml-light,
+  border: $ml-mid,
+  text: $ml,
+);
