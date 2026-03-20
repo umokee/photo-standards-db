@@ -1,5 +1,5 @@
-import Button from "../../components/Button";
-import Modal from "../../components/Modal";
+import Button from "./Button";
+import Modal from "./Modal";
 
 export default function DeleteModal({ entityLabel, name, isPending, onClose, onDelete }) {
   return (

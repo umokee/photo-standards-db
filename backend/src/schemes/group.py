@@ -17,24 +17,16 @@ Name = Annotated[
         max_length=255,
     ),
 ]
-Description = Annotated[
-    str | None,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=2000,
-    ),
-]
 
 
 class GroupCreate(BaseModel):
     name: Name
-    description: Description = None
+    description: str | None = None
 
 
 class GroupUpdate(BaseModel):
     name: Name | None = None
-    description: Description = None
+    description: str | None = None
 
     @model_validator(mode="after")
     def check_not_empty(self) -> "GroupUpdate":
@@ -52,18 +44,12 @@ class GroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class GroupDetailResponse(BaseModel):
-    id: UUID
-    name: str
-    description: str | None
-    created_at: datetime
-    standards: list["StandardShortResponse"]
-    # active_model: "MlModelShortResponse | None"
-
-    model_config = ConfigDict(from_attributes=True)
+class GroupDetailResponse(GroupResponse):
+    standards: list["StandardResponse"]
+    active_model: "MlModelResponse | None"
 
 
-from .ml_model import MlModelShortResponse
-from .standard import StandardShortResponse
+from .ml_model import MlModelResponse
+from .standard import StandardResponse
 
 GroupDetailResponse.model_rebuild()

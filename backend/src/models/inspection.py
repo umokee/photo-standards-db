@@ -1,14 +1,10 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy
 from database import Base
 from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-Status = Literal["passed", "failed"]
-Mode = Literal["photo", "snapshot", "realtime"]
 
 
 class InspectionResult(Base):
@@ -23,10 +19,10 @@ class InspectionResult(Base):
     )
     image_path: Mapped[str] = mapped_column(String(500))
     result_image_path: Mapped[str | None] = mapped_column(String(500), default=None)
-    status: Mapped[Status] = mapped_column(
+    status: Mapped[str] = mapped_column(
         sqlalchemy.Enum("passed", "failed", name="status_enum"), default="passed"
     )
-    mode: Mapped[Mode] = mapped_column(
+    mode: Mapped[str] = mapped_column(
         sqlalchemy.Enum("photo", "snapshot", "realtime", name="mode_enum"),
         default="photo",
     )
@@ -54,13 +50,14 @@ class InspectionSegmentResult(Base):
     inspection_id: Mapped[UUID] = mapped_column(
         ForeignKey("inspection_results.id", ondelete="CASCADE")
     )
-    segment_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("segments.id", ondelete="SET NULL")
+    segment_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None
     )
+    label: Mapped[str] = mapped_column(String(255))
     is_found: Mapped[bool] = mapped_column()
     confidence: Mapped[float | None] = mapped_column(default=None)
 
     inspection: Mapped["InspectionResult"] = relationship(
         back_populates="segment_results"
     )
-    segment: Mapped["Segment"] = relationship()
+    segment_group: Mapped["SegmentGroup | None"] = relationship()

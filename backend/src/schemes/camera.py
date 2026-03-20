@@ -20,26 +20,21 @@ Url = Annotated[
         max_length=500,
     ),
 ]
-Location = Annotated[
-    str | None,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=255,
-    ),
-]
 
 
 class CameraCreate(BaseModel):
     name: Name
-    url: Url
-    location: Location = None
+    rtsp_url: Url
+    resolution: str | None = None
+    location: str | None = None
 
 
 class CameraUpdate(BaseModel):
     name: Name | None = None
-    url: Url | None = None
-    location: Location | None = None
+    rtsp_url: Url | None = None
+    resolution: str | None = None
+    location: str | None = None
+    is_active: bool | None = None
 
     @model_validator(mode="after")
     def check_not_empty(self) -> "CameraUpdate":
@@ -51,7 +46,8 @@ class CameraUpdate(BaseModel):
 class CameraResponse(BaseModel):
     id: UUID
     name: str
-    url: str
+    rtsp_url: str
+    resolution: str | None
     location: str | None
     is_active: bool
     last_seen_at: datetime | None

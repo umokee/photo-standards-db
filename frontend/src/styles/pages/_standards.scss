@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - $nav-height);
+  overflow: hidden;
 
   &__header {
     display: flex;
@@ -83,18 +84,25 @@
 
   &__body {
     display: flex;
-    flex: 1;
     overflow-y: hidden;
+    flex: 1;
     background: $nav-bg;
+
+    &-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
   }
 
-  &__footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    border-top: 2px solid $line;
-    padding: $space-2 $space-3;
-    overflow-x: auto;
-    gap: $space-3;
-  }
+  // &__footer {
+  //   display: flex;
+  //   align-items: center;
+  //   justify-content: flex-start;
+  //   border-top: 2px solid $line;
+  //   padding: $space-2 $space-3;
+  //   overflow-x: auto;
+  //   gap: $space-3;
+  // }
 }

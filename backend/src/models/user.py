@@ -1,13 +1,10 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy
 from database import Base
 from sqlalchemy import String, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-Role = Literal["operator", "inspector", "admin"]
 
 
 class User(Base):
@@ -17,7 +14,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(255))
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[Role] = mapped_column(
+    role: Mapped[str] = mapped_column(
         sqlalchemy.Enum("operator", "inspector", "admin", name="role_enum"),
         default="operator",
     )

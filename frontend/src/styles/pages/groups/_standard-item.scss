@@ -1,0 +1,155 @@
+@use "../../variables" as *;
+
+.standard-item {
+  display: flex;
+  flex-direction: column;
+  border-radius: $radius-md;
+  border: 1px solid $line;
+
+  &--expanded {
+    border-color: $primary;
+    grid-column: 1 / -1;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    padding: $space-3 $space-4;
+    gap: $space-3;
+    cursor: pointer;
+
+    &-info {
+      display: flex;
+      flex-direction: column;
+      gap: $space-2;
+      flex: 1;
+    }
+
+    &-icon {
+      color: $text-hint;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    padding: $space-3 $space-4;
+    border-top: 1px solid $line;
+
+    &-header {
+      display: flex;
+      align-items: center;
+      gap: $space-3;
+
+      &-name {
+        flex: 1;
+      }
+    }
+
+    &-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: $space-3;
+
+      &-img {
+        position: relative;
+        aspect-ratio: 4/3;
+        background: $nav-bg;
+        border-radius: $radius-md;
+        border: 2px solid $line;
+        overflow: hidden;
+        cursor: pointer;
+
+        &--has-seg {
+          border-color: $primary;
+        }
+
+        &:hover &-overlay {
+          opacity: 1;
+        }
+
+        &-ref {
+          position: absolute;
+          top: $space-1;
+          left: $space-1;
+          border-radius: $radius-sm;
+          padding: 1px $space-1;
+          font-weight: $fw-extrabold;
+          font-size: $text-micro;
+          background:hsl(220, 90%, 70%);
+          color: $text-white;
+        }
+
+        &-overlay {
+          position: absolute;
+          top: $space-1;
+          right: $space-1;
+          display: flex;
+          gap: $space-1;
+          opacity: 0;
+
+          button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: $radius-sm;
+            background: hsl(0, 0%, 30%);
+            color: $text-white;
+            border: none;
+          }
+        }
+
+        img.standard-item__body-images-img-photo,
+        .standard-item__body-images-img-photo {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          object-fit: cover;
+          color: $text-hint;
+        }
+
+        &-has-seg {
+          position: absolute;
+          top: $space-1;
+          left: $space-1;
+          border-radius: $radius-sm;
+          padding: 1px $space-1;
+          font-weight: $fw-extrabold;
+          font-size: $text-micro;
+          background: $primary;
+          color: $text-white;
+        }
+
+        &-no-seg {
+          position: absolute;
+          bottom: $space-1;
+          right: $space-1;
+          border-radius: $radius-sm;
+          padding: 1px $space-1;
+          font-weight: $fw-extrabold;
+          font-size: $text-micro;
+          background: hsl(0, 0%, 30%);
+          color: $text-white;
+        }
+      }
+
+      &-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 4/3;
+        border-radius: $radius-md;
+        border: 2px dashed $line;
+        color: $text-hint;
+        cursor: pointer;
+      }
+    }
+  }
+}

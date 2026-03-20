@@ -9,13 +9,17 @@ class Segment(Base):
     __tablename__ = "segments"
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE")
+    image_id: Mapped[UUID] = mapped_column(
+        ForeignKey("standard_images.id", ondelete="CASCADE")
+    )
+    segment_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None
     )
     label: Mapped[str] = mapped_column(String(255))
-    mask_path: Mapped[str | None] = mapped_column(String(500), default=None)
     points: Mapped[list] = mapped_column(JSON, default=list)
-    confidence_threshold: Mapped[float] = mapped_column(default=0.7)
-    is_critical: Mapped[bool] = mapped_column(default=True)
+    mask_path: Mapped[str | None] = mapped_column(String(500), default=None)
 
-    standard: Mapped["Standard"] = relationship(back_populates="segments")
+    image: Mapped["StandardImage"] = relationship(back_populates="segments")
+    segment_group: Mapped["SegmentGroup | None"] = relationship(
+        back_populates="segments"
+    )

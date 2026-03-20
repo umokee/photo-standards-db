@@ -4,8 +4,9 @@ python-multipart
 
 sqlalchemy
 asyncpg
+pydantic-settings
+pydantic
 
 bcrypt
 
-pydantic-settings
-pydantic
+opencv-python

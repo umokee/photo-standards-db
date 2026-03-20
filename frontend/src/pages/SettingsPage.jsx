@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import DeleteModal from "../components/modals/DeleteModal";
+import DeleteModal from "../components/DeleteModal";
 import UserCreateModal from "../components/modals/UserCreateModal";
 import UserUpdateModal from "../components/modals/UserUpdateModal";
 import QueryState from "../components/QueryState";

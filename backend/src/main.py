@@ -6,7 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from models import *
-from routes import cameras, groups, inspections, segments, standards, users
+from routes import (
+    cameras,
+    groups,
+    inspections,
+    segment_groups,
+    segments,
+    standard_images,
+    standards,
+    users,
+)
 
 
 @asynccontextmanager
@@ -31,6 +40,8 @@ app.add_middleware(
 app.include_router(groups.router)
 app.include_router(standards.router)
 app.include_router(segments.router)
+app.include_router(standard_images.router)
+app.include_router(segment_groups.router)
 app.include_router(inspections.router)
 app.include_router(cameras.router)
 app.include_router(users.router)

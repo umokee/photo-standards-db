@@ -1,10 +1,10 @@
 import { Camera, FolderOpen, SearchCheck, Settings } from "lucide-react";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
-import CamerasPage from "./pages/CamerasPage";
-import GroupsPage from "./pages/GroupsPage";
+import CamerasPage from "./pages/cameras/CamerasPage";
+import GroupsPage from "./pages/groups/GroupsPage";
 import InspectionPage from "./pages/InspectionPage";
+import SegmentsPage from "./pages/segments/SegmentsPage";
 import SettingsPage from "./pages/SettingsPage";
-import StandardDetailPage from "./pages/StandardDetailPage";
 
 export default function App() {
   return (
@@ -36,10 +36,10 @@ export default function App() {
         </div>
       </header>
       <Routes>
-        <Route path="/groups/:id?" element={<GroupsPage />} />
-        <Route path="/standards/:id" element={<StandardDetailPage />} />
+        <Route path="/groups/:groupId?" element={<GroupsPage />} />
+        <Route path="/standards/:standardId/image/:imageId" element={<SegmentsPage />} />
         <Route path="/inspections" element={<InspectionPage />} />
-        <Route path="/cameras/:id?" element={<CamerasPage />} />
+        <Route path="/cameras/:cameraId?" element={<CamerasPage />} />
         <Route path="/settings/:tab" element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>

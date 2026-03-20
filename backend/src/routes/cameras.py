@@ -38,7 +38,7 @@ async def update_camera(
 ):
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Camera not found")
+        raise HTTPException(status_code=404, detail="Камера не найдена")
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(camera, key, value)
@@ -55,7 +55,7 @@ async def delete_camera(
 ):
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Camera not found")
+        raise HTTPException(status_code=404, detail="Сегмент не найден")
 
     await db.delete(camera)
     await db.commit()

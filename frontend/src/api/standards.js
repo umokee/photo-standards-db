@@ -5,13 +5,12 @@ export const getStandard = async (id) => {
   return data;
 };
 
-export const createStandard = async ({ selectedId, name, image, angle }) => {
-  const form = new FormData();
-  form.append("group_id", selectedId);
-  if (name) form.append("name", name);
-  form.append("image", image);
-  form.append("angle", angle);
-  const { data } = await client.post("/standards", form);
+export const createStandard = async ({ groupId, name, angle }) => {
+  const { data } = await client.post("/standards", {
+    group_id: groupId,
+    name: name || null,
+    angle,
+  });
   return data;
 };
 

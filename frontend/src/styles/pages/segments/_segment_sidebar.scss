@@ -1,0 +1,137 @@
+@use "../../variables" as *;
+
+.segment-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid $line;
+  background: $surface;
+  width: $sidebar-width;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid $line-soft;
+    padding: $space-3 $space-4;
+
+    &-name {
+      font-size: $text-title;
+      font-weight: $fw-bold;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+
+    &-group {
+      display: flex;
+      align-items: center;
+      padding: $space-2 $space-3;
+      gap: $space-2;
+      background: $surface-hover;
+
+      &-dot {
+        padding: 0;
+        color: $text-hint;
+      }
+
+      &-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 25%;
+        flex-shrink: 0;
+      }
+
+      &-name {
+        flex: 1;
+        font-weight: $fw-bold;
+      }
+
+      &-count {
+        color: $text-hint;
+      }
+
+      &-add {
+        color: $text-hint;
+      }
+    }
+
+    &-segment {
+      display: flex;
+      align-items: center;
+      padding: $space-2 $space-3;
+      padding-left: 43px;
+      gap: $space-2;
+      cursor: pointer;
+      border-bottom: 1px solid $line;
+
+      &-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 25%;
+        flex-shrink: 0;
+      }
+
+      &-label {
+        flex: 1;
+      }
+
+      &-delete {
+        color: $danger;
+      }
+    }
+  }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    padding: $space-2 $space-3;
+    border-top: 1px solid $line;
+    margin-top: auto;
+
+    &-color {
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+      padding: $space-2 0;
+
+      &-preview {
+        width: 20px;
+        height: 20px;
+        border-radius: 25%;
+        border: 2px solid $line;
+      }
+
+      .range-input {
+        flex: 1;
+      }
+
+      &-value {
+        font-size: $text-small;
+        color: $text-hint;
+        text-align: right;
+      }
+    }
+
+    &-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: $space-2;
+      padding: $space-2 0;
+    }
+  }
+}
+
+.add-segment-form {
+  display: flex;
+  flex-direction: column;
+  padding: $space-4;
+  background: $surface;
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $space-2;
+  }
+}

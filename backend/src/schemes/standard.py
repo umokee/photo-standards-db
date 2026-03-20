@@ -4,8 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
-from .segment import SegmentResponse
-
 Angle = Literal["front", "top", "left", "right", "back"]
 
 Name = Annotated[
@@ -16,14 +14,12 @@ Name = Annotated[
         max_length=255,
     ),
 ]
-ImagePath = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=500,
-    ),
-]
+
+
+class StandardCreate(BaseModel):
+    group_id: UUID
+    name: Name = None
+    angle: Angle | None = None
 
 
 class StandardUpdate(BaseModel):
@@ -38,27 +34,32 @@ class StandardUpdate(BaseModel):
         return self
 
 
-class StandardShortResponse(BaseModel):
-    id: UUID
-    group_id: UUID
-    name: str | None
-    image_path: str
-    angle: Angle | None
-    is_active: bool
-    created_at: datetime
-    segment_count: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class StandardResponse(BaseModel):
     id: UUID
+    name: str | None
+    angle: Angle | None
+    is_active: bool
+    image_count: int = 0
+    annotated_count: int = 0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StandardDetailResponse(BaseModel):
+    id: UUID
     group_id: UUID
     name: str | None
-    image_path: str
     angle: Angle | None
     is_active: bool
     created_at: datetime
-    segments: list[SegmentResponse]
+    images: list["StandardImageResponse"]
+    segment_groups: list["SegmentGroupResponse"]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+from .segment_group import SegmentGroupResponse
+from .standard_image import StandardImageResponse
+
+StandardDetailResponse.model_rebuild()

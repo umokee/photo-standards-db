@@ -1,0 +1,61 @@
+@use "../../variables" as *;
+
+.group-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-5;
+
+  &__title {
+    display: flex;
+    flex-direction: column;
+
+    &-name {
+      font-size: $text-stat;
+      font-weight: $fw-bold;
+    }
+
+    &-description {
+      font-size: $text-title;
+      color: $text-sub;
+      margin-top: $space-1;
+    }
+
+    &-info {
+      display: flex;
+      gap: $space-2;
+      margin-top: $space-2;
+      color: $text-hint;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $space-2;
+  }
+}
+
+.group-standards-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: $text-hint;
+    font-weight: $fw-bold;
+    padding-bottom: $space-4;
+    gap: $space-3;
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: $space-4;
+  }
+}

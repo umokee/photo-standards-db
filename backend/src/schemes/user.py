@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
 Role = Literal["operator", "inspector", "admin"]
-
 Username = Annotated[
     str,
     StringConstraints(

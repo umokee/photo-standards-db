@@ -13,11 +13,17 @@
 @use "components/query-state";
 @use "components/modals/segment_form_modal";
 @use "components/items/segment-item";
-@use "components/items/standard-item";
+
+@use "pages/groups/group_sidebar";
+@use "pages/groups/group_details";
+@use "pages/groups/standard-item";
+
+@use "pages/segments/segment_sidebar";
+
+@use "pages/cameras/camera_sidebar";
+@use "pages/cameras/camera_details";
 
 @use "pages/login";
-@use "pages/groups";
 @use "pages/standards";
-@use "pages/cameras";
 @use "pages/settings";
 @use "pages/inspections";
