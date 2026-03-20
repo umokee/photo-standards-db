@@ -17,7 +17,7 @@ function segmentColor(hue, isSelected) {
   };
 }
 
-function nearestEdgeInsert(canvasPoints, cx, cy) {
+function projectOnEdge(canvasPoints, cx, cy) {
   let best = { dist: Infinity, index: -1, point: null };
 
   for (let i = 0; i < canvasPoints.length; i++) {
@@ -49,6 +49,7 @@ export default function StandardCanvas({
 }) {
   const containerRef = useRef(null);
   const lineRefs = useRef({});
+  const drawingLineRef = useRef(null);
   const [image] = useImage(imageUrl);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [drawingPts, setDrawingPts] = useState([]);
@@ -56,13 +57,12 @@ export default function StandardCanvas({
 
   const hueOf = (seg) => {
     if (!seg?.segment_group_id) return DEFAULT_HUE;
-    const group = segmentGroups.find((g) => g.id === seg.segment_group_id);
-    return group?.hue || DEFAULT_HUE;
+    return segmentGroups.find((g) => g.id === seg.segment_group_id)?.hue ?? DEFAULT_HUE;
   };
 
   const selectedSeg = segments.find((s) => s.id === selectedId);
-  const isDrawing = (selectedId && !hasPoints(selectedSeg)) || drawingPts.length > 0;
-  const isEditing = selectedId && hasPoints(selectedSeg) && !isDrawing;
+  const isClosed = hasPoints(selectedSeg);
+  const isDrawing = (selectedId && !isClosed) || drawingPts.length > 0;
 
   const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
   if (prevSelectedId !== selectedId) {
@@ -117,6 +117,11 @@ export default function StandardCanvas({
     clamp(cy, imageRect.offsetY, imageRect.offsetY + imageRect.height),
   ];
 
+  const vertexBound = (pos) => {
+    const [nx, ny] = clampToImage(pos.x, pos.y);
+    return { x: nx, y: ny };
+  };
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -130,6 +135,14 @@ export default function StandardCanvas({
   const persist = (id, points) => {
     setLocalOverride({ id, points });
     onPointsChange(id, points);
+  };
+
+  const updateLine = (lineNode, points, vi, x, y) => {
+    if (!lineNode) return;
+    const pts = [...points];
+    pts[vi] = [x, y];
+    lineNode.points(pts.flat());
+    lineNode.getLayer().batchDraw();
   };
 
   const handleStageClick = (e) => {
@@ -155,19 +168,51 @@ export default function StandardCanvas({
     if (clickedEmpty) onSelect(null);
   };
 
+  const handleDrawingDragMove = (vi, e) => {
+    e.cancelBubble = true;
+    const canvasPts = drawingPts.map(([ix, iy]) => toCanvas(ix, iy));
+    updateLine(drawingLineRef.current, canvasPts, vi, e.target.x(), e.target.y());
+  };
+
+  const handleDrawingDragEnd = (vi, e) => {
+    e.cancelBubble = true;
+    const point = toImage(e.target.x(), e.target.y());
+    setDrawingPts((prev) => prev.map((p, j) => (j === vi ? point : p)));
+  };
+
+  const handleDrawingDblClick = (vi, e) => {
+    e.cancelBubble = true;
+    if (drawingPts.length <= 1) return;
+    setDrawingPts((prev) => prev.filter((_, j) => j !== vi));
+  };
+
   const handleLineClick = (seg, e) => {
     if (seg.id !== selectedId) return onSelect(seg.id);
 
     e.cancelBubble = true;
     const pos = e.target.getStage().getPointerPosition();
     const canvasPts = seg.points.map(([ix, iy]) => toCanvas(ix, iy));
-    const { index, point, dist } = nearestEdgeInsert(canvasPts, pos.x, pos.y);
-
+    const { index, point, dist } = projectOnEdge(canvasPts, pos.x, pos.y);
     if (dist > EDGE_HIT_RADIUS || !point) return;
 
     const newPoints = [...seg.points];
     newPoints.splice(index, 0, toImage(point[0], point[1]));
     persist(seg.id, newPoints);
+  };
+
+  const handleVertexDragMove = (seg, vi, e) => {
+    e.cancelBubble = true;
+    const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
+    updateLine(lineRefs.current[seg.id], canvasPts, vi, e.target.x(), e.target.y());
+  };
+
+  const handleVertexDragEnd = (seg, vi, e) => {
+    e.cancelBubble = true;
+    const pt = toImage(e.target.x(), e.target.y());
+    persist(
+      seg.id,
+      seg.points.map((p, i) => (i === vi ? pt : p))
+    );
   };
 
   const handleVertexDblClick = (seg, vi, e) => {
@@ -179,29 +224,10 @@ export default function StandardCanvas({
     );
   };
 
-  const handleVertexDragMove = (seg, vi, e) => {
-    e.cancelBubble = true;
-    const lineNode = lineRefs.current[seg.id];
-    if (!lineNode) return;
-    const points = seg.points.map(([ix, iy]) => toCanvas(ix, iy));
-    points[vi] = [e.target.x(), e.target.y()];
-    lineNode.points(points.flat());
-    lineNode.getLayer().batchDraw();
-  };
-
-  const handleVertexDragEnd = (seg, vi, e) => {
-    e.cancelBubble = true;
-    const point = toImage(e.target.x(), e.target.y());
-    persist(
-      seg.id,
-      seg.points.map((p, i) => (i === vi ? point : p))
-    );
-  };
-
   const handleGroupDragEnd = (seg, e) => {
     const node = e.target;
-    const dx = node.x();
-    const dy = node.y();
+    const dx = node.x(),
+      dy = node.y();
     node.x(0);
     node.y(0);
     persist(
@@ -213,10 +239,10 @@ export default function StandardCanvas({
     );
   };
 
-  const dragBound = (seg) => (pos) => {
-    const points = seg.points.map(([ix, iy]) => toCanvas(ix, iy));
-    const xs = points.map(([x]) => x);
-    const ys = points.map(([, y]) => y);
+  const groupBound = (seg) => (pos) => {
+    const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
+    const xs = canvasPts.map(([x]) => x);
+    const ys = canvasPts.map(([, y]) => y);
     return {
       x: clamp(
         pos.x,
@@ -238,9 +264,14 @@ export default function StandardCanvas({
 
   const drawingCanvasPts = drawingPts.map(([ix, iy]) => toCanvas(ix, iy));
   const drawingHue = selectedSeg ? hueOf(selectedSeg) : DEFAULT_HUE;
+  const drawingStroke = `hsl(${drawingHue},65%,45%)`;
 
   return (
-    <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height: "100%" }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <Stage
         width={size.width}
         height={size.height}
@@ -260,7 +291,6 @@ export default function StandardCanvas({
         <Layer>
           {displaySegments.map((seg) => {
             if (!hasPoints(seg)) return null;
-
             const isSelected = seg.id === selectedId;
             const hue = hueOf(seg);
             const canvasPts = seg.points.map(([ix, iy]) => toCanvas(ix, iy));
@@ -269,9 +299,9 @@ export default function StandardCanvas({
             return (
               <Group
                 key={seg.id}
-                draggable={isSelected && isEditing}
-                dragBoundFunc={isSelected && isEditing ? dragBound(seg) : undefined}
-                onDragEnd={isSelected && isEditing ? (e) => handleGroupDragEnd(seg, e) : undefined}
+                draggable={isSelected}
+                dragBoundFunc={isSelected ? groupBound(seg) : undefined}
+                onDragEnd={isSelected ? (e) => handleGroupDragEnd(seg, e) : undefined}
               >
                 <Line
                   ref={(node) => {
@@ -287,7 +317,6 @@ export default function StandardCanvas({
                 />
 
                 {isSelected &&
-                  isEditing &&
                   canvasPts.map(([cx, cy], vi) => (
                     <Circle
                       key={vi}
@@ -298,10 +327,7 @@ export default function StandardCanvas({
                       stroke={stroke}
                       strokeWidth={2}
                       draggable
-                      dragBoundFunc={(pos) => {
-                        const [nx, ny] = clampToImage(pos.x, pos.y);
-                        return { x: nx, y: ny };
-                      }}
+                      dragBoundFunc={vertexBound}
                       onDragStart={(e) => {
                         e.cancelBubble = true;
                       }}
@@ -320,9 +346,11 @@ export default function StandardCanvas({
         {isDrawing && drawingCanvasPts.length > 0 && (
           <Layer>
             <Line
+              ref={drawingLineRef}
               points={drawingCanvasPts.flat()}
-              stroke={`hsl(${drawingHue},65%,45%)`}
+              stroke={drawingStroke}
               strokeWidth={2}
+              dash={[6, 3]}
               closed={false}
               listening={false}
             />
@@ -331,11 +359,20 @@ export default function StandardCanvas({
                 key={i}
                 x={cx}
                 y={cy}
-                radius={i === 0 ? 6 : 3}
-                fill={i === 0 ? `hsl(${drawingHue},65%,45%)` : "white"}
-                stroke={i === 0 ? "white" : "black"}
+                radius={i === 0 ? 6 : 4}
+                fill={i === 0 ? drawingStroke : "white"}
+                stroke={i === 0 ? "white" : drawingStroke}
                 strokeWidth={2}
-                listening={false}
+                draggable
+                dragBoundFunc={vertexBound}
+                onDragStart={(e) => {
+                  e.cancelBubble = true;
+                }}
+                onDragMove={(e) => handleDrawingDragMove(i, e)}
+                onDragEnd={(e) => handleDrawingDragEnd(i, e)}
+                onDblClick={(e) => handleDrawingDblClick(i, e)}
+                onMouseEnter={(e) => setCursor(e, "grab")}
+                onMouseLeave={(e) => setCursor(e, "crosshair")}
               />
             ))}
           </Layer>
