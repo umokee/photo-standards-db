@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
@@ -106,6 +106,12 @@ export default function SegmentSidebar({
                     }`}
                     onClick={() => onSelectSegment(segment)}
                   >
+                    <span className="segment-sidebar__body-segment-alert">
+                      <TriangleAlert
+                        size={16}
+                        style={{ visibility: segment.points.length === 0 ? "visible" : "hidden" }}
+                      />
+                    </span>
                     <span
                       className="segment-sidebar__body-segment-color"
                       style={{ background: `hsl(${group.hue}, 70%, 50%)` }}

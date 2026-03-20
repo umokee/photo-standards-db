@@ -50,10 +50,12 @@ export default function StandardCanvas({
   const containerRef = useRef(null);
   const lineRefs = useRef({});
   const drawingLineRef = useRef(null);
+  const isDragging = useRef(false);
   const [image] = useImage(imageUrl);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [drawingPts, setDrawingPts] = useState([]);
   const [localOverride, setLocalOverride] = useState(null);
+  const [ghostPos, setGhostPos] = useState(null);
 
   const hueOf = (seg) => {
     if (!seg?.segment_group_id) return DEFAULT_HUE;
@@ -176,6 +178,8 @@ export default function StandardCanvas({
 
   const handleDrawingDragEnd = (vi, e) => {
     e.cancelBubble = true;
+    isDragging.current = false;
+    setGhostPos(null);
     const point = toImage(e.target.x(), e.target.y());
     setDrawingPts((prev) => prev.map((p, j) => (j === vi ? point : p)));
   };
@@ -208,6 +212,8 @@ export default function StandardCanvas({
 
   const handleVertexDragEnd = (seg, vi, e) => {
     e.cancelBubble = true;
+    isDragging.current = false;
+    setGhostPos(null);
     const pt = toImage(e.target.x(), e.target.y());
     persist(
       seg.id,
@@ -225,6 +231,8 @@ export default function StandardCanvas({
   };
 
   const handleGroupDragEnd = (seg, e) => {
+    isDragging.current = false;
+    setGhostPos(null);
     const node = e.target;
     const dx = node.x(),
       dy = node.y();
@@ -277,6 +285,30 @@ export default function StandardCanvas({
         height={size.height}
         style={{ cursor: defaultCursor }}
         onClick={handleStageClick}
+        onMouseMove={(e) => {
+          if (isDragging.current) return;
+          const pos = e.target.getStage().getPointerPosition();
+
+          if (isDrawing && drawingPts.length > 0) {
+            setGhostPos(clampToImage(pos.x, pos.y));
+            return;
+          }
+
+          if (selectedId) {
+            const seg = displaySegments.find((s) => s.id === selectedId);
+            if (seg && hasPoints(seg)) {
+              const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
+              const { dist, point } = projectOnEdge(canvasPts, pos.x, pos.y);
+              if (dist <= EDGE_HIT_RADIUS && point) {
+                setGhostPos(point);
+                return;
+              }
+            }
+          }
+
+          if (ghostPos) setGhostPos(null);
+        }}
+        onMouseLeave={() => ghostPos && setGhostPos(null)}
       >
         <Layer>
           <Image
@@ -301,6 +333,10 @@ export default function StandardCanvas({
                 key={seg.id}
                 draggable={isSelected}
                 dragBoundFunc={isSelected ? groupBound(seg) : undefined}
+                onDragStart={() => {
+                  isDragging.current = true;
+                  setGhostPos(null);
+                }}
                 onDragEnd={isSelected ? (e) => handleGroupDragEnd(seg, e) : undefined}
               >
                 <Line
@@ -330,6 +366,8 @@ export default function StandardCanvas({
                       dragBoundFunc={vertexBound}
                       onDragStart={(e) => {
                         e.cancelBubble = true;
+                        isDragging.current = true;
+                        setGhostPos(null);
                       }}
                       onDragMove={(e) => handleVertexDragMove(seg, vi, e)}
                       onDragEnd={(e) => handleVertexDragEnd(seg, vi, e)}
@@ -367,6 +405,8 @@ export default function StandardCanvas({
                 dragBoundFunc={vertexBound}
                 onDragStart={(e) => {
                   e.cancelBubble = true;
+                  isDragging.current = true;
+                  setGhostPos(null);
                 }}
                 onDragMove={(e) => handleDrawingDragMove(i, e)}
                 onDragEnd={(e) => handleDrawingDragEnd(i, e)}
@@ -375,6 +415,35 @@ export default function StandardCanvas({
                 onMouseLeave={(e) => setCursor(e, "crosshair")}
               />
             ))}
+          </Layer>
+        )}
+
+        {ghostPos && (
+          <Layer>
+            {isDrawing && drawingCanvasPts.length > 0 && (
+              <Line
+                points={[...drawingCanvasPts[drawingCanvasPts.length - 1], ...ghostPos]}
+                stroke={drawingStroke}
+                strokeWidth={1}
+                dash={[4, 4]}
+                opacity={0.5}
+                listening={false}
+              />
+            )}
+            <Circle
+              x={ghostPos[0]}
+              y={ghostPos[1]}
+              radius={4}
+              fill={isDrawing ? drawingStroke : "white"}
+              stroke={
+                isDrawing
+                  ? "white"
+                  : segmentColor(selectedSeg ? hueOf(selectedSeg) : DEFAULT_HUE, true).stroke
+              }
+              strokeWidth={2}
+              opacity={0.5}
+              listening={false}
+            />
           </Layer>
         )}
       </Stage>
