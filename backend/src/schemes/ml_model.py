@@ -15,6 +15,7 @@ class MlModelTrainRequest(BaseModel):
     epochs: int = Field(100, ge=1, le=1000)
     imgsz: int = Field(640, ge=32)
     batch_size: int = Field(16, ge=1, le=256)
+    classes: list[str] | None = None 
 
 
 class MlModelResponse(BaseModel):
@@ -28,6 +29,7 @@ class MlModelResponse(BaseModel):
     batch_size: int | None
     num_classes: int | None
     metrics: dict | None
+    class_names: list[str] | None = None
     is_active: bool
     trained_at: datetime | None
     created_at: datetime

@@ -2,10 +2,11 @@ from uuid import UUID
 
 from fastapi import HTTPException, UploadFile
 from models.segment import Segment
+from models.segment_annotation import SegmentAnnotation
 from models.segment_group import SegmentGroup
 from models.standard import Standard
 from models.standard_image import StandardImage
-from schemes.segment import SegmentCreate, SegmentUpdate
+from schemes.segment import AnnotationSave, SegmentCreate, SegmentUpdate
 from schemes.segment_group import SegmentGroupCreate, SegmentGroupUpdate
 from schemes.standard import StandardCreate, StandardUpdate
 from services import file_service
@@ -22,7 +23,8 @@ async def get_detail(
     result = await db.execute(
         select(Standard)
         .options(
-            selectinload(Standard.images).selectinload(StandardImage.segments),
+            selectinload(Standard.images).selectinload(StandardImage.annotations),
+            selectinload(Standard.segments),
             selectinload(Standard.segment_groups).selectinload(SegmentGroup.segments),
         )
         .where(Standard.id == standard_id)
@@ -120,7 +122,7 @@ async def upload_image(
 
     result = await db.execute(
         select(StandardImage)
-        .options(selectinload(StandardImage.segments))
+        .options(selectinload(StandardImage.annotations))
         .where(StandardImage.id == standard_image_id)
     )
     return result.scalar_one()
@@ -157,7 +159,7 @@ async def upload_images(
 
     result = await db.execute(
         select(StandardImage)
-        .options(selectinload(StandardImage.segments))
+        .options(selectinload(StandardImage.annotations))
         .where(StandardImage.id.in_(img_ids))
     )
     return result.scalars().all()
@@ -182,7 +184,7 @@ async def set_reference(
 
     result = await db.execute(
         select(StandardImage)
-        .options(selectinload(StandardImage.segments))
+        .options(selectinload(StandardImage.annotations))
         .where(StandardImage.id == image_id)
     )
     return result.scalar_one()
@@ -192,12 +194,40 @@ async def get_image(
     db: AsyncSession,
     image_id: UUID,
 ) -> StandardImage:
-    img = await db.execute(
+    result = await db.execute(
         select(StandardImage)
-        .options(selectinload(StandardImage.segments))
+        .options(selectinload(StandardImage.annotations))
         .where(StandardImage.id == image_id)
     )
-    return img.scalar_one_or_none()
+    image = result.scalar_one_or_none()
+    if not image:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+
+    result = await db.execute(
+        select(Segment)
+        .where(Segment.standard_id == image.standard_id)
+        .order_by(Segment.label)
+    )
+    all_segments = result.scalars().all()
+
+    ann_map = {a.segment_id: a.points for a in image.annotations}
+
+    return {
+        "id": image.id,
+        "image_path": image.image_path,
+        "is_reference": image.is_reference,
+        "annotation_count": len(image.annotations),
+        "created_at": image.created_at,
+        "segments": [
+            {
+                "id": seg.id,
+                "segment_group_id": seg.segment_group_id,
+                "label": seg.label,
+                "points": ann_map.get(seg.id, []),
+            }
+            for seg in all_segments
+        ],
+    }
 
 
 async def delete_image(
@@ -252,6 +282,51 @@ async def delete_segment(
 
     await db.delete(segment)
     await db.commit()
+
+
+async def save_annotation(
+    db: AsyncSession,
+    segment_id: UUID,
+    image_id: UUID,
+    data: AnnotationSave,
+) -> dict:
+    segment = await db.get(Segment, segment_id)
+    if not segment:
+        raise HTTPException(status_code=404, detail="Сегмент не найден")
+
+    image = await db.get(StandardImage, image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+
+    result = await db.execute(
+        select(SegmentAnnotation).where(
+            SegmentAnnotation.segment_id == segment_id,
+            SegmentAnnotation.image_id == image_id,
+        )
+    )
+    annotation = result.scalar_one_or_none()
+
+    if annotation:
+        annotation.points = data.points
+    else:
+        annotation = SegmentAnnotation(
+            segment_id=segment_id,
+            image_id=image_id,
+            points=data.points,
+        )
+        db.add(annotation)
+
+    seg_id = segment.id
+    seg_group_id = segment.segment_group_id
+    seg_label = segment.label
+    await db.commit()
+
+    return {
+        "id": seg_id,
+        "segment_group_id": seg_group_id,
+        "label": seg_label,
+        "points": data.points,
+    }
 
 
 async def create_segment_group(

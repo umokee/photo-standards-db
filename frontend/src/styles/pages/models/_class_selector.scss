@@ -1,0 +1,21 @@
+@use "../../variables" as *;
+
+.class-selector {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid $line-soft;
+    padding: $space-3 $space-4;
+    font-size: $text-title;
+    font-weight: $fw-bold;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $line-soft;
+  }
+}

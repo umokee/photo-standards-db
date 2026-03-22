@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import SegmentItem from "../../components/items/SegmentItem";
+import Button from "../../components/Button";
 import useGroups from "../../hooks/useGroups";
 import useModal from "../../hooks/useModal";
 import useSegmentGroups from "../../hooks/useSegmentGroups";
@@ -28,6 +28,8 @@ export default function SegmentsPage() {
   const {
     create: createSegment,
     update: updateSegment,
+    annotate,
+    refine,
     remove: removeSegment,
   } = useSegments(imageId, standardId);
 
@@ -46,11 +48,26 @@ export default function SegmentsPage() {
 
   const handleFinishDrawing = (points) => {
     if (!selectedSegmentId) return;
-    updateSegment.mutate({ id: selectedSegmentId, points });
+    refine.mutate(
+      { imageId, points },
+      {
+        onSuccess: (data) => {
+          annotate.mutate({
+            segmentId: selectedSegmentId,
+            imageId,
+            points: data.points,
+          });
+        },
+        onError: () => {
+          annotate.mutate({ segmentId: selectedSegmentId, imageId, points });
+        },
+      }
+    );
+    annotate.mutate({ segmentId: selectedSegmentId, imageId, points });
   };
 
   const handlePointsChange = (segmentId, points) => {
-    updateSegment.mutate({ id: segmentId, points });
+    annotate.mutate({ segmentId, imageId, points });
   };
 
   const handleSelect = (segmentId) => {
@@ -62,13 +79,31 @@ export default function SegmentsPage() {
   };
 
   const handleAddSegment = ({ segmentGroupId, label }) => {
-    if (!imageId) return;
-    createSegment.mutate({ imageId, segmentGroupId, label, points: [] });
+    if (!standardId) return;
+    createSegment.mutate({ standardId, segmentGroupId, label });
   };
 
   const handleDeleteSegment = (segment) => {
     if (selectedSegmentId === segment.id) setSelectedSegmentId(null);
     removeSegment.mutate(segment.id);
+  };
+
+  const handleRefine = () => {
+    const seg = segments.find((s) => s.id === selectedSegmentId);
+    if (!seg?.points?.length) return;
+
+    refine.mutate(
+      { imageId, points: seg.points },
+      {
+        onSuccess: (data) => {
+          annotate.mutate({
+            segmentId: selectedSegmentId,
+            imageId,
+            points: data.points,
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -97,6 +132,12 @@ export default function SegmentsPage() {
                 ))
               )}
           </div>
+          {selectedSegmentId &&
+            segments.find((s) => s.id === selectedSegmentId)?.points?.length > 0 && (
+              <Button onClick={handleRefine} disabled={refine.isPending}>
+                {refine.isPending ? "Уточняю..." : "Уточнить"}
+              </Button>
+            )}
         </div>
       </div>
       <div className="standard-detail-page__body">
@@ -110,17 +151,6 @@ export default function SegmentsPage() {
             onSelect={handleSelect}
             onPointsChange={handlePointsChange}
           />
-
-          <div>
-            {standard?.segments?.map((segment) => (
-              <SegmentItem
-                key={segment.id}
-                segment={segment}
-                isSelected={segment.id === selectedSegmentId}
-                onClick={() => setSelectedSegmentId(segment.id)}
-              />
-            ))}
-          </div>
         </div>
         <SegmentSidebar
           segmentGroups={segmentGroups}

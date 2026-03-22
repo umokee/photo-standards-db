@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-requires-python = "==3.13"
+requires-python = "==3.13.0"
 dependencies = [
   "fastapi",
   "uvicorn[standard]",
@@ -13,9 +13,15 @@ dependencies = [
   "pydantic",
 
   "bcrypt",
+  "numpy",
 
-  "opencv-python",
+  "opencv-python-headless",
+  "scikit-image", 
+  "scipy",
+
+  "onnxruntime",
 ]
+
 
 [project.scripts]
 backend = "src.main:main"

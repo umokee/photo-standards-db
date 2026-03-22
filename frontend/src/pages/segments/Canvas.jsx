@@ -1,44 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Circle, Group, Image, Layer, Line, Stage } from "react-konva";
 import useImage from "use-image";
+import useImageLayout from "../../hooks/useImageLayout";
+import {
+  clamp,
+  EDGE_HIT_RADIUS,
+  hasPoints,
+  projectOnEdge,
+  segmentColor,
+  SNAP_RADIUS,
+} from "../../utils/canvas";
 
-const SNAP_RADIUS = 10;
-const EDGE_HIT_RADIUS = 15;
-const DEFAULT_HUE = 0;
-
-const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
-
-const hasPoints = (seg) => Array.isArray(seg?.points) && seg.points.length > 0;
-
-function segmentColor(hue, isSelected) {
-  return {
-    stroke: isSelected ? `hsl(${hue},80%,35%)` : `hsl(${hue},65%,45%)`,
-    fill: `hsla(${hue},65%,45%,0.2)`,
-  };
-}
-
-function projectOnEdge(canvasPoints, cx, cy) {
-  let best = { dist: Infinity, index: -1, point: null };
-
-  for (let i = 0; i < canvasPoints.length; i++) {
-    const [ax, ay] = canvasPoints[i];
-    const [bx, by] = canvasPoints[(i + 1) % canvasPoints.length];
-    const dx = bx - ax;
-    const dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    const t = lenSq === 0 ? 0 : clamp(((cx - ax) * dx + (cy - ay) * dy) / lenSq, 0, 1);
-    const px = ax + t * dx;
-    const py = ay + t * dy;
-    const dist = Math.hypot(cx - px, cy - py);
-
-    if (dist < best.dist) {
-      best = { dist, index: i + 1, point: [px, py] };
-    }
-  }
-  return best;
-}
-
-export default function StandardCanvas({
+export default function Canvas({
   imageUrl,
   segments,
   segmentGroups,
@@ -47,24 +20,31 @@ export default function StandardCanvas({
   onPointsChange,
   onSelect,
 }) {
-  const containerRef = useRef(null);
+  const [image] = useImage(imageUrl);
+  const { containerRef, size, imageRect, toImage, toCanvas, clampToImage, vertexBound } =
+    useImageLayout(image);
+
+  // --- рефы (все локальные, никуда не передаются) ---
+
   const lineRefs = useRef({});
   const drawingLineRef = useRef(null);
   const isDragging = useRef(false);
-  const [image] = useImage(imageUrl);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  // --- стейт ---
+
   const [drawingPts, setDrawingPts] = useState([]);
   const [localOverride, setLocalOverride] = useState(null);
   const [ghostPos, setGhostPos] = useState(null);
 
-  const hueOf = (seg) => {
-    if (!seg?.segment_group_id) return DEFAULT_HUE;
-    return segmentGroups.find((g) => g.id === seg.segment_group_id)?.hue ?? DEFAULT_HUE;
-  };
+  // --- derived ---
+
+  const hueOf = (seg) => segmentGroups.find((g) => g.id === seg?.segment_group_id)?.hue ?? 0;
 
   const selectedSeg = segments.find((s) => s.id === selectedId);
   const isClosed = hasPoints(selectedSeg);
   const isDrawing = (selectedId && !isClosed) || drawingPts.length > 0;
+
+  // --- сброс при смене выделения (render-time adjustment) ---
 
   const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
   if (prevSelectedId !== selectedId) {
@@ -72,6 +52,8 @@ export default function StandardCanvas({
     if (drawingPts.length > 0) setDrawingPts([]);
     if (localOverride) setLocalOverride(null);
   }
+
+  // --- sync localOverride с сервером ---
 
   if (localOverride) {
     const server = segments.find((s) => s.id === localOverride.id);
@@ -86,68 +68,29 @@ export default function StandardCanvas({
       )
     : segments;
 
-  const imageRect = image
-    ? (() => {
-        const scale = Math.min(
-          (size.width - 32) / image.naturalWidth,
-          (size.height - 32) / image.naturalHeight
-        );
-        const width = image.naturalWidth * scale;
-        const height = image.naturalHeight * scale;
-        return {
-          scale,
-          width,
-          height,
-          offsetX: (size.width - width) / 2,
-          offsetY: (size.height - height) / 2,
-        };
-      })()
-    : { scale: 1, width: 0, height: 0, offsetX: 0, offsetY: 0 };
-
-  const toImage = (cx, cy) => [
-    Math.round((cx - imageRect.offsetX) / imageRect.scale),
-    Math.round((cy - imageRect.offsetY) / imageRect.scale),
-  ];
-
-  const toCanvas = (ix, iy) => [
-    imageRect.offsetX + ix * imageRect.scale,
-    imageRect.offsetY + iy * imageRect.scale,
-  ];
-
-  const clampToImage = (cx, cy) => [
-    clamp(cx, imageRect.offsetX, imageRect.offsetX + imageRect.width),
-    clamp(cy, imageRect.offsetY, imageRect.offsetY + imageRect.height),
-  ];
-
-  const vertexBound = (pos) => {
-    const [nx, ny] = clampToImage(pos.x, pos.y);
-    return { x: nx, y: ny };
-  };
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver(([e]) =>
-      setSize({ width: e.contentRect.width, height: e.contentRect.height })
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  // --- persist (optimistic local + callback наверх) ---
 
   const persist = (id, points) => {
     setLocalOverride({ id, points });
     onPointsChange(id, points);
   };
 
-  const updateLine = (lineNode, points, vi, x, y) => {
+  // --- императивное обновление Line при драге (без React-рендера) ---
+
+  const updateLine = (lineNode, canvasPts, vi, x, y) => {
     if (!lineNode) return;
-    const pts = [...points];
+    const pts = [...canvasPts];
     pts[vi] = [x, y];
     lineNode.points(pts.flat());
     lineNode.getLayer().batchDraw();
   };
 
+  // ===================== HANDLERS =====================
+
+  // --- stage click ---
+
   const handleStageClick = (e) => {
+    if (e.evt.button !== 0) return;
     const pos = e.target.getStage().getPointerPosition();
     const clickedEmpty = e.target === e.target.getStage() || e.target.getClassName() === "Image";
 
@@ -170,6 +113,34 @@ export default function StandardCanvas({
     if (clickedEmpty) onSelect(null);
   };
 
+  // --- mouse move (ghost routing) ---
+
+  const handleMouseMove = (e) => {
+    if (isDragging.current) return;
+    const pos = e.target.getStage().getPointerPosition();
+
+    if (isDrawing && drawingPts.length > 0) {
+      setGhostPos(clampToImage(pos.x, pos.y));
+      return;
+    }
+
+    if (selectedId) {
+      const seg = displaySegments.find((s) => s.id === selectedId);
+      if (seg && hasPoints(seg)) {
+        const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
+        const { dist, point } = projectOnEdge(canvasPts, pos.x, pos.y);
+        if (dist <= EDGE_HIT_RADIUS && point) {
+          setGhostPos(point);
+          return;
+        }
+      }
+    }
+
+    if (ghostPos) setGhostPos(null);
+  };
+
+  // --- drawing: vertex drag ---
+
   const handleDrawingDragMove = (vi, e) => {
     e.cancelBubble = true;
     const canvasPts = drawingPts.map(([ix, iy]) => toCanvas(ix, iy));
@@ -185,12 +156,17 @@ export default function StandardCanvas({
   };
 
   const handleDrawingDblClick = (vi, e) => {
+    if (e.evt.button !== 0) return;
     e.cancelBubble = true;
     if (drawingPts.length <= 1) return;
     setDrawingPts((prev) => prev.filter((_, j) => j !== vi));
   };
 
+  // --- segments: line click (select or insert vertex) ---
+
   const handleLineClick = (seg, e) => {
+    if (e.evt.button !== 0) return;
+    if (isDrawing) return;
     if (seg.id !== selectedId) return onSelect(seg.id);
 
     e.cancelBubble = true;
@@ -203,6 +179,8 @@ export default function StandardCanvas({
     newPoints.splice(index, 0, toImage(point[0], point[1]));
     persist(seg.id, newPoints);
   };
+
+  // --- segments: vertex drag ---
 
   const handleVertexDragMove = (seg, vi, e) => {
     e.cancelBubble = true;
@@ -222,6 +200,7 @@ export default function StandardCanvas({
   };
 
   const handleVertexDblClick = (seg, vi, e) => {
+    if (e.evt.button !== 0) return;
     e.cancelBubble = true;
     if (seg.points.length <= 3) return;
     persist(
@@ -230,12 +209,14 @@ export default function StandardCanvas({
     );
   };
 
+  // --- segments: group drag ---
+
   const handleGroupDragEnd = (seg, e) => {
     isDragging.current = false;
     setGhostPos(null);
     const node = e.target;
-    const dx = node.x(),
-      dy = node.y();
+    const dx = node.x();
+    const dy = node.y();
     node.x(0);
     node.y(0);
     persist(
@@ -265,51 +246,39 @@ export default function StandardCanvas({
     };
   };
 
+  // ===================== RENDER =====================
+
   const defaultCursor = isDrawing ? "crosshair" : "default";
   const setCursor = (e, cursor) => {
     e.target.getStage().container().style.cursor = cursor;
   };
 
   const drawingCanvasPts = drawingPts.map(([ix, iy]) => toCanvas(ix, iy));
-  const drawingHue = selectedSeg ? hueOf(selectedSeg) : DEFAULT_HUE;
+  const drawingHue = selectedSeg ? hueOf(selectedSeg) : 0;
   const drawingStroke = `hsl(${drawingHue},65%,45%)`;
 
   return (
     <div
       ref={containerRef}
       style={{ width: "100%", height: "100%" }}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (drawingPts.length > 0) {
+          setDrawingPts([]);
+          setLocalOverride(null);
+          onSelect(null);
+        }
+      }}
     >
       <Stage
         width={size.width}
         height={size.height}
         style={{ cursor: defaultCursor }}
         onClick={handleStageClick}
-        onMouseMove={(e) => {
-          if (isDragging.current) return;
-          const pos = e.target.getStage().getPointerPosition();
-
-          if (isDrawing && drawingPts.length > 0) {
-            setGhostPos(clampToImage(pos.x, pos.y));
-            return;
-          }
-
-          if (selectedId) {
-            const seg = displaySegments.find((s) => s.id === selectedId);
-            if (seg && hasPoints(seg)) {
-              const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
-              const { dist, point } = projectOnEdge(canvasPts, pos.x, pos.y);
-              if (dist <= EDGE_HIT_RADIUS && point) {
-                setGhostPos(point);
-                return;
-              }
-            }
-          }
-
-          if (ghostPos) setGhostPos(null);
-        }}
+        onMouseMove={handleMouseMove}
         onMouseLeave={() => ghostPos && setGhostPos(null)}
       >
+        {/* Фоновое изображение */}
         <Layer>
           <Image
             image={image}
@@ -320,6 +289,7 @@ export default function StandardCanvas({
           />
         </Layer>
 
+        {/* Существующие сегменты */}
         <Layer>
           {displaySegments.map((seg) => {
             if (!hasPoints(seg)) return null;
@@ -349,6 +319,7 @@ export default function StandardCanvas({
                   stroke={stroke}
                   strokeWidth={isSelected ? 2 : 1}
                   hitStrokeWidth={10}
+                  opacity={isDrawing ? 0.15 : 1}
                   onClick={(e) => handleLineClick(seg, e)}
                 />
 
@@ -381,6 +352,7 @@ export default function StandardCanvas({
           })}
         </Layer>
 
+        {/* Рисование нового полигона */}
         {isDrawing && drawingCanvasPts.length > 0 && (
           <Layer>
             <Line
@@ -418,6 +390,7 @@ export default function StandardCanvas({
           </Layer>
         )}
 
+        {/* Ghost-индикатор */}
         {ghostPos && (
           <Layer>
             {isDrawing && drawingCanvasPts.length > 0 && (
@@ -438,7 +411,7 @@ export default function StandardCanvas({
               stroke={
                 isDrawing
                   ? "white"
-                  : segmentColor(selectedSeg ? hueOf(selectedSeg) : DEFAULT_HUE, true).stroke
+                  : segmentColor(selectedSeg ? hueOf(selectedSeg) : 0, true).stroke
               }
               strokeWidth={2}
               opacity={0.5}

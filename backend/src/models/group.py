@@ -21,4 +21,10 @@ class Group(Base):
         back_populates="group", cascade="all, delete-orphan"
     )
 
-    
+    @property
+    def standards_count(self) -> int:
+        return len(self.standards)
+
+    @property
+    def images_count(self) -> int:
+        return sum(s.image_count for s in self.standards)

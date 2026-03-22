@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from models.group import Group
+from models.segment_group import SegmentGroup
 from models.standard import Standard
 from models.standard_image import StandardImage
 from schemes.group import GroupCreate, GroupUpdate
@@ -13,7 +14,11 @@ from sqlalchemy.orm import selectinload
 async def get_groups(
     db: AsyncSession,
 ) -> list[Standard]:
-    result = await db.execute(select(Group).order_by(Group.id))
+    result = await db.execute(
+        select(Group)
+        .options(selectinload(Group.standards).selectinload(Standard.images))
+        .order_by(Group.id)
+    )
     return result.scalars().all()
 
 
@@ -26,7 +31,10 @@ async def get_detail(
         .options(
             selectinload(Group.standards)
             .selectinload(Standard.images)
-            .selectinload(StandardImage.segments),
+            .selectinload(StandardImage.annotations),
+            selectinload(Group.standards)
+            .selectinload(Standard.segment_groups)
+            .selectinload(SegmentGroup.segments),
             selectinload(Group.ml_models),
         )
         .where(Group.id == group_id)

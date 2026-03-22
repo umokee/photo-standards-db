@@ -1,0 +1,21 @@
+@use "../../variables" as *;
+
+.model-details{
+  &__info{
+    margin-bottom: $space-4;
+  }
+
+  &__standards{
+    margin-bottom: $space-4;
+  }
+
+  &__actions{
+    display: flex;
+    gap: $space-3;
+    margin-bottom: $space-4;
+  }
+
+  &__history{
+    margin-bottom: $space-4;
+  }
+}

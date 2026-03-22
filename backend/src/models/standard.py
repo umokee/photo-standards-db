@@ -27,6 +27,9 @@ class Standard(Base):
     images: Mapped[list["StandardImage"]] = relationship(
         back_populates="standard", cascade="all, delete-orphan"
     )
+    segments: Mapped[list["Segment"]] = relationship(
+        back_populates="standard", cascade="all, delete-orphan"
+    )
     segment_groups: Mapped[list["SegmentGroup"]] = relationship(
         back_populates="standard", cascade="all, delete-orphan"
     )
@@ -40,4 +43,4 @@ class Standard(Base):
 
     @property
     def annotated_count(self) -> int:
-        return sum(1 for image in self.images if len(image.segments) > 0)
+        return sum(1 for image in self.images if len(image.annotations) > 0)

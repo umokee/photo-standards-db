@@ -11,6 +11,7 @@
 @use "components/toggle";
 @use "components/modal";
 @use "components/query-state";
+@use "components/progress-bar";
 @use "components/modals/segment_form_modal";
 @use "components/items/segment-item";
 
@@ -19,6 +20,10 @@
 @use "pages/groups/standard-item";
 
 @use "pages/segments/segment_sidebar";
+
+@use "pages/models/model_sidebar";
+@use "pages/models/class_selector";
+@use "pages/models/model_details";
 
 @use "pages/cameras/camera_sidebar";
 @use "pages/cameras/camera_details";

@@ -41,6 +41,7 @@ class StandardResponse(BaseModel):
     is_active: bool
     image_count: int = 0
     annotated_count: int = 0
+    segment_groups: list["SegmentGroupResponse"] = []
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -54,12 +55,15 @@ class StandardDetailResponse(BaseModel):
     is_active: bool
     created_at: datetime
     images: list["StandardImageResponse"]
+    segments: list["SegmentResponse"]
     segment_groups: list["SegmentGroupResponse"]
 
     model_config = ConfigDict(from_attributes=True)
 
 
+from .segment import SegmentResponse
 from .segment_group import SegmentGroupResponse
 from .standard_image import StandardImageResponse
 
+StandardResponse.model_rebuild()
 StandardDetailResponse.model_rebuild()

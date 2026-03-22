@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createSegment, deleteSegment, updateSegment } from "../api/segments";
+import { createSegment, deleteSegment, refineContour, saveAnnotation, updateSegment } from "../api/segments";
 
 const GROUPS_KEY = ["groups"];
 const standardKey = (id) => ["standards", id];
@@ -13,6 +13,11 @@ export default function useSegments(imageId, standardId) {
     if (standardId) qc.invalidateQueries({ queryKey: standardKey(standardId) });
   };
 
+  const refine = useMutation({
+    mutationFn: refineContour,
+    onSuccess: () => invalidate(),
+  });
+
   const create = useMutation({
     mutationFn: createSegment,
     onSuccess: () => invalidate(),
@@ -23,14 +28,21 @@ export default function useSegments(imageId, standardId) {
     onSuccess: () => invalidate(),
   });
 
+  const annotate = useMutation({
+    mutationFn: saveAnnotation,
+    onSuccess: () => invalidate(),
+  });
+
   const remove = useMutation({
     mutationFn: deleteSegment,
     onSuccess: () => invalidate(),
   });
 
   return {
+    refine,
     create,
     update,
+    annotate,
     remove,
   };
 }

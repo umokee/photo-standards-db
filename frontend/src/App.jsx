@@ -1,8 +1,9 @@
 import { Camera, FolderOpen, SearchCheck, Settings } from "lucide-react";
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import CamerasPage from "./pages/cameras/CamerasPage";
 import GroupsPage from "./pages/groups/GroupsPage";
 import InspectionPage from "./pages/InspectionPage";
+import ModelsPage from "./pages/models/ModelsPage";
 import SegmentsPage from "./pages/segments/SegmentsPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -16,6 +17,10 @@ export default function App() {
             <NavLink className="nav__link" to="/groups">
               <FolderOpen className="nav__link-icon" />
               Группы
+            </NavLink>
+            <NavLink className="nav__link" to="/training">
+              <Camera className="nav__link-icon" />
+              Обучение
             </NavLink>
             <NavLink className="nav__link" to="/inspections">
               <SearchCheck className="nav__link-icon" />
@@ -41,6 +46,8 @@ export default function App() {
         <Route path="/inspections" element={<InspectionPage />} />
         <Route path="/cameras/:cameraId?" element={<CamerasPage />} />
         <Route path="/settings/:tab" element={<SettingsPage />} />
+        <Route path="/training/:groupId?" element={<ModelsPage />} />
+        <Route path="/" element={<Navigate to="/groups" />} />
       </Routes>
     </BrowserRouter>
   );

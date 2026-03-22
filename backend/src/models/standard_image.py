@@ -18,10 +18,10 @@ class StandardImage(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     standard: Mapped["Standard"] = relationship(back_populates="images")
-    segments: Mapped[list["Segment"]] = relationship(
+    annotations: Mapped[list["SegmentAnnotation"]] = relationship(
         back_populates="image", cascade="all, delete-orphan"
     )
 
     @property
-    def segment_count(self) -> int:
-        return len(self.segments)
+    def annotation_count(self) -> int:
+        return len(self.annotations)

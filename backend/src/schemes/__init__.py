@@ -11,7 +11,13 @@ from .ml_model import (
     MlModelResponse,
     MlModelTrainRequest,
 )
-from .segment import SegmentCreate, SegmentResponse, SegmentUpdate
+from .segment import (
+    AnnotationSave,
+    SegmentCreate,
+    SegmentResponse,
+    SegmentUpdate,
+    SegmentWithPointsResponse,
+)
 from .segment_group import (
     SegmentGroupCreate,
     SegmentGroupResponse,
@@ -27,6 +33,7 @@ from .standard_image import StandardImageDetailResponse, StandardImageResponse
 from .user import UserCreate, UserLogin, UserResponse, UserUpdate
 
 __all__ = [
+    "AnnotationSave",
     "CameraCreate",
     "CameraResponse",
     "CameraUpdate",
@@ -44,6 +51,7 @@ __all__ = [
     "SegmentCreate",
     "SegmentResponse",
     "SegmentUpdate",
+    "SegmentWithPointsResponse",
     "SegmentGroupCreate",
     "SegmentGroupResponse",
     "SegmentGroupUpdate",

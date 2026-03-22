@@ -21,6 +21,7 @@ class MlModel(Base):
     batch_size: Mapped[int | None] = mapped_column(Integer, default=None)
     num_classes: Mapped[int | None] = mapped_column(Integer, default=None)
     metrics: Mapped[dict | None] = mapped_column(JSONB, default=None)
+    class_names: Mapped[list | None] = mapped_column(JSONB, default=None)
     is_active: Mapped[bool] = mapped_column(default=False)
     trained_at: Mapped[datetime | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

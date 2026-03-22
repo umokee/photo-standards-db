@@ -56,23 +56,25 @@ export default function StandardItem({ standard, onUpload }) {
                 {detail.images.map((image) => (
                   <div
                     key={image.id}
-                    className={`standard-item__body-images-img${image.segment_count > 0 ? " standard-item__body-images-img--has-seg" : ""}`}
+                    className={`standard-item__body-images-img${image.annotation_count > 0 ? " standard-item__body-images-img--has-seg" : ""}`}
                     onClick={() => navigate(`/standards/${standard.id}/image/${image.id}`)}
                   >
                     <ImageWithFallback
                       src={`${BASE_URL}/storage/${image.image_path}`}
                       className="standard-item__body-images-img-photo"
                     />
-                    {image.segment_count > 0 && (
-                      <span className="standard-item__body-images-img-has-seg">
-                        {image.segment_count}
-                      </span>
-                    )}
-                    {image.segment_count === 0 && (
+                    <div className="standard-item__body-images-img-badges">
+                      {image.is_reference && (
+                        <span className="standard-item__body-images-img-ref">ЭТ</span>
+                      )}
+                      {image.annotation_count > 0 && (
+                        <span className="standard-item__body-images-img-has-seg">
+                          {image.annotation_count}
+                        </span>
+                      )}
+                    </div>
+                    {image.annotation_count === 0 && (
                       <span className="standard-item__body-images-img-no-seg">не размечено</span>
-                    )}
-                    {image.is_reference && (
-                      <span className="standard-item__body-images-img-ref">ЭТ</span>
                     )}
                     <div className="standard-item__body-images-img-overlay">
                       <button

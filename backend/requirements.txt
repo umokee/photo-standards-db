@@ -8,5 +8,6 @@ pydantic-settings
 pydantic
 
 bcrypt
+numpy
 
-opencv-python
+opencv-python-headless

@@ -69,15 +69,29 @@
           opacity: 1;
         }
 
-        &-ref {
+        &-badges {
           position: absolute;
           top: $space-1;
           left: $space-1;
+          display: flex;
+          gap: $space-1;
+        }
+
+        &-has-seg {
           border-radius: $radius-sm;
           padding: 1px $space-1;
           font-weight: $fw-extrabold;
           font-size: $text-micro;
-          background:hsl(220, 90%, 70%);
+          background: $primary;
+          color: $text-white;
+        }
+
+        &-ref {
+          border-radius: $radius-sm;
+          padding: 1px $space-1;
+          font-weight: $fw-extrabold;
+          font-size: $text-micro;
+          background: hsl(220, 90%, 70%);
           color: $text-white;
         }
 
@@ -113,18 +127,6 @@
           justify-content: center;
           object-fit: cover;
           color: $text-hint;
-        }
-
-        &-has-seg {
-          position: absolute;
-          top: $space-1;
-          left: $space-1;
-          border-radius: $radius-sm;
-          padding: 1px $space-1;
-          font-weight: $fw-extrabold;
-          font-size: $text-micro;
-          background: $primary;
-          color: $text-white;
         }
 
         &-no-seg {

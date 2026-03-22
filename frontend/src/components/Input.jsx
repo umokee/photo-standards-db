@@ -1,10 +1,10 @@
-export default function Input({ label, placeholder, value, isPassword, onChange }) {
+export default function Input({ label, placeholder, value, isPassword, isNumber, onChange }) {
   return (
     <div className="input">
       {label && <label className="input__label">{label}</label>}
       <input
         className="input__field"
-        type={isPassword ? "password" : "text"}
+        type={isPassword ? "password" : isNumber ? "number" : "text"}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}

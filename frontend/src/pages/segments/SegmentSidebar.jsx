@@ -44,7 +44,6 @@ export default function SegmentSidebar({
   };
 
   const segmentsOf = (groupId) => segments.filter((s) => s.segment_group_id === groupId);
-  const ungrouped = segments.filter((s) => !s.segment_group_id);
 
   return (
     <div className="segment-sidebar">
@@ -55,136 +54,109 @@ export default function SegmentSidebar({
         </Button>
       </div>
 
-      {segmentGroups.map((group) => {
-        const isExp = expanded.has(group.id);
-        const groupSegments = segmentsOf(group.id);
+      <div className="segment-sidebar__list">
+        {segmentGroups.map((group) => {
+          const isExp = expanded.has(group.id);
+          const groupSegments = segmentsOf(group.id);
 
-        return (
-          <div key={group.id} className="segment-sidebar__body">
-            <div
-              className="segment-sidebar__body-group"
-              style={{ borderLeft: `3px solid hsl(${group.hue}, 70%, 50%)` }}
-            >
-              <button
-                className={`segment-sidebar__body-group-dot`}
-                onClick={() => toggle(group.id)}
+          return (
+            <div key={group.id} className="segment-sidebar__body">
+              <div
+                className="segment-sidebar__body-group"
+                style={{ borderLeft: `3px solid hsl(${group.hue}, 70%, 50%)` }}
               >
-                <ChevronRight
-                  size={16}
-                  style={{
-                    transform: isExp ? "rotate(90deg)" : "none",
+                <button
+                  className={`segment-sidebar__body-group-dot`}
+                  onClick={() => toggle(group.id)}
+                >
+                  <ChevronRight
+                    size={16}
+                    style={{
+                      transform: isExp ? "rotate(90deg)" : "none",
+                    }}
+                  />
+                </button>
+                <span
+                  className="segment-sidebar__body-group-color"
+                  style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
+                />
+                <span className="segment-sidebar__body-group-name">{group.name}</span>
+                <span className="segment-sidebar__body-group-count">{groupSegments.length}</span>
+                <button
+                  className="segment-sidebar__body-group-add"
+                  onClick={() => {
+                    setAddingToGroupId(group.id);
+                    setSegmentLabel("");
+                    if (!isExp) toggle(group.id);
                   }}
-                />
-              </button>
-              <span
-                className="segment-sidebar__body-group-color"
-                style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
-              />
-              <span className="segment-sidebar__body-group-name">{group.name}</span>
-              <span className="segment-sidebar__body-group-count">{group.segment_count}</span>
-              <button
-                className="segment-sidebar__body-group-add"
-                onClick={() => {
-                  setAddingToGroupId(group.id);
-                  setSegmentLabel("");
-                  if (!isExp) toggle(group.id);
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            {isExp && (
-              <>
-                {groupSegments.map((segment) => (
-                  <div
-                    key={segment.id}
-                    className={`segment-sidebar__body-segment${
-                      selectedSegmentId === segment.id
-                        ? " segment-sidebar__body-segment--selected"
-                        : ""
-                    }`}
-                    onClick={() => onSelectSegment(segment)}
-                  >
-                    <span className="segment-sidebar__body-segment-alert">
-                      <TriangleAlert
-                        size={16}
-                        style={{ visibility: segment.points.length === 0 ? "visible" : "hidden" }}
-                      />
-                    </span>
-                    <span
-                      className="segment-sidebar__body-segment-color"
-                      style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
-                    />
-                    <span className="segment-sidebar__body-segment-label">{segment.label}</span>
-                    <button
-                      className="segment-sidebar__body-segment-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteSegment(segment);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {addingToGroupId === group.id && (
-              <div className="add-segment-form">
-                <Input
-                  placeholder="Название сегмента"
-                  value={segmentLabel}
-                  onChange={setSegmentLabel}
-                  autoFocus
-                />
-                <div className="add-segment-form__actions">
-                  <Button variant="secondary" size="small" onClick={() => setAddingToGroupId(null)}>
-                    Отмена
-                  </Button>
-                  <Button size="small" onClick={() => handleAddSegment(group.id)}>
-                    Добавить
-                  </Button>
-                </div>
+                >
+                  <Plus size={16} />
+                </button>
               </div>
-            )}
-          </div>
-        );
-      })}
 
-      {ungrouped.length > 0 && (
-        <div className="segments-sidebar__group">
-          <div className="segments-sidebar__group-header">
-            <span className="segments-sidebar__group-header-name">Без группы</span>
-            <span className="segments-sidebar__group-header-count">{ungrouped.length}</span>
-          </div>
-          {ungrouped.map((segment) => (
-            <div
-              key={segment.id}
-              className={`segments-sidebar__group-item${
-                selectedSegmentId === segment.id ? " segments-sidebar__group-item--selected" : ""
-              }`}
-              onClick={() => onSelectSegment(segment)}
-            >
-              <span
-                className="segments-sidebar__group-item-dot"
-                style={{ background: "hsl(0, 0%, 50%)" }}
-              />
-              <span className="segments-sidebar__group-item-name">{segment.label}</span>
-              <button
-                className="segments-sidebar__group-item-delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteSegment(segment);
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
+              {isExp && (
+                <>
+                  {addingToGroupId === group.id && (
+                    <div className="add-segment-form">
+                      <Input
+                        placeholder="Название сегмента"
+                        value={segmentLabel}
+                        onChange={setSegmentLabel}
+                        autoFocus
+                      />
+                      <div className="add-segment-form__actions">
+                        <Button
+                          variant="secondary"
+                          size="small"
+                          onClick={() => setAddingToGroupId(null)}
+                        >
+                          Отмена
+                        </Button>
+                        <Button size="small" onClick={() => handleAddSegment(group.id)}>
+                          Добавить
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {groupSegments.map((segment) => (
+                    <div
+                      key={segment.id}
+                      className={`segment-sidebar__body-segment${
+                        selectedSegmentId === segment.id
+                          ? " segment-sidebar__body-segment--selected"
+                          : ""
+                      }`}
+                      onClick={() => onSelectSegment(segment)}
+                    >
+                      <span className="segment-sidebar__body-segment-alert">
+                        <TriangleAlert
+                          size={16}
+                          style={{ visibility: segment.points.length === 0 ? "visible" : "hidden" }}
+                        />
+                      </span>
+                      <span
+                        className="segment-sidebar__body-segment-color"
+                        style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
+                      />
+                      <span className="segment-sidebar__body-segment-label">{segment.label}</span>
+                      <button
+                        className="segment-sidebar__body-segment-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteSegment(segment);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       <div className="segment-sidebar__footer">
         {showAddGroup && (

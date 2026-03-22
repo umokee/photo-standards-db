@@ -85,20 +85,58 @@
   height: calc(100vh - $nav-height);
 
   &__sidebar {
-    width: $sidebar-width;
-    border-right: 1px solid $line;
-    background: $surface;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    width: $sidebar-width;
+    background: $surface;
     overflow-y: auto;
+    border-right: 1px solid $line;
+  }
+
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: calc($sidebar-width - 30px);
+    background: $surface;
+    overflow-y: auto;
+    border-left: 1px solid $line;
   }
 
   &__content {
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__topbar {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-2 $space-4;
+    border-bottom: 1px solid $line;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    flex: 1;
     overflow-y: auto;
     padding: $space-5 $space-6;
+
+    &--no-padding {
+      padding: 0;
+    }
+  }
+
+  &__bottombar {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-2 $space-4;
+    border-top: 1px solid $line;
+    flex-shrink: 0;
   }
 }

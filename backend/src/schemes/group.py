@@ -40,6 +40,8 @@ class GroupResponse(BaseModel):
     name: str
     description: str | None
     created_at: datetime
+    standards_count: int = 0
+    images_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
