@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Прототип — Photo Standards DB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: #0b0d0a; color: #dce0d4;
+      height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .wrapper { text-align: center; max-width: 500px; padding: 40px 20px; }
+    .logo {
+      width: 48px; height: 48px; background: #3d9e72; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+    }
+    .logo svg { width: 28px; height: 28px; fill: none; stroke: #fff; stroke-width: 2; }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.3px; }
+    .sub { font-size: 13px; color: #546050; margin-bottom: 32px; }
+    .pages { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    a.page-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 8px;
+      background: #161a15; border: 1px solid #2b3327;
+      color: #8a9280; text-decoration: none;
+      font-size: 13px; transition: all 0.15s;
+    }
+    a.page-link:hover { background: #1f2620; color: #dce0d4; border-color: #3d9e72; }
+    a.page-link.featured { grid-column: span 2; background: rgba(61,158,114,0.08); border-color: rgba(61,158,114,0.25); color: #5bbf8a; }
+    a.page-link.featured:hover { background: rgba(61,158,114,0.14); }
+    a.page-link svg { width: 16px; height: 16px; stroke-width: 1.5; flex-shrink: 0; }
+    .page-link__tag { margin-left: auto; font-size: 10px; font-family: 'IBM Plex Mono', monospace; color: #3d9e72; background: rgba(61,158,114,0.1); padding: 2px 6px; border-radius: 3px; }
+    .note { margin-top: 24px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: #546050; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="logo">
+      <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><circle cx="11.5" cy="11.5" r="2.5"/></svg>
+    </div>
+    <h1>Photo Standards DB</h1>
+    <p class="sub">UI Prototype · тёмная тема</p>
+    <div class="pages">
+      <a href="training.html" class="page-link featured">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Обучение модели
+        <span class="page-link__tag">главное</span>
+      </a>
+      <a href="groups.html" class="page-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><path d="M13 7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2V7z"/></svg>
+        Группы
+      </a>
+      <a href="segments.html" class="page-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Разметка (canvas)
+      </a>
+      <a href="inspections.html" class="page-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Проверка
+      </a>
+      <a href="cameras.html" class="page-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Камеры
+      </a>
+      <a href="settings.html" class="page-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Настройки
+      </a>
+    </div>
+    <div class="note">prototype/ · только фронтенд · тема сохраняется в localStorage</div>
+  </div>
+</body>
+</html>
