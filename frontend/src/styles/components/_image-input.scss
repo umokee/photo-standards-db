@@ -27,7 +27,7 @@
     font-size: $text-body;
     border: 3px solid $line;
     border-radius: $radius-sm;
-    background: $surface-hover;
+    background: $card-hover;
     cursor: pointer;
 
     // &:hover {
@@ -36,13 +36,13 @@
 
     &--dragging {
       border-color: $primary;
-      background: $primary-ring;
+      background: $primary-bd;
     }
 
     &--error {
       color: $danger;
       border-color: $danger;
-      background: $danger-ring;
+      background: $danger-bd;
     }
 
     * {

@@ -27,7 +27,7 @@
         color: $text-hint;
 
         &:hover {
-          background: $page-hover;
+          background: $page2;
         }
       }
 
@@ -37,7 +37,7 @@
         border-radius: $radius-md;
         padding: $space-1;
         gap: $space-1;
-        background: $surface-hover;
+        background: $card-hover;
         color: $text-hint;
         border: 1px solid $line;
         flex: 1;
@@ -65,7 +65,7 @@
         border-radius: $radius-md;
         padding: $space-1;
         gap: $space-1;
-        background: $surface-hover;
+        background: $card-hover;
         color: $text-hint;
         border: 1px solid $line;
 

@@ -30,11 +30,11 @@
       border-left: 3px solid transparent;
 
       &:hover {
-        background: $surface-hover;
+        background: $card-hover;
       }
 
       &.selected {
-        background: $primary-ring;
+        background: $primary-bd;
         border-left: 3px solid $primary;
       }
 

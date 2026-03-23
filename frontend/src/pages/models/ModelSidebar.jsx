@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import Input from "../../components/Input";
 import QueryState from "../../components/QueryState";
 
-export default function ModelSidebarGroups({
+export default function ModelSidebar({
   groups,
   groupStatus,
   selectedGroupId,
@@ -16,7 +16,7 @@ export default function ModelSidebarGroups({
 
   return (
     <>
-      <div className="group-sidebar__header">
+      <div className="model-sidebar__header">
         <div className="group-sidebar__header-top">
           <span className="group-sidebar__header-name">Группы</span>
         </div>
@@ -32,14 +32,11 @@ export default function ModelSidebarGroups({
           {filtered.map((group) => (
             <div
               key={group.id}
-              className={`group-sidebar__body-item ${selectedGroupId === group.id ? "selected" : ""}`}
+              className={`group-sidebar__item ${selectedGroupId === group.id ? "active" : ""}`}
               onClick={() => onSelectGroup(group.id)}
             >
-              <div className="group-sidebar__body-item-name">{group.name}</div>
-              <div className="group-sidebar__body-item-info">
-                <span>{group.standards_count} эталонов</span>
-                <span>{group.images_count} фото</span>
-              </div>
+              <span>{group.name}</span>
+              <span>{group.standards_count}</span>
             </div>
           ))}
         </QueryState>

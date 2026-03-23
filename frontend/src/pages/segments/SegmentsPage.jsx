@@ -63,7 +63,6 @@ export default function SegmentsPage() {
         },
       }
     );
-    annotate.mutate({ segmentId: selectedSegmentId, imageId, points });
   };
 
   const handlePointsChange = (segmentId, points) => {

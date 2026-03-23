@@ -1,0 +1,11 @@
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+.model-sidebar{
+  &__header{
+    @include sidebar-header;
+  }
+  &__item{
+    @include sidebar-item;
+  }
+}

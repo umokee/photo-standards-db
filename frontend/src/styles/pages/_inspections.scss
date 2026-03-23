@@ -20,7 +20,7 @@
       width: 100%;
 
       &--active {
-        background: $primary-light;
+        background: $primary-bg;
         color: $primary;
         border-color: $primary;
       }
@@ -68,7 +68,7 @@
         border-radius: $radius-md;
         overflow-y: auto;
 
-        &-title{
+        &-title {
           display: flex;
           justify-content: space-between;
           border-bottom: 2px solid $line;

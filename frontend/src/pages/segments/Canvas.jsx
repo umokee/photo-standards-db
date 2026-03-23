@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Group, Image, Layer, Line, Stage } from "react-konva";
 import useImage from "use-image";
 import useImageLayout from "../../hooks/useImageLayout";
@@ -24,43 +24,47 @@ export default function Canvas({
   const { containerRef, size, imageRect, toImage, toCanvas, clampToImage, vertexBound } =
     useImageLayout(image);
 
-  // --- рефы (все локальные, никуда не передаются) ---
-
   const lineRefs = useRef({});
   const drawingLineRef = useRef(null);
   const isDragging = useRef(false);
 
-  // --- стейт ---
-
+  const [mode, setMode] = useState("view"); // "view" | "draw"
   const [drawingPts, setDrawingPts] = useState([]);
   const [localOverride, setLocalOverride] = useState(null);
-  const [ghostPos, setGhostPos] = useState(null);
+  const [drawGhost, setDrawGhost] = useState(null);   // preview следующей точки при рисовании
+  const [edgeGhost, setEdgeGhost] = useState(null);   // preview вставки вершины на ребро
 
   // --- derived ---
 
-  const hueOf = (seg) => segmentGroups.find((g) => g.id === seg?.segment_group_id)?.hue ?? 0;
+  const hueMap = useMemo(
+    () => new Map(segmentGroups.map((g) => [g.id, g.hue])),
+    [segmentGroups]
+  );
+  const hueOf = (seg) => hueMap.get(seg?.segment_group_id) ?? 0;
 
   const selectedSeg = segments.find((s) => s.id === selectedId);
   const isClosed = hasPoints(selectedSeg);
-  const isDrawing = (selectedId && !isClosed) || drawingPts.length > 0;
+  const isDrawing = mode === "draw";
 
-  // --- сброс при смене выделения (render-time adjustment) ---
+  // --- сброс + автовход в режим рисования при смене выделения ---
 
-  const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
-  if (prevSelectedId !== selectedId) {
-    setPrevSelectedId(selectedId);
-    if (drawingPts.length > 0) setDrawingPts([]);
-    if (localOverride) setLocalOverride(null);
-  }
+  useEffect(() => {
+    setDrawingPts([]);
+    setLocalOverride(null);
+    setDrawGhost(null);
+    setEdgeGhost(null);
+    setMode(!selectedId || isClosed ? "view" : "draw");
+  }, [selectedId, isClosed]); // isClosed меняется когда сервер вернул аннотацию → авто-выход из draw
 
   // --- sync localOverride с сервером ---
 
-  if (localOverride) {
+  useEffect(() => {
+    if (!localOverride) return;
     const server = segments.find((s) => s.id === localOverride.id);
     if (server && JSON.stringify(server.points) === JSON.stringify(localOverride.points)) {
       setLocalOverride(null);
     }
-  }
+  }, [segments, localOverride]);
 
   const displaySegments = localOverride
     ? segments.map((seg) =>
@@ -87,6 +91,14 @@ export default function Canvas({
 
   // ===================== HANDLERS =====================
 
+  // общий dragStart для вершин (с cancelBubble чтобы не тащить группу)
+  const handleDragStart = (e) => {
+    e.cancelBubble = true;
+    isDragging.current = true;
+    setDrawGhost(null);
+    setEdgeGhost(null);
+  };
+
   // --- stage click ---
 
   const handleStageClick = (e) => {
@@ -102,6 +114,7 @@ export default function Canvas({
         if (Math.hypot(cx - fx, cy - fy) < SNAP_RADIUS) {
           onFinishDrawing([...drawingPts]);
           setDrawingPts([]);
+          setMode("view");
           return;
         }
       }
@@ -113,30 +126,33 @@ export default function Canvas({
     if (clickedEmpty) onSelect(null);
   };
 
-  // --- mouse move (ghost routing) ---
+  // --- mouse move ---
 
   const handleMouseMove = (e) => {
     if (isDragging.current) return;
     const pos = e.target.getStage().getPointerPosition();
 
     if (isDrawing && drawingPts.length > 0) {
-      setGhostPos(clampToImage(pos.x, pos.y));
+      setDrawGhost(clampToImage(pos.x, pos.y));
+      if (edgeGhost) setEdgeGhost(null);
       return;
     }
 
-    if (selectedId) {
+    if (!isDrawing && selectedId) {
       const seg = displaySegments.find((s) => s.id === selectedId);
       if (seg && hasPoints(seg)) {
         const canvasPts = seg.points.map(([x, y]) => toCanvas(x, y));
         const { dist, point } = projectOnEdge(canvasPts, pos.x, pos.y);
         if (dist <= EDGE_HIT_RADIUS && point) {
-          setGhostPos(point);
+          setEdgeGhost(point);
+          if (drawGhost) setDrawGhost(null);
           return;
         }
       }
     }
 
-    if (ghostPos) setGhostPos(null);
+    if (drawGhost) setDrawGhost(null);
+    if (edgeGhost) setEdgeGhost(null);
   };
 
   // --- drawing: vertex drag ---
@@ -150,7 +166,7 @@ export default function Canvas({
   const handleDrawingDragEnd = (vi, e) => {
     e.cancelBubble = true;
     isDragging.current = false;
-    setGhostPos(null);
+    setDrawGhost(null);
     const point = toImage(e.target.x(), e.target.y());
     setDrawingPts((prev) => prev.map((p, j) => (j === vi ? point : p)));
   };
@@ -191,7 +207,7 @@ export default function Canvas({
   const handleVertexDragEnd = (seg, vi, e) => {
     e.cancelBubble = true;
     isDragging.current = false;
-    setGhostPos(null);
+    setEdgeGhost(null);
     const pt = toImage(e.target.x(), e.target.y());
     persist(
       seg.id,
@@ -213,7 +229,7 @@ export default function Canvas({
 
   const handleGroupDragEnd = (seg, e) => {
     isDragging.current = false;
-    setGhostPos(null);
+    setEdgeGhost(null);
     const node = e.target;
     const dx = node.x();
     const dy = node.y();
@@ -266,6 +282,7 @@ export default function Canvas({
         if (drawingPts.length > 0) {
           setDrawingPts([]);
           setLocalOverride(null);
+          setMode("view");
           onSelect(null);
         }
       }}
@@ -276,7 +293,10 @@ export default function Canvas({
         style={{ cursor: defaultCursor }}
         onClick={handleStageClick}
         onMouseMove={handleMouseMove}
-        onMouseLeave={() => ghostPos && setGhostPos(null)}
+        onMouseLeave={() => {
+          if (drawGhost) setDrawGhost(null);
+          if (edgeGhost) setEdgeGhost(null);
+        }}
       >
         {/* Фоновое изображение */}
         <Layer>
@@ -305,7 +325,7 @@ export default function Canvas({
                 dragBoundFunc={isSelected ? groupBound(seg) : undefined}
                 onDragStart={() => {
                   isDragging.current = true;
-                  setGhostPos(null);
+                  setEdgeGhost(null);
                 }}
                 onDragEnd={isSelected ? (e) => handleGroupDragEnd(seg, e) : undefined}
               >
@@ -335,11 +355,7 @@ export default function Canvas({
                       strokeWidth={2}
                       draggable
                       dragBoundFunc={vertexBound}
-                      onDragStart={(e) => {
-                        e.cancelBubble = true;
-                        isDragging.current = true;
-                        setGhostPos(null);
-                      }}
+                      onDragStart={handleDragStart}
                       onDragMove={(e) => handleVertexDragMove(seg, vi, e)}
                       onDragEnd={(e) => handleVertexDragEnd(seg, vi, e)}
                       onDblClick={(e) => handleVertexDblClick(seg, vi, e)}
@@ -375,11 +391,7 @@ export default function Canvas({
                 strokeWidth={2}
                 draggable
                 dragBoundFunc={vertexBound}
-                onDragStart={(e) => {
-                  e.cancelBubble = true;
-                  isDragging.current = true;
-                  setGhostPos(null);
-                }}
+                onDragStart={handleDragStart}
                 onDragMove={(e) => handleDrawingDragMove(i, e)}
                 onDragEnd={(e) => handleDrawingDragEnd(i, e)}
                 onDblClick={(e) => handleDrawingDblClick(i, e)}
@@ -390,29 +402,39 @@ export default function Canvas({
           </Layer>
         )}
 
-        {/* Ghost-индикатор */}
-        {ghostPos && (
+        {/* Ghost при рисовании — preview следующей точки */}
+        {isDrawing && drawGhost && drawingCanvasPts.length > 0 && (
           <Layer>
-            {isDrawing && drawingCanvasPts.length > 0 && (
-              <Line
-                points={[...drawingCanvasPts[drawingCanvasPts.length - 1], ...ghostPos]}
-                stroke={drawingStroke}
-                strokeWidth={1}
-                dash={[4, 4]}
-                opacity={0.5}
-                listening={false}
-              />
-            )}
+            <Line
+              points={[...drawingCanvasPts[drawingCanvasPts.length - 1], ...drawGhost]}
+              stroke={drawingStroke}
+              strokeWidth={1}
+              dash={[4, 4]}
+              opacity={0.5}
+              listening={false}
+            />
             <Circle
-              x={ghostPos[0]}
-              y={ghostPos[1]}
+              x={drawGhost[0]}
+              y={drawGhost[1]}
               radius={4}
-              fill={isDrawing ? drawingStroke : "white"}
-              stroke={
-                isDrawing
-                  ? "white"
-                  : segmentColor(selectedSeg ? hueOf(selectedSeg) : 0, true).stroke
-              }
+              fill={drawingStroke}
+              stroke="white"
+              strokeWidth={2}
+              opacity={0.5}
+              listening={false}
+            />
+          </Layer>
+        )}
+
+        {/* Ghost при редактировании — preview вставки вершины на ребро */}
+        {!isDrawing && edgeGhost && (
+          <Layer>
+            <Circle
+              x={edgeGhost[0]}
+              y={edgeGhost[1]}
+              radius={4}
+              fill="white"
+              stroke={segmentColor(selectedSeg ? hueOf(selectedSeg) : 0, true).stroke}
               strokeWidth={2}
               opacity={0.5}
               listening={false}

@@ -244,9 +244,40 @@
     .anno-item__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
     .anno-item__name { font-size: 12px; color: var(--text-sub); }
     .anno-item__stat { font-size: 11px; font-family: var(--mono); color: var(--text-hint); }
+
+    @media (max-width: 767px) {
+      /* Group stats: 2 columns instead of 4 */
+      .group-stats  { flex-wrap: wrap; }
+      .gstat        { flex: 0 0 calc(50% - 0.5px); border-bottom: 1px solid var(--border-soft); }
+      .gstat:nth-child(odd) { border-right: 1px solid var(--border-soft); }
+      .gstat__val   { font-size: 18px; }
+
+      /* Params grid: 1 column */
+      .params-grid  { grid-template-columns: 1fr; }
+
+      /* Dataset segments: wrap on very small screens */
+      .ds-segments  { flex-wrap: wrap; }
+      .ds-seg       { flex: 0 0 calc(33.33% - 1px); }
+
+      /* Total row: stack */
+      .ds-total-row   { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .ds-total-items { flex-wrap: wrap; gap: 8px; }
+
+      /* History table: horizontal scroll */
+      .history-table { display: block; overflow-x: auto; min-width: 100%; }
+
+      /* Train metrics: 2 per row */
+      .train-metrics { flex-wrap: wrap; }
+      .train-metric  { flex: 0 0 calc(50% - 4px); }
+
+      /* Architecture selected row */
+      .arch-selected-row      { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .arch-selected-row__info { flex-wrap: wrap; gap: 6px; }
+    }
   </style>
 </head>
 <body>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark')</script>
 
 <!-- NAV -->
 <nav class="nav">
@@ -325,7 +356,7 @@
       </div>
     </div>
     <div class="sb-footer">
-      <button class="btn btn--ghost btn--full btn--sm">
+      <button class="btn btn--ghost btn--full btn--sm" onclick="openModal('groupCreate')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Новая группа
       </button>
@@ -347,7 +378,7 @@
           </div>
           <div style="display:flex;gap:6px;align-items:center;">
             <span class="badge badge--primary badge--dot">готово к обучению</span>
-            <button class="btn btn--ghost btn--sm">
+            <button class="btn btn--ghost btn--sm" onclick="openModal('groupEdit')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
@@ -408,7 +439,7 @@
             </div>
             Датасет
           </div>
-          <button class="btn btn--primary btn--sm">
+          <button class="btn btn--primary btn--sm" onclick="openModal('imgUpload')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Добавить изображения
           </button>
@@ -656,7 +687,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="active-row">
+              <tr class="active-row history-row" onclick="activateVersion(this, 'v3', 'YOLOv8-medium', '0.941')" style="cursor:pointer" title="Активная версия">
                 <td>
                   <span class="active-bar"></span>
                   <span class="h-ver">v3</span>
@@ -668,7 +699,7 @@
                 <td><span class="h-metric">12 нояб.</span></td>
                 <td><span class="h-status-active">активная</span></td>
               </tr>
-              <tr>
+              <tr class="history-row" onclick="activateVersion(this, 'v2', 'YOLOv8-medium', '0.872')" style="cursor:pointer" title="Установить активной">
                 <td><span class="h-ver" style="margin-left:9px">v2</span></td>
                 <td><span class="h-arch">YOLOv8-medium</span></td>
                 <td><span class="h-map" style="color:var(--text-sub);font-weight:400">0.872</span></td>
@@ -677,7 +708,7 @@
                 <td><span class="h-metric">28 окт.</span></td>
                 <td><span class="h-status-done">завершена</span></td>
               </tr>
-              <tr>
+              <tr class="history-row" onclick="activateVersion(this, 'v1', 'YOLOv8-small', '0.714')" style="cursor:pointer" title="Установить активной">
                 <td><span class="h-ver" style="margin-left:9px">v1</span></td>
                 <td><span class="h-arch">YOLOv8-small</span></td>
                 <td><span class="h-map" style="color:var(--text-sub);font-weight:400">0.714</span></td>
@@ -696,6 +727,55 @@
 
 </div><!-- /split -->
 </div><!-- /app-body -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-groupCreate" style="position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .15s">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);width:380px;max-width:95vw;transform:translateY(8px);transition:transform .15s">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Новая группа</div>
+      <button onclick="closeModal('groupCreate')" style="color:var(--text-hint);cursor:pointer;background:none;border:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px"><div class="field"><div class="field__label">Название</div><input class="field__input" placeholder="Например: Цех №3"></div><div class="field"><div class="field__label">Описание</div><input class="field__input" placeholder="Опционально"></div></div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn--ghost" onclick="closeModal('groupCreate')">Отмена</button>
+      <button class="btn btn--primary" onclick="closeModal('groupCreate')">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-groupEdit" style="position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .15s">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);width:380px;max-width:95vw;transform:translateY(8px);transition:transform .15s">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Редактировать группу</div>
+      <button onclick="closeModal('groupEdit')" style="color:var(--text-hint);cursor:pointer;background:none;border:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px"><div class="field"><div class="field__label">Название</div><input class="field__input" value="Производство Б"></div><div class="field"><div class="field__label">Описание</div><input class="field__input" placeholder="Опционально"></div></div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn--ghost" onclick="closeModal('groupEdit')">Отмена</button>
+      <button class="btn btn--primary" onclick="closeModal('groupEdit')">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-imgUpload" style="position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .15s">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);width:440px;max-width:95vw;transform:translateY(8px);transition:transform .15s">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Добавить изображения</div>
+      <button onclick="closeModal('imgUpload')" style="color:var(--text-hint);cursor:pointer;background:none;border:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:16px">
+      <div style="border:2px dashed var(--border);border-radius:var(--r-lg);padding:40px;text-align:center;cursor:pointer;transition:all .15s" onmouseenter="this.style.borderColor='var(--primary-bd)';this.style.background='var(--primary-bg)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background=''">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:32px;height:32px;stroke:var(--text-hint);stroke-width:1;margin:0 auto 10px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="font-size:13px;color:var(--text-sub);margin-bottom:4px">Перетащите фотографии сюда</div>
+        <div style="font-size:11px;color:var(--text-hint)">JPG, PNG · до 100 файлов</div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn--ghost" onclick="closeModal('imgUpload')">Отмена</button>
+      <button class="btn btn--primary" onclick="closeModal('imgUpload')">Загрузить</button>
+    </div>
+  </div>
+</div>
 
 <div class="proto-note">prototype · training.html</div>
 
@@ -806,6 +886,48 @@ function stopTraining() {
   document.getElementById('trainProgress').classList.remove('visible');
   currentEpoch = 35;
 }
+
+// ─── MODALS ───────────────────────────────────────
+function openModal(n) {
+  const el = document.getElementById('modal-'+n);
+  el.style.opacity = '1'; el.style.pointerEvents = 'all';
+  el.querySelector('div').style.transform = 'translateY(0)';
+}
+function closeModal(n) {
+  const el = document.getElementById('modal-'+n);
+  el.style.opacity = '0'; el.style.pointerEvents = 'none';
+  el.querySelector('div').style.transform = 'translateY(8px)';
+}
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => {
+  if (e.target === o) {
+    o.style.opacity = '0'; o.style.pointerEvents = 'none';
+    o.querySelector('div').style.transform = 'translateY(8px)';
+  }
+}));
+
+// ─── HISTORY ACTIVATE ─────────────────────────────
+function activateVersion(row, ver, arch, map) {
+  document.querySelectorAll('.history-row').forEach(r => {
+    r.classList.remove('active-row');
+    const td = r.querySelector('td');
+    const bar = td.querySelector('.active-bar');
+    if (bar) bar.remove();
+    const statusTd = r.querySelectorAll('td')[6];
+    statusTd.innerHTML = '<span class="h-status-done">завершена</span>';
+  });
+  row.classList.add('active-row');
+  const td = row.querySelector('td');
+  if (!td.querySelector('.active-bar')) {
+    const bar = document.createElement('span');
+    bar.className = 'active-bar';
+    td.insertBefore(bar, td.firstChild);
+    const ver_el = td.querySelector('.h-ver');
+    ver_el.style.marginLeft = '';
+  }
+  const statusTd = row.querySelectorAll('td')[6];
+  statusTd.innerHTML = '<span class="h-status-active">активная</span>';
+}
+
 function toggleTheme(){var t=document.documentElement.getAttribute("data-theme")==="light"?"dark":"light";document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);}
 </script>
 </body>

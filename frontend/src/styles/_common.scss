@@ -1,0 +1,90 @@
+@use "variables" as *;
+@use "mixins" as *;
+@use "sass:map";
+
+.page-header {
+  @include flex-between;
+  margin-bottom: $space-5;
+
+  &__title {
+    font-size: $text-stat;
+    font-weight: $fw-bold;
+  }
+
+  &__sub {
+    font-size: $text-title;
+    color: $text-sub;
+    margin-top: $space-1;
+  }
+
+  &__meta {
+    display: flex;
+    gap: $space-2;
+    margin-top: $space-2;
+    color: $text-hint;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $space-2;
+  }
+}
+
+.card {
+  background: $surface;
+  border: 1px solid $line;
+  border-radius: $radius-md;
+
+  &__header {
+    @include flex-between;
+    padding: $space-3 $space-4;
+    border-bottom: 1px solid $line-soft;
+    font-weight: $fw-bold;
+    gap: $space-3;
+  }
+
+  &__body {
+    padding: $space-3 $space-4;
+  }
+
+  &__footer {
+    @include actions-row;
+    padding: $space-3 $space-4;
+    border-top: 1px solid $line-soft;
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: 2px 7px;
+  border-radius: $radius-sm;
+  font-size: $text-small;
+  font-weight: $fw-medium;
+  border: 1px solid transparent;
+
+  &--success {
+    background: map.get($badge-success, bg);
+    border-color: map.get($badge-success, border);
+    color: map.get($badge-success, text);
+  }
+
+  &--ml {
+    background: map.get($badge-ml, bg);
+    border-color: map.get($badge-ml, border);
+    color: map.get($badge-ml, text);
+  }
+
+  &--amber {
+    background: map.get($badge-warning, bg);
+    border-color: map.get($badge-warning, border);
+    color: map.get($badge-warning, text);
+  }
+
+  &--danger {
+    background: map.get($badge-danger, bg);
+    border-color: map.get($badge-danger, border);
+    color: map.get($badge-danger, text);
+  }
+}

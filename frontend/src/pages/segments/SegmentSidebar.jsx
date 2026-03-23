@@ -1,5 +1,5 @@
 import { ChevronRight, Plus, Trash2, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import RangeInput from "../../components/RangeInput";
@@ -43,7 +43,15 @@ export default function SegmentSidebar({
     setAddingToGroupId(null);
   };
 
-  const segmentsOf = (groupId) => segments.filter((s) => s.segment_group_id === groupId);
+  const segmentsByGroup = useMemo(() => {
+    const map = {};
+    for (const s of segments) {
+      (map[s.segment_group_id] ??= []).push(s);
+    }
+    return map;
+  }, [segments]);
+
+  const segmentsOf = (groupId) => segmentsByGroup[groupId] ?? [];
 
   return (
     <div className="segment-sidebar">

@@ -1,4 +1,4 @@
-$font-sans: "Sergoe UI", sans-serif;
+$font-sans: "Inter", "Segoe UI", sans-serif;
 $font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 
 $text-micro: 11px;
@@ -7,7 +7,6 @@ $text-body: 13px;
 $text-title: 14px;
 $text-page: 20px;
 $text-stat: 24px;
-$text-hero: 48px;
 
 $fw-regular: 400;
 $fw-medium: 500;
@@ -19,64 +18,75 @@ $space-1: 4px;
 $space-2: 8px;
 $space-3: 12px;
 $space-4: 16px;
-$space-5: 24px;
-$space-6: 32px;
-$space-7: 48px;
+$space-5: 20px;
+$space-6: 24px;
+$space-7: 32px;
 
 $radius-sm: 3px;
-$radius-md: 6px;
-$radius-lg: 9px;
+$radius-md: 5px;
+$radius-lg: 8px;
 
 $nav-height: 48px;
-$sidebar-width: 350px;
+$sidebar-width: 240px;
 $content-max: 1100px;
 
-$page: hsl(40, 20%, 97%);
-$page-hover: hsl(40, 20%, 90%);
-$surface: hsl(0, 0%, 100%);
-$surface-hover: hsl(40, 20%, 95%);
+$t: 0.18s ease;
 
-$text: hsl(40, 5%, 10%);
-$text-sub: hsl(40, 5%, 30%);
-$text-hint: hsl(40, 5%, 55%);
-$text-off: hsl(40, 10%, 70%);
+$primary: hsl(150, 44%, 43%);
+$primary-hover: hsl(150, 44%, 38%);
+$primary-active: hsl(150, 48%, 34%);
+$primary-text: hsl(150, 44%, 48%);
+$primary-bg: hsla(150, 44%, 43%, 0.1);
+$primary-bd: hsla(150, 44%, 43%, 0.22);
+
+$ml: hsl(264, 49%, 55%);
+$ml-hover: hsl(264, 42%, 49%);
+$ml-text: hsl(264, 51%, 64%);
+$ml-bg: hsla(264, 49%, 55%, 0.1);
+$ml-bd: hsla(264, 49%, 55%, 0.22);
+
+$warning: hsl(42, 66%, 46%);
+$warning-hover: hsl(42, 69%, 40%);
+$warning-text: hsl(42, 65%, 51%);
+$warning-bg: hsla(42, 66%, 46%, 0.1);
+$warning-bd: hsla(42, 66%, 46%, 0.22);
+
+$danger: hsl(0, 59%, 45%);
+$danger-hover: hsl(0, 59%, 40%);
+$danger-text: hsl(0, 55%, 51%);
+$danger-bg: hsla(0, 59%, 45%, 0.1);
+$danger-bd: hsla(0, 59%, 45%, 0.22);
+
+$page: hsl(40, 18%, 89%); // основной фон страницы
+$page2: hsl(40, 16%, 86%); // фон сайдбара
+$surface: hsl(42, 29%, 93%); // карточки, панели
+$surface2: hsl(40, 20%, 90%); // вложенные поверхности, инпуты
+$card-hover: hsl(42, 22%, 91%); // hover на карточках/строках
+
+$line: hsl(42, 13%, 77%);
+$line-soft: hsl(42, 12%, 82%);
+
+$text: hsl(100, 13%, 11%);
+$text-sub: hsl(102, 8%, 32%);
+$text-hint: hsl(102, 7%, 54%);
+$text-off: hsl(100, 6%, 72%);
 $text-white: hsl(0, 0%, 100%);
 
-$line: hsl(40, 15%, 90%);
-$line-soft: hsl(40, 20%, 95%);
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-card:
+  0 1px 4px rgba(0, 0, 0, 0.07),
+  0 0 0 1px rgba(0, 0, 0, 0.03);
+$shadow-float: 0 4px 20px rgba(0, 0, 0, 0.15);
 
-$nav-bg: hsl(40, 5%, 10%);
-$nav-bg-active: hsla(0, 0%, 100%, 0.1);
-$nav-text: hsl(40, 5%, 45%);
-$nav-text-hover: hsl(40, 5%, 75%);
-$nav-text-active: hsl(40, 20%, 95%);
-$nav-avatar-bg: hsl(40, 5%, 15%);
-$nav-avatar-text: hsl(40, 5%, 55%);
-$nav-meta: hsl(40, 5%, 35%);
-
-$primary: hsl(160, 45%, 35%);
-$primary-hover: hsl(160, 45%, 30%);
-$primary-active: hsl(160, 45%, 25%);
-$primary-text: hsl(160, 45%, 40%);
-$primary-light: hsl(160, 45%, 95%);
-$primary-mid: hsl(160, 45%, 85%);
-$primary-glow: hsla(160, 45%, 35%, 0.05);
-$primary-ring: hsla(160, 45%, 35%, 0.1);
-
-$danger: hsl(0, 60%, 40%);
-$danger-hover: hsl(0, 60%, 35%);
-$danger-light: hsl(0, 80%, 95%);
-$danger-mid: hsl(0, 80%, 85%);
-$danger-ring: hsla(0, 60%, 40%, 0.1);
-
-$warning: hsl(42, 75%, 35%);
-$warning-light: hsl(42, 90%, 95%);
-$warning-mid: hsl(42, 85%, 80%);
-
-$ml: hsl(264, 60%, 45%);
-$ml-light: hsl(264, 65%, 95%);
-$ml-mid: hsl(264, 65%, 85%);
-$ml-glow: hsla(264, 60%, 45%, 0.1);
+$nav-bg: hsl(100, 13%, 11%);
+$nav-border: hsl(105, 13%, 16%);
+$nav-text: hsl(100, 10%, 42%);
+$nav-text-hover: hsl(100, 9%, 62%);
+$nav-active-bg: hsla(0, 0%, 100%, 0.12);
+$nav-active-text: hsl(42, 26%, 92%);
+$nav-avatar-bg: hsla(0, 0%, 100%, 0.08);
+$nav-avatar-text: hsl(100, 10%, 42%);
+$nav-meta: hsl(100, 10%, 42%);
 
 $btn-primary: (
   bg: $primary,
@@ -87,16 +97,16 @@ $btn-primary: (
 
 $btn-secondary: (
   bg: $surface,
-  hover: $surface-hover,
+  hover: $card-hover,
   text: $text-sub,
   border: $line,
 );
 
 $btn-danger: (
-  bg: $danger-light,
-  hover: hsl(0, 80%, 90%),
+  bg: $danger-bg,
+  hover: hsl(0, 59%, 90%),
   text: $danger,
-  border: $danger-mid,
+  border: $danger-bd,
 );
 
 $input: (
@@ -116,25 +126,25 @@ $select: (
 );
 
 $badge-success: (
-  bg: $primary-light,
-  border: $primary-mid,
+  bg: $primary-bg,
+  border: $primary-bd,
   text: $primary-text,
 );
 
 $badge-danger: (
-  bg: $danger-light,
-  border: $danger-mid,
+  bg: $danger-bg,
+  border: $danger-bd,
   text: $danger,
 );
 
 $badge-warning: (
-  bg: $warning-light,
-  border: $warning-mid,
+  bg: $warning-bg,
+  border: $warning-bd,
   text: $warning,
 );
 
 $badge-ml: (
-  bg: $ml-light,
-  border: $ml-mid,
+  bg: $ml-bg,
+  border: $ml-bd,
   text: $ml,
 );

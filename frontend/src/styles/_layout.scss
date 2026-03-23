@@ -1,21 +1,20 @@
 @use "variables" as *;
+@use "mixins" as *;
 
 .nav {
+  @include flex-center;
   height: $nav-height;
   background: $nav-bg;
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
 
   &__inner {
-    display: flex;
-    align-items: center;
+    @include flex-center;
     width: 100%;
     padding: 0 $space-5;
   }
 
   &__name {
-    color: $nav-text-active;
+    color: $nav-active-text;
     font-size: $text-title;
     font-weight: $fw-bold;
     letter-spacing: -0.5px;
@@ -23,19 +22,19 @@
 
   &__links {
     display: flex;
-    flex: 1;
     justify-content: center;
+    flex: 1;
     gap: $space-1;
   }
 
   &__link {
-    display: inline-flex;
-    align-items: center;
+    @include flex-center;
     gap: $space-2;
     padding: 6px 13px;
     font-size: $text-body;
     color: $nav-text;
     border-radius: $radius-sm;
+    transition: color $t;
 
     &:hover {
       color: $nav-text-hover;
@@ -43,8 +42,8 @@
 
     &.active {
       font-weight: $fw-semibold;
-      color: $nav-text-active;
-      background: $nav-bg-active;
+      color: $nav-active-text;
+      background: $nav-active-bg;
     }
 
     &-icon {
@@ -55,13 +54,12 @@
   }
 
   &__avatar {
+    @include flex-center;
+    justify-content: center;
     width: 28px;
     height: 28px;
     border-radius: $radius-sm;
     background: $nav-avatar-bg;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   &__avatar-label {
@@ -89,7 +87,7 @@
     flex-direction: column;
     flex-shrink: 0;
     width: $sidebar-width;
-    background: $surface;
+    background: $page2;
     overflow-y: auto;
     border-right: 1px solid $line;
   }
@@ -99,7 +97,7 @@
     flex-direction: column;
     flex-shrink: 0;
     width: calc($sidebar-width - 30px);
-    background: $surface;
+    background: $page2;
     overflow-y: auto;
     border-left: 1px solid $line;
   }

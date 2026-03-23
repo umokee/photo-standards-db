@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useGroups from "../../hooks/useGroups";
 import ClassSelector from "./ClassSelector";
-import ModelSidebarGroups from "./ModelSidebarGroups";
+import ModelSidebar from "./ModelSidebar";
 import ModelDetails from "./ModelDetails";
 
 export default function ModelsPage() {
@@ -12,11 +12,14 @@ export default function ModelsPage() {
 
   const [excludedClasses, setExcludedClasses] = useState(new Set());
 
-  const allClasses = [
-    ...new Map(
-      (group?.standards ?? []).flatMap((s) => s.segment_groups ?? []).map((g) => [g.name, g])
-    ).values(),
-  ];
+  const allClasses = useMemo(
+    () => [
+      ...new Map(
+        (group?.standards ?? []).flatMap((s) => s.segment_groups ?? []).map((g) => [g.name, g])
+      ).values(),
+    ],
+    [group]
+  );
 
   const toggleClass = (name) => {
     setExcludedClasses((prev) => {
@@ -29,7 +32,7 @@ export default function ModelsPage() {
   return (
     <div className="page-split">
       <div className="page-split__sidebar">
-        <ModelSidebarGroups
+        <ModelSidebar
           groups={groups}
           groupStatus={status}
           selectedGroupId={groupId}
@@ -38,7 +41,7 @@ export default function ModelsPage() {
       </div>
       <div className="page-split__content">
         <div className="page-split__body">
-          <ModelDetails groups={group} />
+          <ModelDetails group={group} />
         </div>
       </div>
       <div className="page-split__panel">

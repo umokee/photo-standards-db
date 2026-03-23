@@ -10,13 +10,13 @@ import { BASE_URL } from "../../utils/constants";
 
 export default function StandardItem({ standard, onUpload }) {
   const navigate = useNavigate();
-  const [isExpaned, setIsExpaned] = useState(false);
-  const { standard: detail, status } = useStandardDetail(standard.id, { enabled: isExpaned });
+  const [isExpanded, setIsExpaned] = useState(false);
+  const { standard: detail, status } = useStandardDetail(standard.id, { enabled: isExpanded });
   const { remove, setReference } = useStandardImages(undefined, standard.id);
 
   return (
-    <div className={`standard-item${isExpaned ? " standard-item--expanded" : ""}`}>
-      <div className="standard-item__header" onClick={() => setIsExpaned(!isExpaned)}>
+    <div className={`standard-item${isExpanded ? " standard-item--expanded" : ""}`}>
+      <div className="standard-item__header" onClick={() => setIsExpaned(!isExpanded)}>
         {/* <ImageWithFallback
           className="standard-item__header-img"
           src={`${BASE_URL}/storage/${standard.image_path}`}
@@ -34,7 +34,7 @@ export default function StandardItem({ standard, onUpload }) {
         <ChevronRight className="standard-item__header-icon" size={16} />
       </div>
 
-      {isExpaned && (
+      {isExpanded && (
         <div className="standard-item__body">
           <div className="standard-item__body-header">
             <span className="standard-item__body-header-name">

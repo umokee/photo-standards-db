@@ -113,9 +113,43 @@
       transition: transform .2s, background .2s;
     }
     .toggle input:checked ~ .toggle__thumb { transform: translateX(16px); background: #fff; }
+
+    @media (max-width: 767px) {
+      /* Nav → horizontal scrollable tab strip */
+      .settings-layout { flex-direction: column; }
+      .settings-nav {
+        display: flex;
+        width: 100%; border-right: none;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 8px; flex-direction: row;
+        overflow-x: auto; gap: 4px; flex-shrink: 0;
+      }
+      .settings-nav__label { display: none; }
+      .settings-tab { white-space: nowrap; flex-shrink: 0; margin-bottom: 0; }
+
+      /* Content */
+      .settings-content { padding: 14px; }
+      .s-section-sub    { margin-bottom: 14px; }
+
+      /* Users table: horizontal scroll */
+      .users-card   { overflow-x: auto; }
+      .users-table  { min-width: 480px; }
+
+      /* Sys grid: 1 column */
+      .sys-grid { grid-template-columns: 1fr; }
+
+      /* Modal: bottom sheet */
+      .modal-overlay { align-items: flex-end; }
+      .modal {
+        width: 100%; max-width: 100%;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+        transform: none;
+      }
+    }
   </style>
 </head>
 <body>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark')</script>
 
 <nav class="nav">
   <div class="nav__inner">
@@ -185,7 +219,7 @@
               <td><div class="u-login">admin</div></td>
               <td><span class="role-badge role-badge--admin">Администратор</span></td>
               <td class="mono" style="font-size:11px">01 окт. 2025</td>
-              <td><div class="u-actions"><button class="btn btn--ghost btn--sm">
+              <td><div class="u-actions"><button class="btn btn--ghost btn--sm" onclick="editUser('Алексей Дмитриев','admin','Администратор')" title="Редактировать">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button></div></td>
             </tr>
@@ -195,8 +229,8 @@
               <td><span class="role-badge role-badge--op">Оператор</span></td>
               <td class="mono" style="font-size:11px">05 окт. 2025</td>
               <td><div class="u-actions">
-                <button class="btn btn--ghost btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                <button class="btn btn--danger btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+                <button class="btn btn--ghost btn--sm" onclick="editUser('Мария Соколова','m.sokolova','Оператор')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="btn btn--danger btn--sm" onclick="deleteUser(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
               </div></td>
             </tr>
             <tr>
@@ -205,8 +239,8 @@
               <td><span class="role-badge role-badge--user">Пользователь</span></td>
               <td class="mono" style="font-size:11px">12 нояб. 2025</td>
               <td><div class="u-actions">
-                <button class="btn btn--ghost btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                <button class="btn btn--danger btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+                <button class="btn btn--ghost btn--sm" onclick="editUser('Иван Петров','i.petrov','Пользователь')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="btn btn--danger btn--sm" onclick="deleteUser(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
               </div></td>
             </tr>
           </tbody>
@@ -310,6 +344,35 @@
 </div><!-- /settings-layout -->
 </div><!-- /app-body -->
 
+<!-- Modal: Edit user -->
+<div class="modal-overlay" id="modal-userEdit">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title">Редактировать пользователя</div>
+      <button class="modal__close" onclick="closeModal('userEdit')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div class="field"><div class="field__label">Полное имя</div><input class="field__input" id="editUserName"></div>
+      <div class="field"><div class="field__label">Логин</div><input class="field__input" id="editUserLogin"></div>
+      <div class="field"><div class="field__label">Новый пароль</div><input class="field__input" type="password" placeholder="Оставьте пустым, чтобы не менять"></div>
+      <div class="field">
+        <div class="field__label">Роль</div>
+        <select class="field__select" id="editUserRole">
+          <option>Пользователь</option>
+          <option>Оператор</option>
+          <option>Администратор</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" onclick="closeModal('userEdit')">Отмена</button>
+      <button class="btn btn--primary" onclick="closeModal('userEdit')">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Create user -->
 <div class="modal-overlay" id="modal-userCreate">
   <div class="modal">
@@ -351,6 +414,21 @@ function switchTab(el, id) {
 function openModal(n)  { document.getElementById('modal-'+n).classList.add('open'); }
 function closeModal(n) { document.getElementById('modal-'+n).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+function editUser(name, login, role) {
+  document.getElementById('editUserName').value  = name;
+  document.getElementById('editUserLogin').value = login;
+  const sel = document.getElementById('editUserRole');
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].text === role) { sel.selectedIndex = i; break; }
+  }
+  openModal('userEdit');
+}
+function deleteUser(btn) {
+  const row = btn.closest('tr');
+  const name = row.querySelector('.u-name').textContent;
+  if (confirm('Удалить пользователя «' + name + '»?')) row.remove();
+}
 function toggleTheme(){var t=document.documentElement.getAttribute("data-theme")==="light"?"dark":"light";document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);}
 </script>
 </body>

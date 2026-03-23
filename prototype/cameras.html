@@ -75,6 +75,7 @@
   </style>
 </head>
 <body>
+<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark')</script>
 
 <nav class="nav">
   <div class="nav__inner">
@@ -135,6 +136,12 @@
   </aside>
 
   <main class="split__content">
+    <div class="mobile-bar">
+      <button class="mobile-bar__btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="mobile-bar__title" id="mobileTitle">CAM-LINE-02</span>
+    </div>
     <div class="camera-detail__header">
       <div class="camera-detail__top">
         <div>
@@ -145,10 +152,10 @@
           <span class="cam-status cam-status--online" id="camStatus">
             <span class="cam-status__dot"></span>online
           </span>
-          <button class="btn btn--ghost btn--sm">
+          <button class="btn btn--ghost btn--sm" onclick="openEditModal()" title="Редактировать">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn btn--danger btn--sm">
+          <button class="btn btn--danger btn--sm" onclick="openModal('camDelete')" title="Удалить">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
           </button>
         </div>
@@ -203,6 +210,49 @@
 </div>
 </div>
 
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+<!-- Modal: Edit camera -->
+<div class="modal-overlay" id="modal-camEdit">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title" id="editModalTitle">Редактировать камеру</div>
+      <button class="modal__close" onclick="closeModal('camEdit')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div class="field"><div class="field__label">Название</div><input class="field__input" id="editCamName"></div>
+      <div class="field"><div class="field__label">IP-адрес</div><input class="field__input" id="editCamIp"></div>
+      <div class="field"><div class="field__label">RTSP URL</div><input class="field__input" id="editCamRtsp"></div>
+      <div class="field"><div class="field__label">Расположение</div><input class="field__input" id="editCamLoc"></div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" onclick="closeModal('camEdit')">Отмена</button>
+      <button class="btn btn--primary" onclick="saveEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Delete confirm -->
+<div class="modal-overlay" id="modal-camDelete">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title">Удалить камеру?</div>
+      <button class="modal__close" onclick="closeModal('camDelete')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div style="font-size:13px;color:var(--text-sub)">Удалить камеру <strong id="deleteCamName">CAM-LINE-02</strong>? Это действие необратимо.</div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" onclick="closeModal('camDelete')">Отмена</button>
+      <button class="btn btn--danger" onclick="deleteCam()">Удалить</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Add camera -->
 <div class="modal-overlay" id="modal-camCreate">
   <div class="modal">
@@ -235,7 +285,9 @@ const cams = [
   { name:'CAM-EXIT-01',     meta:'Добавлена 20 окт. 2025',  status:'idle',    ip:'192.168.1.120', rtsp:'rtsp://192.168.1.120:554/stream', loc:'Выход ОТК',            statusCls:'cam-status--idle',    statusTxt:'idle'    },
 ];
 
+let activeCamIdx = 1;
 function selectCam(el, idx) {
+  activeCamIdx = idx;
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
   const c = cams[idx];
@@ -248,11 +300,55 @@ function selectCam(el, idx) {
   const s = document.getElementById('camStatus');
   s.className = 'cam-status ' + c.statusCls;
   s.innerHTML = '<span class="cam-status__dot"></span>' + c.statusTxt;
+  document.getElementById('deleteCamName').textContent = c.name;
+  document.getElementById('mobileTitle').textContent = c.name;
+  closeSidebar();
 }
 function openModal(n)  { document.getElementById('modal-'+n).classList.add('open'); }
 function closeModal(n) { document.getElementById('modal-'+n).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+function openEditModal() {
+  const c = cams[activeCamIdx];
+  document.getElementById('editCamName').value = c.name;
+  document.getElementById('editCamIp').value   = c.ip;
+  document.getElementById('editCamRtsp').value = c.rtsp;
+  document.getElementById('editCamLoc').value  = c.loc;
+  openModal('camEdit');
+}
+function saveEdit() {
+  const c = cams[activeCamIdx];
+  c.name = document.getElementById('editCamName').value;
+  c.ip   = document.getElementById('editCamIp').value;
+  c.rtsp = document.getElementById('editCamRtsp').value;
+  c.loc  = document.getElementById('editCamLoc').value;
+  document.getElementById('camName').textContent = c.name;
+  document.getElementById('fIp').textContent     = c.ip;
+  document.getElementById('fRtsp').textContent   = c.rtsp;
+  document.getElementById('fLoc').textContent    = c.loc;
+  document.getElementById('camIp').textContent   = c.ip;
+  document.querySelectorAll('.sb-item')[activeCamIdx].querySelector('.sb-item__name').textContent = c.name;
+  closeModal('camEdit');
+}
+function deleteCam() {
+  document.querySelectorAll('.sb-item')[activeCamIdx].remove();
+  cams.splice(activeCamIdx, 1);
+  closeModal('camDelete');
+  if (cams.length > 0) {
+    const newIdx = Math.min(activeCamIdx, cams.length - 1);
+    selectCam(document.querySelectorAll('.sb-item')[newIdx], newIdx);
+  }
+}
 function toggleTheme(){var t=document.documentElement.getAttribute("data-theme")==="light"?"dark":"light";document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);}
+
+function openSidebar() {
+  document.querySelector('.split__sidebar').classList.add('open');
+  document.getElementById('sbOverlay').classList.add('open');
+}
+function closeSidebar() {
+  document.querySelector('.split__sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('open');
+}
 </script>
 </body>
 </html>

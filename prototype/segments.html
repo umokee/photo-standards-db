@@ -8,34 +8,31 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     body { overflow: hidden; }
-
-    /* Override layout for this page — full canvas */
     .canvas-layout { display: flex; height: calc(100vh - var(--nav-h)); width: 100%; }
 
     /* ─── CANVAS AREA ─── */
     .canvas-wrap {
       flex: 1; position: relative; overflow: hidden;
-      background: #060808;
+      background: #070909;
     }
-    /* Topbar overlay */
     .canvas-topbar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 10;
       padding: 10px 14px;
       display: flex; align-items: center; gap: 10px;
-      background: linear-gradient(to bottom, rgba(6,8,8,.9) 60%, transparent);
+      background: linear-gradient(to bottom, rgba(6,8,8,.92) 55%, transparent);
     }
     .canvas-back {
       display: flex; align-items: center; gap: 5px;
-      font-size: 12px; color: rgba(220,224,212,.55); cursor: pointer;
+      font-size: 12px; color: rgba(220,224,212,.5); cursor: pointer;
       transition: color .15s; padding: 3px 6px; border-radius: var(--r-sm);
     }
     .canvas-back:hover { color: rgba(220,224,212,.9); background: rgba(255,255,255,.06); }
     .canvas-back svg { width: 13px; height: 13px; }
     .canvas-breadcrumb {
       font-size: 11px; font-family: var(--mono);
-      color: rgba(220,224,212,.35);
+      color: rgba(220,224,212,.3);
     }
-    .canvas-breadcrumb span { color: rgba(220,224,212,.65); }
+    .canvas-breadcrumb span { color: rgba(220,224,212,.6); }
     .canvas-breadcrumb__sep { margin: 0 5px; }
     .canvas-nav-btns { display: flex; gap: 3px; margin-left: auto; }
     .canvas-nav-btn {
@@ -46,34 +43,34 @@
     }
     .canvas-nav-btn:hover { background: rgba(255,255,255,.14); color: rgba(220,224,212,.9); }
     .canvas-nav-btn svg { width: 12px; height: 12px; }
-    .canvas-img-counter { font-size: 11px; font-family: var(--mono); color: rgba(220,224,212,.4); padding: 0 4px; }
-
-    /* Angle tabs */
+    .canvas-img-counter { font-size: 11px; font-family: var(--mono); color: rgba(220,224,212,.35); padding: 0 4px; }
     .canvas-angle-tabs { display: flex; gap: 3px; }
     .canvas-angle-tab {
       padding: 3px 10px; font-size: 11px; border-radius: var(--r-sm);
-      background: rgba(255,255,255,.06); color: rgba(220,224,212,.4);
+      background: rgba(255,255,255,.06); color: rgba(220,224,212,.35);
       cursor: pointer; transition: all .15s;
     }
     .canvas-angle-tab.active { background: rgba(255,255,255,.14); color: rgba(220,224,212,.9); font-weight: 500; }
-    .canvas-angle-tab:hover  { background: rgba(255,255,255,.1); color: rgba(220,224,212,.7); }
+    .canvas-angle-tab:hover  { background: rgba(255,255,255,.1); color: rgba(220,224,212,.65); }
 
     /* Bottom toolbar */
     .canvas-bottombar {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
       padding: 10px 14px;
       display: flex; align-items: center; gap: 10px;
-      background: linear-gradient(to top, rgba(6,8,8,.85) 60%, transparent);
+      background: linear-gradient(to top, rgba(6,8,8,.88) 55%, transparent);
     }
     .canvas-mode-tabs {
       display: flex; background: rgba(255,255,255,.06); border-radius: var(--r);
       padding: 2px; border: 1px solid rgba(255,255,255,.08);
     }
     .canvas-mode-tab {
-      padding: 4px 12px; font-size: 11px; font-weight: 500; color: rgba(220,224,212,.4);
+      padding: 4px 12px; font-size: 11px; font-weight: 500; color: rgba(220,224,212,.38);
       border-radius: 3px; cursor: pointer; transition: all .15s;
     }
     .canvas-mode-tab.active { background: rgba(255,255,255,.12); color: rgba(220,224,212,.9); }
+    /* Draw mode: active class highlight */
+    .canvas-mode-tab.draw-active { background: rgba(61,158,114,.18); color: #5bbf8a; border: 1px solid rgba(61,158,114,.25); }
     .canvas-zoom { display: flex; align-items: center; gap: 3px; margin-left: auto; }
     .canvas-zoom-btn {
       width: 24px; height: 24px; border-radius: 3px;
@@ -82,86 +79,196 @@
       color: rgba(220,224,212,.5); cursor: pointer; font-size: 14px; line-height: 1;
     }
     .canvas-zoom-btn:hover { background: rgba(255,255,255,.14); color: rgba(220,224,212,.9); }
-    .canvas-zoom-val { font-size: 11px; font-family: var(--mono); color: rgba(220,224,212,.4); padding: 0 4px; }
+    .canvas-zoom-val { font-size: 11px; font-family: var(--mono); color: rgba(220,224,212,.38); padding: 0 4px; }
 
-    /* Mock image + polygons */
+    /* Stage */
     .canvas-stage {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    }
-    .canvas-img-mock {
-      position: relative; user-select: none;
     }
     .canvas-img-bg {
       background: #1a1e1a; border: 1px solid rgba(255,255,255,.06);
       display: flex; align-items: center; justify-content: center;
     }
-    .canvas-img-bg svg { opacity: .08; }
+    .canvas-img-bg svg { opacity: .06; }
     .canvas-svg-overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
-    /* Vertex dots — clickable */
-    .vtx { cursor: pointer; pointer-events: all; }
-    .vtx:hover { r: 5; }
+    .vtx { cursor: move; pointer-events: all; }
+
+    /* Draw-mode crosshair overlay */
+    .canvas-wrap.draw-cursor { cursor: crosshair; }
 
     /* ─── SIDEBAR ─── */
     .seg-sidebar {
-      width: 260px; flex-shrink: 0;
+      width: 268px; flex-shrink: 0;
       background: var(--bg2); border-left: 1px solid var(--border-soft);
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .seg-sb-header {
-      padding: 10px 12px 8px;
-      border-bottom: 1px solid var(--border-soft);
-      display: flex; align-items: center; justify-content: space-between;
+
+    /* Classes list section */
+    .seg-sb-section {
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .seg-sb-title { font-size: 12px; font-weight: 600; color: var(--text-sub); }
+    .seg-sb-section--classes { flex: 0 0 auto; border-bottom: 1px solid var(--border-soft); }
+    .seg-sb-section--anns    { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
-    .seg-groups-list { flex: 1; overflow-y: auto; padding: 6px; }
+    .seg-sb-head {
+      padding: 8px 12px 6px;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .seg-sb-head__title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-hint); }
+    .seg-sb-head__action {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-hint); cursor: pointer;
+      padding: 2px 5px; border-radius: var(--r-sm); transition: all .12s;
+    }
+    .seg-sb-head__action:hover { background: var(--surface); color: var(--text-sub); }
+    .seg-sb-head__action svg { width: 11px; height: 11px; }
 
-    .seg-group { margin-bottom: 4px; }
-    .seg-group__header {
+    /* Class list */
+    .seg-class-list { display: flex; flex-direction: column; gap: 1px; padding: 2px 6px 6px; }
+    .seg-class-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 8px; border-radius: var(--r); cursor: pointer;
+      border: 1px solid transparent; transition: all .1s;
+    }
+    .seg-class-item:hover { background: var(--surface); }
+    .seg-class-item.selected {
+      background: var(--surface2); border-color: var(--border);
+    }
+    .seg-class-item__swatch {
+      width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+    }
+    .seg-class-item__label { font-size: 12px; color: var(--text-sub); flex: 1; }
+    .seg-class-item.selected .seg-class-item__label { color: var(--text); font-weight: 500; }
+    .seg-class-item__cnt {
+      font-size: 10px; font-family: var(--mono);
+      color: var(--text-hint); white-space: nowrap;
+    }
+    .seg-class-item__cnt--has { color: var(--primary-text); }
+    /* status dot */
+    .seg-class-item__status {
+      width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+    }
+    .seg-class-item__status--done { background: var(--primary); }
+    .seg-class-item__status--none { background: var(--border); }
+
+    /* Annotations sub-list (for selected class) */
+    .seg-ann-scroll { flex: 1; overflow-y: auto; padding: 4px 6px 6px; }
+    .seg-ann-empty {
+      padding: 20px 12px; text-align: center;
+      font-size: 11px; color: var(--text-hint); line-height: 1.6;
+    }
+    .seg-ann-empty svg { width: 28px; height: 28px; stroke: var(--border); stroke-width: 1; display: block; margin: 0 auto 8px; }
+    .seg-ann-empty--draw { color: var(--primary-text); }
+
+    .seg-ann-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 8px; border-radius: var(--r); cursor: pointer;
+      border: 1px solid transparent; transition: all .1s; margin-bottom: 2px;
+    }
+    .seg-ann-item:hover { background: var(--surface); }
+    .seg-ann-item.selected { background: var(--surface2); border-color: var(--border); }
+    .seg-ann-item__idx {
+      width: 16px; height: 16px; border-radius: 3px; display: flex; align-items: center;
+      justify-content: center; font-size: 9px; font-family: var(--mono); font-weight: 600;
+      color: #fff; flex-shrink: 0;
+    }
+    .seg-ann-item__pts { font-size: 11px; color: var(--text-sub); flex: 1; }
+    .seg-ann-item__area { font-size: 10px; font-family: var(--mono); color: var(--text-hint); }
+    .seg-ann-item__del {
+      width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+      border-radius: 3px; color: var(--text-hint); cursor: pointer; opacity: 0; transition: all .1s;
+    }
+    .seg-ann-item:hover .seg-ann-item__del { opacity: 1; }
+    .seg-ann-item__del:hover { background: var(--danger-bg); color: var(--danger-text); }
+    .seg-ann-item__del svg { width: 11px; height: 11px; }
+
+    .seg-ann-add {
       display: flex; align-items: center; gap: 6px;
-      padding: 5px 8px; border-radius: var(--r); cursor: pointer; user-select: none;
+      padding: 5px 8px; border-radius: var(--r); cursor: pointer;
+      font-size: 11px; color: var(--text-hint); border: 1px dashed var(--border);
+      transition: all .12s; margin-top: 4px;
     }
-    .seg-group__header:hover { background: var(--surface); }
-    .seg-group__color { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-    .seg-group__name  { font-size: 12px; color: var(--text-sub); flex: 1; }
-    .seg-group__cnt   { font-size: 10px; font-family: var(--mono); color: var(--text-hint); }
-    .seg-group__chevron { color: var(--text-hint); transition: transform .15s; }
-    .seg-group__chevron svg { width: 12px; height: 12px; }
-    .seg-group.open .seg-group__chevron { transform: rotate(90deg); }
+    .seg-ann-add:hover { border-color: var(--primary-bd); background: var(--primary-bg); color: var(--primary-text); }
+    .seg-ann-add svg { width: 11px; height: 11px; }
 
-    .seg-group__items { padding-left: 20px; display: none; }
-    .seg-group.open .seg-group__items { display: block; }
-    .seg-item {
-      display: flex; align-items: center; gap: 5px;
-      padding: 4px 8px; border-radius: var(--r); cursor: pointer;
-      font-size: 11px; color: var(--text-hint); transition: background .1s;
-    }
-    .seg-item:hover   { background: var(--surface); color: var(--text-sub); }
-    .seg-item.selected { background: var(--surface2); color: var(--text); }
-    .seg-item__dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .seg-item__name { flex: 1; }
-    .seg-item__pts  { font-family: var(--mono); font-size: 10px; color: var(--text-hint); }
-
-    /* Selected segment info panel */
-    .seg-detail {
-      border-top: 1px solid var(--border-soft); padding: 10px 12px; flex-shrink: 0;
-      display: none;
-    }
-    .seg-detail.visible { display: block; }
-    .seg-detail__title { font-size: 11px; font-weight: 600; color: var(--text-sub); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
-    .seg-detail__row   { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--border-soft); }
-    .seg-detail__row:last-child { border-bottom: none; }
-    .seg-detail__label { color: var(--text-hint); }
-    .seg-detail__val   { font-family: var(--mono); color: var(--text-sub); }
-
+    /* Footer */
     .seg-sb-footer {
       padding: 8px; border-top: 1px solid var(--border-soft); flex-shrink: 0;
       display: flex; flex-direction: column; gap: 6px;
     }
 
-    /* AI button pulse when active */
+    /* AI button pulse */
     .btn--ai-active { animation: aiPulse 1.5s ease infinite; }
     @keyframes aiPulse { 0%,100%{box-shadow:0 0 0 0 rgba(120,85,196,.4)} 50%{box-shadow:0 0 0 6px rgba(120,85,196,0)} }
+
+    /* Draw hint pill */
+    .draw-hint-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(61,158,114,.12); border: 1px solid rgba(61,158,114,.2);
+      border-radius: 20px; padding: 4px 10px; font-size: 10px; font-family: var(--mono);
+      color: rgba(91,191,138,.9);
+    }
+    .draw-hint-pill__dot { width: 5px; height: 5px; border-radius: 50%; background: #5bbf8a; animation: blink 1s ease infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* No class selected warning */
+    .draw-warn {
+      font-size: 10px; color: var(--amber-text); font-family: var(--mono);
+      background: var(--amber-bg); border: 1px solid var(--amber-bd);
+      border-radius: var(--r-sm); padding: 3px 8px;
+    }
+
+    @media (max-width: 767px) {
+      /* Body scrolls normally */
+      body { overflow: auto; }
+      .canvas-layout { flex-direction: column; height: auto; min-height: calc(100dvh - var(--nav-h)); }
+
+      /* Canvas area: auto height so it doesn't clip the image */
+      .canvas-wrap {
+        flex: none;
+        height: auto;
+        min-height: 200px;
+        overflow: auto;
+      }
+
+      /* Canvas stage: remove absolute centering so image is reachable via scroll */
+      .canvas-stage {
+        position: static !important;
+        transform: none !important;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Topbar/bottombar: sticky so they follow scroll */
+      .canvas-topbar {
+        position: sticky !important;
+        top: 0;
+        background: rgba(6,8,8,.97) !important;
+        flex-wrap: wrap; gap: 5px; padding: 8px 10px;
+        z-index: 20;
+      }
+      .canvas-bottombar {
+        position: sticky !important;
+        bottom: 0;
+        background: rgba(6,8,8,.97) !important;
+        flex-wrap: wrap; gap: 6px; padding: 8px 10px;
+        z-index: 20;
+      }
+
+      .canvas-breadcrumb { display: none; }
+      .canvas-angle-tabs { order: 3; flex-wrap: wrap; }
+      .canvas-nav-btns   { order: 2; }
+      .canvas-zoom       { order: -1; margin-left: 0; }
+
+      /* Sidebar goes below as compact strip */
+      .seg-sidebar {
+        width: 100%;
+        height: 260px;
+        flex-shrink: 0;
+        border-left: none;
+        border-top: 1px solid var(--border-soft);
+      }
+    }
   </style>
 </head>
 <body>
@@ -206,14 +313,14 @@
         <span class="canvas-breadcrumb__sep">›</span>
         <span>Фронт (0°)</span>
         <span class="canvas-breadcrumb__sep">›</span>
-        <span>img_001.jpg</span>
+        <span id="imgName">img_001.jpg</span>
       </div>
       <div class="canvas-nav-btns">
-        <div class="canvas-nav-btn" onclick="prevImg()" title="Предыдущее">
+        <div class="canvas-nav-btn" onclick="prevImg()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>
         </div>
         <span class="canvas-img-counter" id="imgCounter">1 / 80</span>
-        <div class="canvas-nav-btn" onclick="nextImg()" title="Следующее">
+        <div class="canvas-nav-btn" onclick="nextImg()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
       </div>
@@ -226,26 +333,24 @@
 
     <!-- Stage -->
     <div class="canvas-stage" id="canvasStage">
-      <div class="canvas-img-mock">
+      <div style="position:relative">
         <div class="canvas-img-bg" style="width:680px;height:510px">
           <svg viewBox="0 0 24 24" fill="none" stroke="white" style="width:80px;height:80px;stroke-width:.4">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
           </svg>
         </div>
-        <!-- SVG overlay with polygons -->
-        <svg id="svgOverlay" class="canvas-svg-overlay" width="680" height="510"></svg>
+        <svg id="svgOverlay" class="canvas-svg-overlay" width="680" height="510"
+             style="position:absolute;top:0;left:0;pointer-events:none"></svg>
       </div>
     </div>
 
     <!-- Bottom bar -->
     <div class="canvas-bottombar">
       <div class="canvas-mode-tabs">
-        <div class="canvas-mode-tab active" id="modeEdit"   onclick="setMode('edit')">Редактирование</div>
-        <div class="canvas-mode-tab"        id="modeDraw"   onclick="setMode('draw')">Рисование</div>
+        <div class="canvas-mode-tab active" id="modeEdit" onclick="setMode('edit')">Просмотр</div>
+        <div class="canvas-mode-tab"        id="modeDraw" onclick="setMode('draw')">Рисование</div>
       </div>
-      <span id="modeHint" style="font-size:11px;color:rgba(220,224,212,.3);font-family:var(--mono)">
-        Нажмите на сегмент для выбора
-      </span>
+      <span id="modeHint"></span>
       <div class="canvas-zoom">
         <div class="canvas-zoom-btn" onclick="zoom(-0.1)">−</div>
         <div class="canvas-zoom-val" id="zoomVal">100%</div>
@@ -256,241 +361,359 @@
 
   <!-- ─── SIDEBAR ─── -->
   <aside class="seg-sidebar">
-    <div class="seg-sb-header">
-      <div class="seg-sb-title">Сегменты</div>
-      <span class="badge badge--ghost" id="totalSegs">8 сегментов</span>
-    </div>
 
-    <div class="seg-groups-list" id="segGroupsList"></div>
-
-    <!-- Selected segment detail -->
-    <div class="seg-detail" id="segDetail">
-      <div class="seg-detail__title">
-        <span id="detTitle">корпус #1</span>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn--ghost btn--sm btn--icon-only" title="Удалить" onclick="deleteSelected()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-          </button>
+    <!-- Section 1: Classes -->
+    <div class="seg-sb-section seg-sb-section--classes">
+      <div class="seg-sb-head">
+        <span class="seg-sb-head__title">Классы эталона</span>
+        <div class="seg-sb-head__action" title="Управление классами" onclick="openClassManager()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Классы
         </div>
       </div>
-      <div class="seg-detail__row"><span class="seg-detail__label">Класс</span><span class="seg-detail__val" id="detClass">корпус</span></div>
-      <div class="seg-detail__row"><span class="seg-detail__label">Точек</span><span class="seg-detail__val" id="detPts">12</span></div>
-      <div class="seg-detail__row"><span class="seg-detail__label">Площадь</span><span class="seg-detail__val" id="detArea">24.8%</span></div>
-      <div class="seg-detail__row"><span class="seg-detail__label">Уверенность</span><span class="seg-detail__val" id="detConf">—</span></div>
+      <div class="seg-class-list" id="classListEl"></div>
     </div>
 
+    <!-- Section 2: Annotations for selected class -->
+    <div class="seg-sb-section seg-sb-section--anns">
+      <div class="seg-sb-head" id="annSectionHead" style="display:none">
+        <span class="seg-sb-head__title" id="annSectionTitle">Разметка</span>
+        <span style="font-size:10px;font-family:var(--mono);color:var(--text-hint)" id="annSectionCnt"></span>
+      </div>
+      <div class="seg-ann-scroll" id="annScrollEl">
+        <div class="seg-ann-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Выберите класс для просмотра разметки
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
     <div class="seg-sb-footer">
       <button class="btn btn--ml btn--full btn--sm" id="refineBtn" onclick="simulateRefine()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
         AI-уточнение
       </button>
-      <button class="btn btn--ghost btn--full btn--sm" onclick="setMode('draw')">
+      <button class="btn btn--ghost btn--full btn--sm" id="drawBtn" onclick="setMode('draw')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Добавить сегмент
+        Добавить разметку
       </button>
     </div>
   </aside>
 
 </div><!-- /canvas-layout -->
 
+<!-- Modal: Class Manager -->
+<div id="modal-classManager" style="position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .15s">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);width:360px;max-width:95vw;transform:translateY(8px);transition:transform .15s">
+    <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Классы эталона</div>
+      <button onclick="closeClassManager()" style="background:none;border:none;color:var(--text-hint);cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:12px 16px;max-height:320px;overflow-y:auto">
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:10px;line-height:1.5">Классы определяют типы объектов для разметки на изображениях данного эталона (YOLO-классы).</div>
+      <div id="cmClassList"></div>
+      <button onclick="addClassFromManager()" style="display:flex;align-items:center;gap:5px;margin-top:8px;padding:5px 8px;border-radius:var(--r);border:1px dashed var(--border);background:none;color:var(--text-hint);font-size:12px;cursor:pointer;width:100%;transition:all .12s" onmouseenter="this.style.borderColor='var(--primary-bd)';this.style.color='var(--primary-text)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-hint)'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Добавить класс
+      </button>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn--ghost" onclick="closeClassManager()">Отмена</button>
+      <button class="btn btn--primary" onclick="saveClassManager()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div class="proto-note">prototype · segments.html</div>
 
 <script>
-// Theme
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('theme', t);
 }
 
-// ─── POLYGON DATA ───────────────────────────────
-const segmentGroups = [
-  {
-    id: 'g0', name:'корпус', color:'#e05c5c', segments:[
-      { id:'s0', pts:[[60,80],[260,75],[265,280],[55,285]], conf:0.97, area:'24.8' },
-    ]
-  },
-  {
-    id: 'g1', name:'крышка', color:'#5c9ee0', segments:[
-      { id:'s1', pts:[[290,70],[470,68],[475,180],[288,182]], conf:0.94, area:'12.1' },
-      { id:'s2', pts:[[290,200],[470,198],[473,310],[288,312]], conf:0.91, area:'11.8' },
-    ]
-  },
-  {
-    id: 'g2', name:'болт_A', color:'#5ce080', segments:[
-      { id:'s3', pts:[[80,320],[120,318],[122,360],[78,362]], conf:0.96, area:'1.2' },
-      { id:'s4', pts:[[195,318],[235,316],[237,358],[193,360]], conf:0.95, area:'1.2' },
-    ]
-  },
-  {
-    id: 'g3', name:'болт_B', color:'#e0c25c', segments:[
-      { id:'s5', pts:[[310,330],[350,328],[352,370],[308,372]], conf:0.93, area:'1.1' },
-      { id:'s6', pts:[[420,325],[460,323],[462,365],[418,367]], conf:0.92, area:'1.1' },
-    ]
-  },
-  {
-    id: 'g4', name:'уплотнение', color:'#c05ce0', segments:[
-      { id:'s7', pts:[[55,388],[270,384],[274,430],[52,434]], conf:0.89, area:'8.3' },
-    ]
-  },
+// ─── DATA MODEL ──────────────────────────────────
+// Segment = YOLO class (defined once per standard, shared across all images)
+const classes = [
+  { id:'c0', label:'корпус',      color:'#e05c5c' },
+  { id:'c1', label:'крышка',      color:'#5c9ee0' },
+  { id:'c2', label:'болт_A',      color:'#5ce080' },
+  { id:'c3', label:'болт_B',      color:'#e0c25c' },
+  { id:'c4', label:'уплотнение',  color:'#c05ce0' },
+  { id:'c5', label:'разъём',      color:'#5ce0d4' },
+  { id:'c6', label:'кабель',      color:'#e08a5c' },
+  { id:'c7', label:'шильдик',     color:'#9ee05c' },
 ];
 
-let selectedSegId = null;
+// SegmentAnnotation = polygon points for one class on this image
+// Multiple annotations per class = multiple instances (e.g. 4 bolts)
+const annotations = [
+  { id:'a0', classId:'c0', pts:[[55,75],[260,70],[268,282],[52,288]] },
+  { id:'a1', classId:'c1', pts:[[288,68],[470,65],[475,178],[285,182]] },
+  { id:'a2', classId:'c1', pts:[[288,198],[472,195],[475,308],[285,312]] },
+  { id:'a3', classId:'c2', pts:[[78,318],[122,315],[124,358],[76,361]] },
+  { id:'a4', classId:'c2', pts:[[193,316],[237,313],[239,356],[191,359]] },
+  { id:'a5', classId:'c3', pts:[[308,328],[352,325],[354,368],[306,371]] },
+  { id:'a6', classId:'c3', pts:[[418,323],[462,320],[464,363],[416,366]] },
+  { id:'a7', classId:'c4', pts:[[52,386],[272,382],[276,428],[50,432]] },
+];
+
+let selectedClassId = null;
+let selectedAnnId   = null;
+let drawMode   = false;
+let drawPoints = [];
 let currentImgIdx = 1;
 let currentZoom   = 1;
-let drawMode = false;
-let drawPoints = [];
 
-// ─── RENDER SIDEBAR ─────────────────────────────
-function renderSidebar() {
-  const list = document.getElementById('segGroupsList');
-  list.innerHTML = '';
-  let total = 0;
-  segmentGroups.forEach(g => {
-    total += g.segments.length;
-    const div = document.createElement('div');
-    div.className = 'seg-group open';
-    div.id = 'grp_' + g.id;
-    div.innerHTML = `
-      <div class="seg-group__header" onclick="toggleGroup('${g.id}')">
-        <span class="seg-group__color" style="background:${g.color}"></span>
-        <span class="seg-group__name">${g.name}</span>
-        <span class="seg-group__cnt">${g.segments.length}</span>
-        <span class="seg-group__chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
-      </div>
-      <div class="seg-group__items">
-        ${g.segments.map((s,i) => `
-          <div class="seg-item${s.id===selectedSegId?' selected':''}" id="item_${s.id}" onclick="selectSeg('${s.id}','${g.name}','${g.color}',${s.pts.length},${s.area},${s.conf})">
-            <span class="seg-item__dot" style="background:${g.color}"></span>
-            <span class="seg-item__name">${g.name} #${i+1}</span>
-            <span class="seg-item__pts">${s.pts.length}pt</span>
-          </div>`).join('')}
-      </div>`;
-    list.appendChild(div);
+// ─── CLASS HELPERS ───────────────────────────────
+function classById(id) { return classes.find(c => c.id === id); }
+function annsForClass(cid) { return annotations.filter(a => a.classId === cid); }
+function annById(id) { return annotations.find(a => a.id === id); }
+
+// ─── RENDER CLASS LIST ───────────────────────────
+function renderClassList() {
+  const el = document.getElementById('classListEl');
+  el.innerHTML = '';
+  classes.forEach(cls => {
+    const anns = annsForClass(cls.id);
+    const isSelected = cls.id === selectedClassId;
+    const item = document.createElement('div');
+    item.className = 'seg-class-item' + (isSelected ? ' selected' : '');
+    item.onclick = () => selectClass(cls.id);
+    const hasDot  = anns.length > 0 ? 'seg-class-item__status--done' : 'seg-class-item__status--none';
+    const cntTxt  = anns.length > 0
+      ? `<span class="seg-class-item__cnt seg-class-item__cnt--has">${anns.length} пол.</span>`
+      : `<span class="seg-class-item__cnt">—</span>`;
+    item.innerHTML = `
+      <span class="seg-class-item__swatch" style="background:${cls.color}"></span>
+      <span class="seg-class-item__label">${cls.label}</span>
+      ${cntTxt}
+      <span class="seg-class-item__status ${hasDot}"></span>
+    `;
+    el.appendChild(item);
   });
-  document.getElementById('totalSegs').textContent = total + ' сегментов';
 }
 
-function toggleGroup(gid) {
-  document.getElementById('grp_'+gid).classList.toggle('open');
+// ─── SELECT CLASS ────────────────────────────────
+function selectClass(cid) {
+  selectedClassId = cid;
+  selectedAnnId   = null;
+  if (drawMode) setMode('edit'); // exit draw when switching class
+  renderClassList();
+  renderAnnList();
+  renderSVG();
+}
+
+// ─── RENDER ANNOTATION LIST ──────────────────────
+function renderAnnList() {
+  const head  = document.getElementById('annSectionHead');
+  const scroll = document.getElementById('annScrollEl');
+  const title  = document.getElementById('annSectionTitle');
+  const cnt    = document.getElementById('annSectionCnt');
+
+  if (!selectedClassId) {
+    head.style.display = 'none';
+    scroll.innerHTML = `
+      <div class="seg-ann-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Выберите класс для просмотра разметки
+      </div>`;
+    return;
+  }
+
+  const cls  = classById(selectedClassId);
+  const anns = annsForClass(selectedClassId);
+
+  head.style.display = '';
+  title.textContent = `«${cls.label}»`;
+  cnt.textContent   = anns.length > 0 ? `${anns.length} полигон${anns.length > 1 ? 'a' : ''}` : '';
+
+  if (anns.length === 0) {
+    scroll.innerHTML = `
+      <div class="seg-ann-empty seg-ann-empty--draw">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke:rgba(61,158,114,.4)"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Класс не размечен на этом изображении.<br>Нажмите «Добавить разметку».
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  anns.forEach((ann, idx) => {
+    const isSelected = ann.id === selectedAnnId;
+    const area = calcArea(ann.pts);
+    html += `
+      <div class="seg-ann-item${isSelected ? ' selected' : ''}" onclick="selectAnn('${ann.id}')">
+        <div class="seg-ann-item__idx" style="background:${cls.color}">${idx+1}</div>
+        <div class="seg-ann-item__pts">${ann.pts.length} точек</div>
+        <div class="seg-ann-item__area">${area}%</div>
+        <div class="seg-ann-item__del" onclick="event.stopPropagation();deleteAnn('${ann.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+      </div>`;
+  });
+
+  // Add polygon button
+  html += `
+    <div class="seg-ann-add" onclick="setMode('draw')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Добавить полигон
+    </div>`;
+
+  scroll.innerHTML = html;
+}
+
+function calcArea(pts) {
+  // Shoelace approximation relative to 680×510
+  if (pts.length < 3) return '—';
+  let a = 0;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    a += (pts[j][0] + pts[i][0]) * (pts[j][1] - pts[i][1]);
+  }
+  return Math.abs(a / 2 / (680 * 510) * 100).toFixed(1);
+}
+
+// ─── SELECT ANNOTATION ───────────────────────────
+function selectAnn(aid) {
+  selectedAnnId = aid;
+  renderAnnList();
+  renderSVG();
+}
+
+function deleteAnn(aid) {
+  const idx = annotations.findIndex(a => a.id === aid);
+  if (idx >= 0) annotations.splice(idx, 1);
+  if (selectedAnnId === aid) selectedAnnId = null;
+  renderAnnList();
+  renderClassList();
+  renderSVG();
 }
 
 // ─── RENDER SVG ──────────────────────────────────
 function renderSVG() {
   const svg = document.getElementById('svgOverlay');
   svg.innerHTML = '';
-  segmentGroups.forEach(g => {
-    g.segments.forEach(s => {
-      const pts = s.pts;
-      const ptsStr = pts.map(p => p.join(',')).join(' ');
-      const isSelected = s.id === selectedSegId;
 
-      // Polygon
-      const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-      poly.setAttribute('points', ptsStr);
-      poly.setAttribute('fill', g.color + (isSelected ? '30' : '1a'));
-      poly.setAttribute('stroke', g.color);
-      poly.setAttribute('stroke-width', isSelected ? '2' : '1.5');
-      poly.setAttribute('stroke-linejoin', 'round');
-      poly.style.cursor = 'pointer';
-      poly.addEventListener('click', () => selectSeg(s.id, g.name, g.color, pts.length, s.area, s.conf));
-      svg.appendChild(poly);
+  annotations.forEach(ann => {
+    const cls = classById(ann.classId);
+    if (!cls) return;
+    const isSelectedCls = cls.id === selectedClassId;
+    const isSelectedAnn = ann.id === selectedAnnId;
+    const dim = !isSelectedCls; // dim unselected classes
 
-      // Vertices (only on selected)
-      if (isSelected) {
-        pts.forEach((p, i) => {
-          const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-          c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]);
-          c.setAttribute('r', '4'); c.setAttribute('fill', g.color);
-          c.setAttribute('stroke', '#0a0b0a'); c.setAttribute('stroke-width', '1.5');
-          c.setAttribute('class', 'vtx');
-          c.style.cursor = 'move';
-          svg.appendChild(c);
-        });
-      }
+    const pts   = ann.pts;
+    const ptsStr = pts.map(p => p.join(',')).join(' ');
 
-      // Label
-      const cx = pts.reduce((a,p) => a+p[0],0)/pts.length;
-      const cy = pts.reduce((a,p) => a+p[1],0)/pts.length;
-      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-      label.setAttribute('x', cx); label.setAttribute('y', cy+4);
-      label.setAttribute('text-anchor','middle');
-      label.setAttribute('font-size','10');
-      label.setAttribute('font-family','IBM Plex Mono,monospace');
-      label.setAttribute('fill', g.color);
-      label.setAttribute('paint-order','stroke');
-      label.setAttribute('stroke', '#060808');
-      label.setAttribute('stroke-width','3');
-      label.textContent = g.name;
-      label.style.pointerEvents = 'none';
-      svg.appendChild(label);
+    const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points', ptsStr);
+    poly.setAttribute('fill', cls.color + (isSelectedAnn ? '30' : dim ? '0a' : '18'));
+    poly.setAttribute('stroke', cls.color);
+    poly.setAttribute('stroke-width', isSelectedAnn ? '2' : dim ? '1' : '1.5');
+    poly.setAttribute('stroke-linejoin', 'round');
+    poly.setAttribute('opacity', dim ? '0.35' : '1');
+    poly.style.cursor = 'pointer';
+    poly.style.pointerEvents = 'all';
+    poly.addEventListener('click', () => {
+      selectClass(cls.id);
+      selectAnn(ann.id);
     });
+    svg.appendChild(poly);
+
+    // Vertex handles for selected annotation
+    if (isSelectedAnn) {
+      pts.forEach(p => {
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]);
+        c.setAttribute('r', '4'); c.setAttribute('fill', cls.color);
+        c.setAttribute('stroke', '#070909'); c.setAttribute('stroke-width', '1.5');
+        c.setAttribute('class', 'vtx'); c.style.pointerEvents = 'all';
+        svg.appendChild(c);
+      });
+    }
+
+    // Label — only for selected class or selected annotation
+    if (isSelectedCls || isSelectedAnn) {
+      const cx = pts.reduce((a,p) => a+p[0], 0) / pts.length;
+      const cy = pts.reduce((a,p) => a+p[1], 0) / pts.length;
+      const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.setAttribute('x', cx); text.setAttribute('y', cy + 4);
+      text.setAttribute('text-anchor','middle');
+      text.setAttribute('font-size','10');
+      text.setAttribute('font-family','IBM Plex Mono,monospace');
+      text.setAttribute('fill', cls.color);
+      text.setAttribute('paint-order','stroke');
+      text.setAttribute('stroke','#070909');
+      text.setAttribute('stroke-width','3');
+      text.style.pointerEvents = 'none';
+      text.textContent = cls.label;
+      svg.appendChild(text);
+    }
   });
 
-  // Drawing mode: show in-progress polygon
+  // In-progress drawing polygon
   if (drawMode && drawPoints.length > 0) {
-    const pts = drawPoints;
-    if (pts.length > 1) {
+    if (drawPoints.length > 1) {
       const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
-      poly.setAttribute('points', pts.map(p=>p.join(',')).join(' '));
+      poly.setAttribute('points', drawPoints.map(p=>p.join(',')).join(' '));
       poly.setAttribute('fill','none');
       poly.setAttribute('stroke','#fff');
       poly.setAttribute('stroke-width','1.5');
       poly.setAttribute('stroke-dasharray','4 3');
       svg.appendChild(poly);
     }
-    pts.forEach(p => {
+    drawPoints.forEach(p => {
       const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
       c.setAttribute('cx',p[0]); c.setAttribute('cy',p[1]);
       c.setAttribute('r','4'); c.setAttribute('fill','#fff');
-      c.setAttribute('stroke','#060808'); c.setAttribute('stroke-width','1.5');
+      c.setAttribute('stroke','#070909'); c.setAttribute('stroke-width','1.5');
       svg.appendChild(c);
     });
   }
 }
 
-// ─── SELECT SEGMENT ──────────────────────────────
-function selectSeg(id, clsName, color, pts, area, conf) {
-  selectedSegId = id;
-  const detail = document.getElementById('segDetail');
-  detail.classList.add('visible');
-  document.getElementById('detTitle').textContent = clsName + ' #' + (segmentGroups.find(g=>g.segments.find(s=>s.id===id))?.segments.findIndex(s=>s.id===id)+1 || 1);
-  document.getElementById('detClass').textContent = clsName;
-  document.getElementById('detPts').textContent   = pts;
-  document.getElementById('detArea').textContent  = area + '%';
-  document.getElementById('detConf').textContent  = conf ? conf.toFixed(2) : '—';
-  renderSidebar();
-  renderSVG();
-}
-
-function deleteSelected() {
-  segmentGroups.forEach(g => {
-    const idx = g.segments.findIndex(s => s.id === selectedSegId);
-    if (idx >= 0) g.segments.splice(idx, 1);
-  });
-  selectedSegId = null;
-  document.getElementById('segDetail').classList.remove('visible');
-  renderSidebar(); renderSVG();
-}
-
 // ─── DRAW MODE ───────────────────────────────────
 function setMode(mode) {
   drawMode = (mode === 'draw');
-  document.getElementById('modeEdit').classList.toggle('active', !drawMode);
-  document.getElementById('modeDraw').classList.toggle('active', drawMode);
-  const hint = document.getElementById('modeHint');
+
+  const editTab = document.getElementById('modeEdit');
+  const drawTab = document.getElementById('modeDraw');
+  const hint    = document.getElementById('modeHint');
+  const wrap    = document.getElementById('canvasWrap');
+  const drawBtn = document.getElementById('drawBtn');
+
+  editTab.classList.remove('active','draw-active');
+  drawTab.classList.remove('active','draw-active');
+
   if (drawMode) {
+    if (!selectedClassId) {
+      // Can't draw without a class selected
+      hint.innerHTML = '<span class="draw-warn">Сначала выберите класс</span>';
+      drawMode = false;
+      editTab.classList.add('active');
+      return;
+    }
     drawPoints = [];
-    hint.textContent = 'Кликайте для добавления точек · ПКМ для отмены · Двойной клик для завершения';
-    document.getElementById('canvasWrap').style.cursor = 'crosshair';
+    const cls = classById(selectedClassId);
+    drawTab.classList.add('draw-active');
+    hint.innerHTML = `<span class="draw-hint-pill"><span class="draw-hint-pill__dot"></span>Рисую: ${cls.label} · двойной клик — завершить · ПКМ — отмена</span>`;
+    wrap.classList.add('draw-cursor');
+    drawBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Отмена`;
+    drawBtn.onclick = () => setMode('edit');
   } else {
-    hint.textContent = 'Нажмите на сегмент для выбора';
-    document.getElementById('canvasWrap').style.cursor = '';
+    drawPoints = [];
+    editTab.classList.add('active');
+    hint.textContent = '';
+    wrap.classList.remove('draw-cursor');
+    drawBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Добавить разметку`;
+    drawBtn.onclick = () => setMode('draw');
   }
   renderSVG();
 }
 
-// Canvas click in draw mode
+// Canvas interaction
+document.getElementById('svgOverlay').style.pointerEvents = 'all';
+
 document.getElementById('svgOverlay').addEventListener('click', function(e) {
   if (!drawMode) return;
   const rect = e.currentTarget.getBoundingClientRect();
@@ -503,14 +726,14 @@ document.getElementById('svgOverlay').addEventListener('click', function(e) {
 document.getElementById('svgOverlay').addEventListener('dblclick', function(e) {
   if (!drawMode || drawPoints.length < 3) return;
   e.preventDefault();
-  // Finish drawing
-  const colors = ['#e05c5c','#5c9ee0','#5ce080','#e0c25c','#c05ce0','#5ce0d4'];
-  const newId = 's' + Date.now();
-  // Add to first group as demo
-  segmentGroups[0].segments.push({ id: newId, pts: [...drawPoints], conf: null, area: '—' });
+  const newAnn = { id: 'a' + Date.now(), classId: selectedClassId, pts: [...drawPoints] };
+  annotations.push(newAnn);
   drawPoints = [];
   setMode('edit');
-  selectSeg(newId, segmentGroups[0].name, segmentGroups[0].color, segmentGroups[0].segments.at(-1).pts.length, '—', null);
+  selectedAnnId = newAnn.id;
+  renderClassList();
+  renderAnnList();
+  renderSVG();
 });
 
 document.getElementById('svgOverlay').addEventListener('contextmenu', e => {
@@ -528,25 +751,21 @@ function simulateRefine() {
     btn.classList.remove('btn--ai-active');
     btn.disabled = false;
     btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg> AI-уточнение`;
-    // Slightly perturb selected polygon
-    if (selectedSegId) {
-      segmentGroups.forEach(g => g.segments.forEach(s => {
-        if (s.id === selectedSegId) {
-          s.pts = s.pts.map(p => [p[0] + (Math.random()-0.5)*6|0, p[1] + (Math.random()-0.5)*6|0]);
-          s.conf = 0.9 + Math.random()*0.09;
-        }
-      }));
+    // Perturb selected annotation
+    if (selectedAnnId) {
+      const ann = annById(selectedAnnId);
+      if (ann) ann.pts = ann.pts.map(p => [p[0] + (Math.random()-.5)*6|0, p[1] + (Math.random()-.5)*6|0]);
+    } else {
+      // perturb all annotations for selected class
+      annsForClass(selectedClassId || 'c0').forEach(ann => {
+        ann.pts = ann.pts.map(p => [p[0] + (Math.random()-.5)*4|0, p[1] + (Math.random()-.5)*4|0]);
+      });
     }
-    renderSVG(); renderSidebar();
-    if (selectedSegId) {
-      const g = segmentGroups.find(g=>g.segments.find(s=>s.id===selectedSegId));
-      const s = g.segments.find(s=>s.id===selectedSegId);
-      if(s) document.getElementById('detConf').textContent = s.conf.toFixed(2);
-    }
+    renderAnnList(); renderSVG();
   }, 1200);
 }
 
-// ─── ZOOM ────────────────────────────────────────
+// ─── ZOOM ─────────────────────────────────────────
 function zoom(delta) {
   currentZoom = Math.min(3, Math.max(0.3, currentZoom + delta));
   document.getElementById('canvasStage').style.transform =
@@ -558,31 +777,79 @@ function zoom(delta) {
 function prevImg() {
   if (currentImgIdx > 1) currentImgIdx--;
   document.getElementById('imgCounter').textContent = currentImgIdx + ' / 80';
+  document.getElementById('imgName').textContent = 'img_' + String(currentImgIdx).padStart(3,'0') + '.jpg';
 }
 function nextImg() {
   if (currentImgIdx < 80) currentImgIdx++;
   document.getElementById('imgCounter').textContent = currentImgIdx + ' / 80';
+  document.getElementById('imgName').textContent = 'img_' + String(currentImgIdx).padStart(3,'0') + '.jpg';
 }
 
-// ─── ANGLE ───────────────────────────────────────
 function setAngle(el) {
   document.querySelectorAll('.canvas-angle-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
 
+// ─── CLASS MANAGER MODAL ─────────────────────────
+const PALETTE = ['#e05c5c','#5c9ee0','#5ce080','#e0c25c','#c05ce0','#5ce0d4','#e08a5c','#9ee05c','#e05ca4','#a0c8ff'];
+let cmClasses = null;
+
+function openClassManager() {
+  cmClasses = classes.map(c => ({...c}));
+  renderCMList();
+  const m = document.getElementById('modal-classManager');
+  m.style.opacity = '1'; m.style.pointerEvents = 'all';
+  m.querySelector('div').style.transform = 'translateY(0)';
+}
+function closeClassManager() {
+  const m = document.getElementById('modal-classManager');
+  m.style.opacity = '0'; m.style.pointerEvents = 'none';
+  m.querySelector('div').style.transform = 'translateY(8px)';
+  cmClasses = null;
+}
+function saveClassManager() {
+  classes.length = 0;
+  const inputs = document.querySelectorAll('#cmClassList input');
+  inputs.forEach((inp, i) => {
+    if (inp.value.trim()) classes.push({ id: cmClasses[i]?.id || 'c'+Date.now()+i, label: inp.value.trim(), color: cmClasses[i]?.color || PALETTE[i % PALETTE.length] });
+  });
+  closeClassManager();
+  selectedClassId = null; selectedAnnId = null;
+  renderClassList(); renderAnnList(); renderSVG();
+}
+function renderCMList() {
+  const list = document.getElementById('cmClassList');
+  list.innerHTML = (cmClasses || []).map((c, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft)">
+      <div style="width:12px;height:12px;border-radius:3px;background:${c.color};flex-shrink:0;cursor:pointer" onclick="cycleColor(${i})" title="Сменить цвет"></div>
+      <input style="flex:1;background:none;border:none;color:var(--text);font-size:12px;outline:none;font-family:var(--mono)" value="${c.label}">
+      <button onclick="cmClasses.splice(${i},1);renderCMList()" style="background:none;border:none;color:var(--text-hint);cursor:pointer;padding:2px" title="Удалить">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('');
+}
+function addClassFromManager() {
+  cmClasses.push({ id: 'c'+Date.now(), label: 'новый_класс', color: PALETTE[cmClasses.length % PALETTE.length] });
+  renderCMList();
+  const inputs = document.querySelectorAll('#cmClassList input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+function cycleColor(i) {
+  const curIdx = PALETTE.indexOf(cmClasses[i].color);
+  cmClasses[i].color = PALETTE[(curIdx + 1) % PALETTE.length];
+  renderCMList();
+}
+document.getElementById('modal-classManager').addEventListener('click', function(e) {
+  if (e.target === this) closeClassManager();
+});
+
 // ─── INIT ────────────────────────────────────────
-renderSidebar();
+renderClassList();
+renderAnnList();
 renderSVG();
 
-// CSS spin
 const style = document.createElement('style');
 style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
 document.head.appendChild(style);
-
-function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('theme', t);
-}
 </script>
 </body></html>

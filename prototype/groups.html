@@ -80,7 +80,7 @@
     }
     .img-item:hover .img-item__label { opacity: 1; }
 
-    /* Segment groups preview inside expanded standard */
+    /* YOLO classes preview inside expanded standard */
     .seg-groups { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border-soft); }
     .seg-group-chip {
       display:inline-flex; align-items:center; gap:4px;
@@ -99,6 +99,7 @@
 </head>
 <body>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark')</script>
+<div id="toast-container" class="toast-container"></div>
 
 <!-- NAV -->
 <nav class="nav"><div class="nav__inner">
@@ -137,6 +138,32 @@
       <div class="sb-item" onclick="selectGroup(this,3)"><span class="sb-item__dot"></span><span class="sb-item__name">Выход ОТК</span><span class="sb-item__count">1</span></div>
       <div class="sb-item" onclick="selectGroup(this,4)"><span class="sb-item__dot"></span><span class="sb-item__name">Упаковка / Финал</span><span class="sb-item__count">2</span></div>
     </div>
+    <!-- sidebar: loading (скелетон) -->
+    <div id="sbLoading" style="display:none;flex-direction:column;flex:1;padding:6px">
+      <div class="skel-item"><div class="skel skel-item__dot"></div><div class="skel skel-item__line"></div><div class="skel skel-item__end"></div></div>
+      <div class="skel-item" style="opacity:.75"><div class="skel skel-item__dot"></div><div class="skel skel-item__line" style="max-width:70%"></div><div class="skel skel-item__end"></div></div>
+      <div class="skel-item" style="opacity:.55"><div class="skel skel-item__dot"></div><div class="skel skel-item__line" style="max-width:85%"></div><div class="skel skel-item__end"></div></div>
+      <div class="skel-item" style="opacity:.35"><div class="skel skel-item__dot"></div><div class="skel skel-item__line" style="max-width:60%"></div><div class="skel skel-item__end"></div></div>
+    </div>
+
+    <!-- sidebar: error -->
+    <div class="qs qs--error" id="sbError" style="display:none;padding:28px 12px">
+      <div class="qs__icon" style="width:32px;height:32px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="qs__title" style="font-size:12px">Ошибка загрузки</div>
+      <div class="qs__action"><button class="btn btn--ghost btn--sm" onclick="showSbState('content')">Повторить</button></div>
+    </div>
+
+    <!-- sidebar: empty (нет групп) -->
+    <div class="qs qs--empty" id="sbEmpty" style="display:none;padding:28px 12px">
+      <div class="qs__icon" style="width:32px;height:32px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><path d="M13 7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2V7z"/></svg>
+      </div>
+      <div class="qs__title" style="font-size:12px">Нет групп</div>
+      <div class="qs__sub" style="font-size:11px">Создайте первую группу</div>
+    </div>
+
     <div class="sb-footer">
       <button class="btn btn--ghost btn--full btn--sm" onclick="openModal('groupCreate')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -147,7 +174,36 @@
 
   <!-- CONTENT -->
   <main class="split__content">
-    <div class="content-header">
+
+    <!-- MOBILE BAR -->
+    <div class="mobile-bar">
+      <button class="mobile-bar__btn" onclick="openSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="mobile-bar__title" id="mobileTitle">Производство Б</span>
+    </div>
+
+    <!-- DEMO STRIP -->
+    <div class="demo-strip">
+      <span>sidebar:</span>
+      <button class="demo-strip__btn active" id="demoSbContent" onclick="showSbState('content')">content</button>
+      <button class="demo-strip__btn" id="demoSbLoading" onclick="showSbState('loading')">loading</button>
+      <button class="demo-strip__btn" id="demoSbError"   onclick="showSbState('error')">error</button>
+      <button class="demo-strip__btn" id="demoSbEmpty"   onclick="showSbState('empty')">empty</button>
+      <div class="demo-strip__sep"></div>
+      <span>content:</span>
+      <button class="demo-strip__btn active" id="demoContent" onclick="showState('content')">content</button>
+      <button class="demo-strip__btn" id="demoLoading" onclick="showState('loading')">loading</button>
+      <button class="demo-strip__btn" id="demoError"   onclick="showState('error')">error</button>
+      <button class="demo-strip__btn" id="demoEmpty"   onclick="showState('empty')">empty</button>
+      <div class="demo-strip__sep"></div>
+      <span>toasts:</span>
+      <button class="demo-strip__btn" onclick="toast('success','Группа создана','Производство Б добавлена в список')">success</button>
+      <button class="demo-strip__btn" onclick="toast('error','Ошибка сохранения','Сервер недоступен, попробуйте позже')">error</button>
+      <button class="demo-strip__btn" onclick="toast('warning','Не все эталоны размечены','92 из 187 изображений без разметки')">warning</button>
+    </div>
+
+    <div class="content-header" id="contentHeader">
       <div class="content-header__top">
         <div>
           <div class="content-title" id="gName">Производство Б</div>
@@ -161,7 +217,7 @@
           <button class="btn btn--ghost btn--sm btn--icon-only" title="Редактировать группу" onclick="openModal('groupEdit')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn btn--danger btn--sm btn--icon-only" title="Удалить группу">
+          <button class="btn btn--danger btn--sm btn--icon-only" title="Удалить группу" onclick="openModal('groupDelete')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
           </button>
         </div>
@@ -181,12 +237,12 @@
         </div>
         <div class="gstat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px;stroke-width:1.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          <span class="gstat__val" id="gSeg" style="color:var(--ml-text)">1 284</span> сегментов
+          <span class="gstat__val" id="gSeg" style="color:var(--ml-text)">1 284</span> аннотаций (полигонов)
         </div>
       </div>
     </div>
 
-    <div class="split__body">
+    <div class="split__body" id="mainContent">
       <div class="section-label">
         Эталоны
         <span class="badge badge--ghost" id="stdBadge">3 эталона</span>
@@ -200,7 +256,7 @@
           </div>
           <div class="std-card__info">
             <div class="std-card__name">Фронт (0°)</div>
-            <div class="std-card__meta">80 изображений · 8 классов сегментации</div>
+            <div class="std-card__meta">80 изображений · 8 YOLO-классов</div>
           </div>
           <div class="std-card__right">
             <div style="display:flex;gap:4px">
@@ -234,15 +290,18 @@
             </button>
           </div>
           <div class="img-grid" id="imgGrid0"></div>
-          <div class="seg-groups">
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>болт_B</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>уплотнение</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce0d4"></span>разъём</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e08a5c"></span>кабель</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#9ee05c"></span>шильдик</div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft)">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);margin-bottom:7px">YOLO-классы</div>
+            <div class="seg-groups" style="margin-top:0;padding-top:0;border-top:none">
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>болт_B</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>уплотнение</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce0d4"></span>разъём</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e08a5c"></span>кабель</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#9ee05c"></span>шильдик</div>
+            </div>
           </div>
         </div>
       </div>
@@ -255,7 +314,7 @@
           </div>
           <div class="std-card__info">
             <div class="std-card__name">Профиль (90°)</div>
-            <div class="std-card__meta">68 изображений · 5 классов сегментации</div>
+            <div class="std-card__meta">68 изображений · 5 YOLO-классов</div>
           </div>
           <div class="std-card__right">
             <div style="display:flex;gap:4px">
@@ -263,7 +322,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Фото
               </button>
-              <button class="btn btn--ghost btn--sm btn--icon-only" onclick="event.stopPropagation()">
+              <button class="btn btn--ghost btn--sm btn--icon-only" onclick="event.stopPropagation();openModal('stdEdit')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
             </div>
@@ -282,12 +341,15 @@
             </div>
           </div>
           <div class="img-grid" id="imgGrid1"></div>
-          <div class="seg-groups">
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>разъём</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>кабель</div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft)">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);margin-bottom:7px">YOLO-классы</div>
+            <div class="seg-groups" style="margin-top:0;padding-top:0;border-top:none">
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>разъём</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>кабель</div>
+            </div>
           </div>
         </div>
       </div>
@@ -300,7 +362,7 @@
           </div>
           <div class="std-card__info">
             <div class="std-card__name">Сверху (180°)</div>
-            <div class="std-card__meta">39 изображений · 6 классов сегментации</div>
+            <div class="std-card__meta">39 изображений · 6 YOLO-классов</div>
           </div>
           <div class="std-card__right">
             <div style="display:flex;gap:4px">
@@ -308,7 +370,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Фото
               </button>
-              <button class="btn btn--ghost btn--sm btn--icon-only" onclick="event.stopPropagation()">
+              <button class="btn btn--ghost btn--sm btn--icon-only" onclick="event.stopPropagation();openModal('stdEdit')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
             </div>
@@ -328,32 +390,82 @@
             <span class="badge badge--primary badge--dot">полностью размечен</span>
           </div>
           <div class="img-grid" id="imgGrid2"></div>
-          <div class="seg-groups">
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>болт_B</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>уплотнение</div>
-            <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce0d4"></span>шильдик</div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft)">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);margin-bottom:7px">YOLO-классы</div>
+            <div class="seg-groups" style="margin-top:0;padding-top:0;border-top:none">
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e05c5c"></span>корпус</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5c9ee0"></span>крышка</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce080"></span>болт_A</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#e0c25c"></span>болт_B</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#c05ce0"></span>уплотнение</div>
+              <div class="seg-group-chip"><span class="seg-group-chip__dot" style="background:#5ce0d4"></span>шильдик</div>
+            </div>
           </div>
         </div>
       </div>
 
     </div>
+
+    <!-- QUERY STATE: loading -->
+    <div class="qs qs--loading" id="stateLoading" style="display:none">
+      <div class="qs__icon"><div class="spinner"></div></div>
+      <div class="qs__title">Загрузка эталонов...</div>
+      <div class="qs__sub">Получаем данные с сервера</div>
+    </div>
+
+    <!-- QUERY STATE: error -->
+    <div class="qs qs--error" id="stateError" style="display:none">
+      <div class="qs__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="qs__title">Ошибка загрузки</div>
+      <div class="qs__sub">Не удалось получить данные. Проверьте подключение к серверу.</div>
+      <div class="qs__action">
+        <button class="btn btn--ghost btn--sm" onclick="showState('content')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          Повторить
+        </button>
+      </div>
+    </div>
+
+    <!-- QUERY STATE: empty -->
+    <div class="qs qs--empty" id="stateEmpty" style="display:none">
+      <div class="qs__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </div>
+      <div class="qs__title">Эталоны не добавлены</div>
+      <div class="qs__sub">Добавьте первый эталон, чтобы начать разметку изображений</div>
+      <div class="qs__action">
+        <button class="btn btn--primary btn--sm" onclick="showState('content');openModal('stdCreate')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Добавить эталон
+        </button>
+      </div>
+    </div>
+
   </main>
 </div></div>
 
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
 <!-- MODALS -->
+<div class="modal-overlay" id="modal-groupDelete">
+  <div class="modal"><div class="modal__header"><div class="modal__title">Удалить группу?</div><button class="modal__close" onclick="closeModal('groupDelete')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="modal__body"><div style="font-size:13px;color:var(--text-sub)">Удалить группу <strong id="deleteGroupName">Производство Б</strong> со всеми эталонами и изображениями? Это действие необратимо.</div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('groupDelete')">Отмена</button><button class="btn btn--danger" onclick="closeModal('groupDelete');toast('success','Группа удалена','Данные безвозвратно удалены')">Удалить</button></div></div>
+</div>
+
 <div class="modal-overlay" id="modal-groupCreate">
   <div class="modal"><div class="modal__header"><div class="modal__title">Новая группа</div><button class="modal__close" onclick="closeModal('groupCreate')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div class="modal__body"><div class="field"><div class="field__label">Название</div><input class="field__input" placeholder="Например: Линия Б / Упаковка"></div><div class="field"><div class="field__label">Описание</div><input class="field__input" placeholder="Опционально"></div></div>
-  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('groupCreate')">Отмена</button><button class="btn btn--primary">Создать</button></div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('groupCreate')">Отмена</button><button class="btn btn--primary" onclick="closeModal('groupCreate');toast('success','Группа создана','Теперь добавьте первый эталон')">Создать</button></div></div>
 </div>
 
 <div class="modal-overlay" id="modal-groupEdit">
   <div class="modal"><div class="modal__header"><div class="modal__title">Редактировать группу</div><button class="modal__close" onclick="closeModal('groupEdit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div class="modal__body"><div class="field"><div class="field__label">Название</div><input class="field__input" value="Производство Б"></div><div class="field"><div class="field__label">Описание</div><input class="field__input" placeholder="Опционально"></div></div>
-  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('groupEdit')">Отмена</button><button class="btn btn--primary">Сохранить</button></div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('groupEdit')">Отмена</button><button class="btn btn--primary" onclick="closeModal('groupEdit');toast('success','Изменения сохранены')">Сохранить</button></div></div>
 </div>
 
 <div class="modal-overlay" id="modal-stdCreate">
@@ -363,13 +475,13 @@
     <div class="field"><div class="field__label">Угол съёмки</div><select class="field__select"><option>0° — Фронт</option><option>45°</option><option>90° — Профиль</option><option>135°</option><option>180° — Сверху</option></select></div>
     <div class="field"><div class="field__label">Эталонное фото</div><div style="border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;color:var(--text-hint);font-size:12px;transition:all .15s" onmouseenter="this.style.borderColor='var(--primary-bd)'" onmouseleave="this.style.borderColor='var(--border)'">Перетащите или нажмите</div></div>
   </div>
-  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('stdCreate')">Отмена</button><button class="btn btn--primary">Создать</button></div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('stdCreate')">Отмена</button><button class="btn btn--primary" onclick="closeModal('stdCreate');toast('success','Эталон создан','Загрузите фотографии для разметки')">Создать</button></div></div>
 </div>
 
 <div class="modal-overlay" id="modal-stdEdit">
   <div class="modal"><div class="modal__header"><div class="modal__title">Редактировать эталон</div><button class="modal__close" onclick="closeModal('stdEdit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div class="modal__body"><div class="field"><div class="field__label">Название</div><input class="field__input" value="Фронт (0°)"></div><div class="field"><div class="field__label">Угол</div><select class="field__select"><option selected>0° — Фронт</option><option>90° — Профиль</option><option>180° — Сверху</option></select></div></div>
-  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('stdEdit')">Отмена</button><button class="btn btn--primary">Сохранить</button></div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('stdEdit')">Отмена</button><button class="btn btn--primary" onclick="closeModal('stdEdit');toast('success','Эталон обновлён')">Сохранить</button></div></div>
 </div>
 
 <div class="modal-overlay" id="modal-imgUpload">
@@ -381,7 +493,7 @@
       <div style="font-size:11px;color:var(--text-hint)">JPG, PNG · до 100 файлов</div>
     </div>
   </div>
-  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('imgUpload')">Отмена</button><button class="btn btn--primary">Загрузить</button></div></div>
+  <div class="modal__footer"><button class="btn btn--ghost" onclick="closeModal('imgUpload')">Отмена</button><button class="btn btn--primary" onclick="closeModal('imgUpload');toast('success','Фотографии загружены','12 файлов добавлено в эталон')">Загрузить</button></div></div>
 </div>
 
 <div class="modal-overlay" id="modal-segGroups">
@@ -402,7 +514,80 @@
 <div class="proto-note">prototype · groups.html</div>
 
 <script>
-// Theme
+// ─── TOASTS ──────────────────────────────────────────────────
+const ICONS = {
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>',
+  error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+
+function toast(type, title, sub) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast toast--${type}`;
+  el.innerHTML = `
+    <div class="toast__icon">${ICONS[type]}</div>
+    <div class="toast__body">
+      <div class="toast__title">${title}</div>
+      ${sub ? `<div class="toast__sub">${sub}</div>` : ''}
+    </div>
+    <button class="toast__close" onclick="dismissToast(this.parentElement)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  container.appendChild(el);
+  setTimeout(() => dismissToast(el), 3500);
+}
+
+function dismissToast(el) {
+  if (!el || el.classList.contains('out')) return;
+  el.classList.add('out');
+  el.addEventListener('animationend', () => el.remove(), { once: true });
+}
+
+// ─── SIDEBAR (mobile drawer) ──────────────
+function openSidebar() {
+  document.querySelector('.split__sidebar').classList.add('open');
+  document.getElementById('sbOverlay').classList.add('open');
+}
+function closeSidebar() {
+  document.querySelector('.split__sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('open');
+}
+
+// ─── QUERY STATE DEMO ─────────────────────────────────────────
+function showSbState(state) {
+  document.querySelector('.sb-list').style.display   = state === 'content' ? '' : 'none';
+  document.getElementById('sbLoading').style.display = state === 'loading' ? 'flex' : 'none';
+  document.getElementById('sbError').style.display   = state === 'error'   ? 'flex' : 'none';
+  document.getElementById('sbEmpty').style.display   = state === 'empty'   ? 'flex' : 'none';
+  // при loading/error сайдбара — убираем контент
+  const hideContent = state !== 'content';
+  document.getElementById('mainContent').style.display   = hideContent ? 'none' : '';
+  document.getElementById('contentHeader').style.display = hideContent ? 'none' : '';
+  document.getElementById('stateLoading').style.display  = 'none';
+  document.getElementById('stateError').style.display    = 'none';
+  document.getElementById('stateEmpty').style.display    = 'none';
+  // сбрасываем content-state кнопки тоже
+  document.getElementById('demoContent').classList.add('active');
+  ['demoLoading','demoError','demoEmpty'].forEach(id => document.getElementById(id).classList.remove('active'));
+  // подсветка sidebar-кнопок
+  ['demoSbContent','demoSbLoading','demoSbError','demoSbEmpty'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('demoSb' + cap(state)).classList.add('active');
+}
+
+function showState(state) {
+  document.getElementById('mainContent').style.display   = state === 'content' ? '' : 'none';
+  document.getElementById('contentHeader').style.display = state === 'content' ? '' : 'none';
+  document.getElementById('stateLoading').style.display  = state === 'loading' ? 'flex' : 'none';
+  document.getElementById('stateError').style.display    = state === 'error'   ? 'flex' : 'none';
+  document.getElementById('stateEmpty').style.display    = state === 'empty'   ? 'flex' : 'none';
+  ['demoContent','demoLoading','demoError','demoEmpty'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('demo' + cap(state)).classList.add('active');
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ─── Theme ────────────────────────────────────────────────────
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
@@ -427,7 +612,9 @@ function selectGroup(el, idx) {
   document.getElementById('gStd').textContent  = g.std;
   document.getElementById('gImg').textContent  = g.img;
   document.getElementById('gAnn').textContent  = g.ann;
-  document.getElementById('gSeg').textContent  = g.seg.toLocaleString('ru');
+  document.getElementById('gSeg').textContent  = g.ann.toLocaleString('ru');
+  document.getElementById('mobileTitle').textContent = g.name;
+  closeSidebar();
 }
 
 // Toggle standard expand

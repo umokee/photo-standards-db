@@ -1,0 +1,61 @@
+@use "variables" as *;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin scroll-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+@mixin sidebar-header {
+  display: flex;
+  flex-direction: column;
+  padding: $space-3 $space-4;
+  border-bottom: 1px solid $line-soft;
+  flex-shrink: 0;
+  font-size: $text-title;
+  font-weight: $fw-bold;
+}
+
+@mixin sidebar-item {
+  @include flex-center;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  border-bottom: 1px solid $line-soft;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background $t;
+
+  &:hover {
+    background: $card-hover;
+  }
+
+  &--selected {
+    background: $primary-bg;
+    border-left-color: $primary;
+  }
+}
+
+@mixin section-header {
+  @include flex-between;
+  padding-bottom: $space-4;
+  gap: $space-3;
+}
+
+@mixin actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+}
