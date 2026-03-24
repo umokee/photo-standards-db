@@ -16,13 +16,13 @@ export default function ModelSidebar({
 
   return (
     <>
-      <div className="model-sidebar__header">
-        <div className="group-sidebar__header-top">
-          <span className="group-sidebar__header-name">Группы</span>
+      <div className="sidebar__header">
+        <div className="sidebar__header-top">
+          <span className="sidebar__header-name">Группы</span>
         </div>
         <Input placeholder={"Поиск..."} value={search} onChange={setSearch} />
       </div>
-      <div className="group-sidebar__body">
+      <div className="sidebar__body">
         <QueryState
           isLoading={groupStatus.groups.isLoading}
           isError={groupStatus.groups.isError}
@@ -32,7 +32,7 @@ export default function ModelSidebar({
           {filtered.map((group) => (
             <div
               key={group.id}
-              className={`group-sidebar__item ${selectedGroupId === group.id ? "active" : ""}`}
+              className={`sidebar__item${selectedGroupId === group.id ? " sidebar__item--active" : ""}`}
               onClick={() => onSelectGroup(group.id)}
             >
               <span>{group.name}</span>

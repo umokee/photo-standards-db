@@ -57,7 +57,7 @@ export default function SegmentSidebar({
     <div className="segment-sidebar">
       <div className="segment-sidebar__header">
         <span className="segment-sidebar__header-name">Разметка</span>
-        <Button variant="secondary" size="small" onClick={() => setShowAddGroup(true)}>
+        <Button variant="ghost" size="sm" onClick={() => setShowAddGroup(true)}>
           Добавить группу
         </Button>
       </div>
@@ -114,13 +114,13 @@ export default function SegmentSidebar({
                       />
                       <div className="add-segment-form__actions">
                         <Button
-                          variant="secondary"
-                          size="small"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setAddingToGroupId(null)}
                         >
                           Отмена
                         </Button>
-                        <Button size="small" onClick={() => handleAddSegment(group.id)}>
+                        <Button size="sm" onClick={() => handleAddSegment(group.id)}>
                           Добавить
                         </Button>
                       </div>
@@ -179,7 +179,7 @@ export default function SegmentSidebar({
               <span className="segment-sidebar__footer-color-value">{groupHue}</span>
             </div>
             <div className="segment-sidebar__footer-actions">
-              <Button variant="secondary" onClick={() => setShowAddGroup(false)}>
+              <Button variant="ghost" onClick={() => setShowAddGroup(false)}>
                 Отмена
               </Button>
               <Button onClick={handleAddGroup}>Добавить</Button>

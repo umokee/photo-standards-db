@@ -1,46 +1,56 @@
 @use "../variables" as *;
 
 .toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  gap: $space-2;
   cursor: pointer;
 
   input {
-    display: none;
+    opacity: 0;
+    width: 0;
+    height: 0;
 
     &:checked + .toggle__track {
       background: $primary;
+      border-color: $primary;
+    }
 
-      &::after {
-        transform: translateX(18px);
-      }
+    &:checked ~ .toggle__thumb {
+      transform: translateX(16px);
+      background: $text-white;
     }
   }
 
   &__track {
-    display: block;
-    width: 40px;
-    height: 22px;
-    border-radius: 11px;
-    background: $line;
-    position: relative;
-    transition: background 0.2s;
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: $surface2;
+    border: 1px solid $line;
+    flex-shrink: 0;
+    transition:
+      background $t,
+      border-color $t;
+  }
 
-    &::after {
-      content: "";
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: white;
-      top: 2px;
-      left: 2px;
-      transition: transform 0.2s;
-    }
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: $text-hint;
+    pointer-events: none;
+    transition:
+      transform 0.2s,
+      background 0.2s;
   }
 
   &__label {
     font-size: $text-small;
-    margin-left: $space-2;
+    color: $text-sub;
   }
 }

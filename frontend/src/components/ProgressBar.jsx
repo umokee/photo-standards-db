@@ -1,3 +1,5 @@
+import { TriangleAlert } from "lucide-react";
+
 export default function ProgressBar({ value, max, warn }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (

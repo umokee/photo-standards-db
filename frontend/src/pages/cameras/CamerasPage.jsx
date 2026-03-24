@@ -17,8 +17,8 @@ export default function CamerasPage() {
   const selected = useMemo(() => cameras?.find((c) => c.id === selectedId), [cameras, selectedId]);
 
   return (
-    <div className="page-split">
-      <div className="page-split__sidebar">
+    <div className="split">
+      <div className="split__sidebar">
         <CameraSidebar
           cameras={cameras}
           selectedId={selectedId}
@@ -32,7 +32,7 @@ export default function CamerasPage() {
         isEmpty={!selected}
         emptyText="Выберите камеру"
       >
-        <div className="page-split__content">
+        <div className="split__content">
           <CameraDetails
             camera={selected}
             onEdit={() => open("camera-update")}

@@ -1,9 +1,13 @@
 @use "sass:map";
 @use "variables" as *;
-@use "mixins";
-@use "common";
 @use "reset";
-@use "layout";
+
+@use "shared/layout";
+@use "shared/sidebar";
+@use "shared/card";
+@use "shared/content";
+@use "shared/badge";
+@use "shared/table";
 
 @use "components/button";
 @use "components/input";
@@ -23,7 +27,6 @@
 
 @use "pages/segments/segment_sidebar";
 
-@use "pages/models/model_sidebar";
 @use "pages/models/class_selector";
 @use "pages/models/model_details";
 

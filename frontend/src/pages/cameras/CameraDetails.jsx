@@ -35,7 +35,7 @@ export default function CameraDetails({ camera, onEdit, onDelete }) {
         </div>
         <div className="camera-card__footer">
           <Button disabled>Проверить</Button>
-          <Button variant={"secondary"} onClick={onEdit}>
+          <Button variant={"ghost"} onClick={onEdit}>
             Изменить
           </Button>
           <Button variant={"danger"} onClick={onDelete}>

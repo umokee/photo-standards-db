@@ -23,7 +23,7 @@ export default function StandardCreateModal({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Отмена
           </Button>
           <Button disabled={isPending} variant="primary" onClick={() => onSubmit({ name, angle })}>

@@ -5,6 +5,7 @@ import StandardUpdateModal from "../../components/modals/StandardUpdateModal";
 import QueryState from "../../components/QueryState";
 import useGroups from "../../hooks/useGroups";
 import useModal from "../../hooks/useModal";
+import useSidebar from "../../hooks/useSidebar";
 import useStandardImages from "../../hooks/useStandardImages";
 import useStandards from "../../hooks/useStandards";
 import GroupDetails from "./GroupDetails";
@@ -14,6 +15,7 @@ import ImageUploadModal from "./ImageUploadModal";
 
 export default function GroupsPage() {
   const navigate = useNavigate();
+  const { open: sidebarOpen } = useSidebar();
   const { groupId = null } = useParams();
   const { modal, open, close } = useModal();
   const { groups, group, status, create, update, remove } = useGroups(groupId);
@@ -21,8 +23,8 @@ export default function GroupsPage() {
   const { upload, uploadBatch } = useStandardImages();
 
   return (
-    <div className="page-split">
-      <div className="page-split__sidebar">
+    <div className="split">
+      <div className={`split__sidebar${sidebarOpen ? " open" : ""}`}>
         <GroupSidebar
           groups={groups}
           selectedId={groupId}
@@ -30,7 +32,7 @@ export default function GroupsPage() {
           onAdd={() => open("group-create")}
         />
       </div>
-      <div className="page-split__content">
+      <div className="split__content">
         <QueryState
           isLoading={status.group.isLoading}
           isError={status.group.isError}
@@ -43,6 +45,7 @@ export default function GroupsPage() {
             onDelete={() => open("group-delete")}
             onAddStandard={() => open("standard-create")}
             onUploadImage={(standard) => open("image-upload", standard)}
+            onEditStandard={(standard) => open("standard-update", standard)}
           />
         </QueryState>
       </div>

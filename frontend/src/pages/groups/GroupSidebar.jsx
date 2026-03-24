@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import QueryState from "../../components/QueryState";
+import useSidebar from "../../hooks/useSidebar";
 
 export default function GroupSidebar({ groups, selectedId, status, onAdd }) {
   const navigate = useNavigate();
+  const { close: closeSidebar } = useSidebar();
   const [search, setSearch] = useState("");
   const filtered = useMemo(
     () => groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())),
@@ -15,19 +17,13 @@ export default function GroupSidebar({ groups, selectedId, status, onAdd }) {
 
   return (
     <>
-      <div className="group-sidebar__header">
-        <div className="group-sidebar__header-top">
-          <span className="group-sidebar__header-name">Группы</span>
-          <Button
-            disabled={status.groups.isLoading || status.groups.isError}
-            icon={Plus}
-            variant={"secondary"}
-            onClick={onAdd}
-          />
+      <div className="sidebar__header">
+        <div className="sidebar__header-top">
+          <span className="sidebar__title">Группы</span>
         </div>
         <Input placeholder={"Поиск..."} value={search} onChange={setSearch} />
       </div>
-      <div className="group-sidebar__body">
+      <div className="sidebar__list">
         <QueryState
           isLoading={status.groups.isLoading}
           isError={status.groups.isError}
@@ -37,14 +33,32 @@ export default function GroupSidebar({ groups, selectedId, status, onAdd }) {
           {filtered.map((group) => (
             <div
               key={group.id}
-              className={`group-sidebar__body-item ${selectedId === group.id ? "selected" : ""}`}
-              onClick={() => navigate(`/groups/${group.id}`)}
+              className={`sidebar__item${selectedId === group.id ? " sidebar__item--active" : ""}`}
+              onClick={() => {
+                navigate(`/groups/${group.id}`);
+                closeSidebar();
+              }}
             >
-              <div className="group-sidebar__body-item-name">{group.name}</div>
-              <div className="group-sidebar__body-item-description">{group.description}</div>
+              <span className="sidebar__item-dot" />
+              <div className="sidebar__item-body">
+                <span className="sidebar__item-name">{group.name}</span>
+              </div>
+              <span className="sidebar__item-count">{group.standards_count ?? 0}</span>
             </div>
           ))}
         </QueryState>
+      </div>
+      <div className="sidebar__footer">
+        <Button
+          variant="ghost"
+          full
+          size="sm"
+          icon={Plus}
+          disabled={status.groups.isLoading || status.groups.isError}
+          onClick={onAdd}
+        >
+          Новая группа
+        </Button>
       </div>
     </>
   );

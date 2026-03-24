@@ -1,0 +1,71 @@
+@use "../variables" as *;
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  background: $surface;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+  margin-bottom: $space-3;
+  animation: fade-up 0.2s ease both;
+
+  &:nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.08s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.12s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.16s;
+  }
+
+  &--fill {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px $space-4;
+    border-bottom: 1px solid $line-soft;
+    gap: $space-3;
+    flex-shrink: 0;
+
+    &-title {
+      font-size: $text-small;
+      font-weight: $fw-semibold;
+      color: $text;
+      display: flex;
+      align-items: center;
+      gap: $space-2;
+    }
+  }
+
+  &__body {
+    padding: $space-3 $space-4;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+  }
+}

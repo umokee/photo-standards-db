@@ -44,3 +44,8 @@ class Standard(Base):
     @property
     def annotated_count(self) -> int:
         return sum(1 for image in self.images if len(image.annotations) > 0)
+
+    @property
+    def image_path(self) -> str | None:
+        ref = next((img for img in self.images if img.is_reference), None)
+        return ref.image_path if ref else None

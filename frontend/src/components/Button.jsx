@@ -1,7 +1,7 @@
 export default function Button({
   children,
   icon: Icon,
-  size = "simple",
+  size = "md",
   variant = "primary",
   full,
   disabled,
@@ -9,15 +9,12 @@ export default function Button({
 }) {
   return (
     <button
-      className={
-        `btn btn-${size} btn-${variant}` +
-        (full ? " btn-full" : "")
-      }
+      className={`button button--${size} button--${variant}` + (full ? " button--full" : "")}
       disabled={disabled}
       onClick={onClick}
     >
-      {Icon && <Icon className="btn__icon" />}
-      {children}
+      {Icon && <Icon />}
+      {children && <span>{children}</span>}
     </button>
   );
 }

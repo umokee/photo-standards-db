@@ -9,17 +9,27 @@
 }
 
 html {
+  height: 100%;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: $page;
   color: $text;
   font-family: $font-sans;
   font-size: $text-body;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 img,

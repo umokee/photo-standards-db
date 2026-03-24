@@ -41,6 +41,7 @@ class StandardResponse(BaseModel):
     is_active: bool
     image_count: int = 0
     annotated_count: int = 0
+    image_path: str | None = None
     segment_groups: list["SegmentGroupResponse"] = []
     created_at: datetime
 

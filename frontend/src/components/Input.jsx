@@ -1,6 +1,14 @@
-export default function Input({ label, placeholder, value, isPassword, isNumber, onChange }) {
+export default function Input({
+  label,
+  placeholder,
+  value,
+  error,
+  isPassword,
+  isNumber,
+  onChange,
+}) {
   return (
-    <div className="input">
+    <div className={`input${error ? " input--error" : ""}`}>
       {label && <label className="input__label">{label}</label>}
       <input
         className="input__field"
@@ -9,6 +17,7 @@ export default function Input({ label, placeholder, value, isPassword, isNumber,
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
+      {error && <span className="input__error">{error}</span>}
     </div>
   );
 }

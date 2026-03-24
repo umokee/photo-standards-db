@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Wifi, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button";
 import QueryState from "../../components/QueryState";
@@ -13,7 +13,7 @@ export default function CameraSidebar({ cameras, selectedId, status, onAdd }) {
         <Button
           disabled={status.isLoading || status.isError}
           icon={Plus}
-          variant={"secondary"}
+          variant={"ghost"}
           onClick={onAdd}
         />
       </div>

@@ -30,8 +30,8 @@ export default function ModelsPage() {
   };
 
   return (
-    <div className="page-split">
-      <div className="page-split__sidebar">
+    <div className="split">
+      <div className="split__sidebar">
         <ModelSidebar
           groups={groups}
           groupStatus={status}
@@ -39,12 +39,12 @@ export default function ModelsPage() {
           onSelectGroup={(id) => navigate(`/training/${id}`)}
         />
       </div>
-      <div className="page-split__content">
-        <div className="page-split__body">
+      <div className="split__content">
+        <div className="split__body">
           <ModelDetails group={group} />
         </div>
       </div>
-      <div className="page-split__panel">
+      <div className="split__panel">
         <ClassSelector classes={allClasses} excluded={excludedClasses} onToggle={toggleClass} />
       </div>
     </div>

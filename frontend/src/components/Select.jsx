@@ -1,7 +1,7 @@
-export default function Select({ label, options, value, placeholder, disabled, onChange }) {
+export default function Select({ label, options, value, placeholder, error, disabled, onChange }) {
   return (
-    <div className="select">
-      {label && <label className="select__name">{label}</label>}
+    <div className={`select${error ? " select--error" : ""}`}>
+      {label && <label className="select__label">{label}</label>}
       <select
         className="select__field"
         disabled={disabled}
@@ -15,6 +15,7 @@ export default function Select({ label, options, value, placeholder, disabled, o
           </option>
         ))}
       </select>
+      {error && <span className="select__error">{error}</span>}
     </div>
   );
 }

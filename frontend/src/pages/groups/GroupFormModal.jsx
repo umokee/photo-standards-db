@@ -21,7 +21,7 @@ export default function GroupFormModal({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Отмена
           </Button>
           <Button
