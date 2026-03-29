@@ -1,0 +1,109 @@
+@use "@/styles/variables" as *;
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inset: 0;
+  position: fixed;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  animation: modal-overlay-in 0.15s ease both;
+}
+
+.root {
+  background: $surface;
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+  width: 420px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: $shadow-float;
+  animation: modal-in 0.18s ease both;
+}
+
+.wide {
+  width: 520px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px $space-4 12px;
+  border-bottom: 1px solid $line-soft;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $text-title;
+  font-weight: $fw-bold;
+  color: $text;
+}
+
+.close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: $radius-sm;
+  color: $text-hint;
+  transition:
+    background $t,
+    color $t;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  &:hover {
+    background: $surface2;
+    color: $text;
+  }
+}
+
+.body {
+  padding: $space-4;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.footer {
+  padding: $space-3 $space-4;
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+  border-top: 1px solid $line-soft;
+  flex-shrink: 0;
+}

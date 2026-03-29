@@ -5,8 +5,8 @@ $text-micro: 11px;
 $text-small: 12px;
 $text-body: 13px;
 $text-title: 14px;
-$text-page: 20px;
-$text-stat: 24px;
+$text-page: clamp(16px, 2vw, 20px);
+$text-stat: clamp(18px, 2.5vw, 24px);
 
 $fw-regular: 400;
 $fw-medium: 500;
@@ -17,16 +17,16 @@ $fw-extrabold: 800;
 $space-1: 4px;
 $space-2: 8px;
 $space-3: 12px;
-$space-4: 16px;
-$space-5: 20px;
-$space-6: 24px;
-$space-7: 32px;
+$space-4: clamp(12px, 1.5vw, 16px);
+$space-5: clamp(14px, 2vw, 20px);
+$space-6: clamp(16px, 2.5vw, 24px);
+$space-7: clamp(22px, 3vw, 32px);
 
 $radius-sm: 3px;
 $radius-md: 5px;
 $radius-lg: 8px;
 
-$nav-height: 48px;
+$nav-height: clamp(44px, 6vh, 48px);
 $sidebar-width: 240px;
 $content-max: 1100px;
 

@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 db.json
+
+*storybook.log
+storybook-static

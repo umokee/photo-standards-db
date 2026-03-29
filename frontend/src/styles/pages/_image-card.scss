@@ -1,0 +1,106 @@
+@use "../variables" as *;
+
+.image-card {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: $surface;
+  border-radius: $radius-sm;
+  border: 1px solid $line;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color $t,
+    transform $t;
+
+  &:hover {
+    border-color: $primary-bd;
+    transform: translateY(-1px);
+  }
+
+  &--annotated {
+    border-color: $primary;
+  }
+
+  &:hover &__overlay {
+    opacity: 1;
+  }
+
+  &__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+      color: $line;
+      stroke-width: 1;
+    }
+  }
+
+  &__ref {
+    position: absolute;
+    top: $space-1;
+    left: $space-1;
+    border-radius: $radius-sm;
+    padding: 1px $space-1;
+    font-weight: $fw-extrabold;
+    font-size: $text-micro;
+    background: hsl(220, 90%, 70%);
+    color: $text-white;
+  }
+
+  &__overlay {
+    position: absolute;
+    top: $space-1;
+    right: $space-1;
+    display: flex;
+    gap: $space-1;
+    opacity: 0;
+    transition: opacity $t;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: $radius-sm;
+      background: hsl(0, 0%, 25%);
+      color: $text-white;
+      border: none;
+      cursor: pointer;
+    }
+  }
+
+  &__dot {
+    position: absolute;
+    bottom: $space-1;
+    right: $space-1;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.7);
+
+    &--done {
+      background: $primary;
+    }
+    &--todo {
+      background: $line;
+    }
+  }
+}

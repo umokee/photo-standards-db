@@ -14,7 +14,7 @@
   }
 
   &__title {
-    font-size: 18px;
+    font-size: $text-page;
     font-weight: $fw-semibold;
     color: $text;
     letter-spacing: -0.3px;
@@ -29,7 +29,8 @@
   &__meta {
     display: flex;
     align-items: center;
-    gap: 18px;
+    flex-wrap: wrap;
+    gap: $space-5;
     font-size: $text-small;
     color: $text-sub;
     margin-top: $space-1;
@@ -64,10 +65,6 @@
   }
 }
 
-.text-primary {
-  color: $primary-text;
-}
-
 .section-label {
   display: flex;
   align-items: center;
@@ -78,7 +75,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: $text-hint;
-  margin-bottom: 12px;
+  margin-bottom: $space-3;
 }
 
 .section-header {
@@ -105,5 +102,21 @@
     display: flex;
     align-items: center;
     gap: $space-2;
+  }
+}
+
+// ── Мобила ───────────────────────────────────────────────────────────────────
+
+@media (max-width: 767px) {
+  .content-header {
+    padding: 12px $space-4;
+
+    &__top {
+      flex-wrap: wrap;
+    }
+
+    &__meta {
+      gap: $space-3;
+    }
   }
 }

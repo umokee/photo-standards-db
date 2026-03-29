@@ -2,20 +2,24 @@ from contextlib import asynccontextmanager
 
 from config import STORAGE_PATH
 from database import Base, engine
-from fastapi import FastAPI
+from exception import AppError
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from models import *
-from routes import (
-    cameras,
-    groups,
-    inspections,
-    segment_groups,
-    segments,
-    standard_images,
-    standards,
-    users,
+
+from backend.src.cameras import router
+from backend.src.groups import router
+from backend.src.images import (
+    router,
 )
+from backend.src.inspections import routes
+from backend.src.segment_groups import routes
+from backend.src.segments import router
+from backend.src.standards import router
+from backend.src.users import router
 
 
 @asynccontextmanager
@@ -30,6 +34,41 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": exc.code,
+            "message": exc.message,
+            "details": exc.details,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        field = " - ".join(str(loc) for loc in error["loc"] if loc != "body")
+        errors.append(
+            {
+                "field": field,
+                "message": error["msg"],
+                "type": error["type"],
+            }
+        )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "code": "VALIDATION_ERROR",
+            "message": "Ошибка валидации данных",
+            "details": {"errors": errors},
+        },
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:3000"],
@@ -37,14 +76,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(groups.router)
-app.include_router(standards.router)
-app.include_router(segments.router)
-app.include_router(standard_images.router)
-app.include_router(segment_groups.router)
-app.include_router(inspections.router)
-app.include_router(cameras.router)
-app.include_router(users.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
+app.include_router(router.router)
 
 STORAGE_PATH.mkdir(exist_ok=True)
 (STORAGE_PATH / "standards").mkdir(exist_ok=True)

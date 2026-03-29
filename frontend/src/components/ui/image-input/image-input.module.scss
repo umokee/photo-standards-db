@@ -1,0 +1,128 @@
+@use "@/styles/variables" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-bottom: $space-3;
+}
+
+.label {
+  display: block;
+  font-size: $text-small;
+  font-weight: $fw-semibold;
+  color: $text-hint;
+  margin-bottom: $space-1;
+}
+
+.zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex: 1;
+  width: 100%;
+  padding: $space-7;
+  font-size: $text-body;
+  border: 3px solid $line;
+  border-radius: $radius-sm;
+  background: $card-hover;
+  cursor: pointer;
+
+  * {
+    pointer-events: none;
+  }
+}
+
+.zoneDragging {
+  border-color: $primary;
+  background: $primary-bd;
+}
+
+.zoneError {
+  color: $danger;
+  border-color: $danger;
+  background: $danger-bd;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-2;
+  width: 100%;
+  height: 100%;
+}
+
+.previewImg {
+  flex: 1;
+  object-fit: contain;
+  border-radius: $radius-sm;
+}
+
+.previewName {
+  color: $text-hint;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.previewClear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: $space-2;
+  right: $space-2;
+  pointer-events: all;
+  border-radius: $radius-sm;
+  height: 28px;
+  width: 28px;
+  padding: $space-1;
+  background: $text-hint;
+  color: $text-white;
+}
+
+.icon {
+  margin-bottom: $space-2;
+  color: $text-hint;
+}
+
+.subtitle {
+  margin-top: $space-2;
+  color: $text-hint;
+}
+
+.files {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-2;
+  position: relative;
+  width: 100%;
+}
+
+.filesCount {
+  color: $text-hint;
+}
+
+.title {
+  text-align: center;
+}
+
+.filesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-1;
+  width: 100%;
+}
+
+.filesGridImg {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: $radius-sm;
+}

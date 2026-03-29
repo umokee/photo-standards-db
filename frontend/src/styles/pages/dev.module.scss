@@ -1,0 +1,147 @@
+@use "@/styles/variables" as *;
+
+.root {
+  width: 100%;
+  min-height: 100%;
+  background: hsl(100, 14%, 8%);
+  background-image: radial-gradient(circle, hsl(100, 13%, 16%) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: hsl(100, 10%, 55%);
+  font-family: $font-mono;
+  font-size: $text-small;
+}
+
+// ─── Header ───────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-3 $space-5;
+  border-bottom: 1px solid hsl(100, 13%, 16%);
+  background: hsl(100, 14%, 7%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.devBadge {
+  font-size: $text-micro;
+  font-weight: $fw-bold;
+  letter-spacing: 0.08em;
+  color: $primary-text;
+  background: $primary-bg;
+  border: 1px solid $primary-bd;
+  border-radius: $radius-sm;
+  padding: 2px 7px;
+}
+
+.headerTitle {
+  font-size: $text-body;
+  font-weight: $fw-medium;
+  color: hsl(100, 10%, 70%);
+  letter-spacing: 0.02em;
+}
+
+.headerMeta {
+  font-size: $text-micro;
+  color: hsl(100, 10%, 35%);
+  letter-spacing: 0.04em;
+}
+
+// ─── Grid ─────────────────────────────────────────────────
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px;
+  padding: $space-6;
+  gap: $space-4;
+}
+
+// ─── Panel ────────────────────────────────────────────────
+
+.panel {
+  background: hsl(100, 14%, 10%);
+  border: 1px solid hsl(100, 13%, 16%);
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: $space-2 $space-3;
+  border-bottom: 1px solid hsl(100, 13%, 16%);
+  background: hsl(100, 14%, 9%);
+}
+
+.panelLabel {
+  font-size: $text-micro;
+  font-weight: $fw-medium;
+  letter-spacing: 0.06em;
+  color: $primary-text;
+  text-transform: uppercase;
+
+  &::before {
+    content: "// ";
+    color: hsl(100, 10%, 30%);
+  }
+}
+
+.panelBody {
+  padding: $space-3;
+}
+
+// ─── Chips ────────────────────────────────────────────────
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.chip {
+  font-family: $font-mono;
+  font-size: $text-micro;
+  font-weight: $fw-medium;
+  padding: 4px 10px;
+  border-radius: $radius-sm;
+  border: 1px solid hsl(100, 13%, 22%);
+  background: hsl(100, 13%, 13%);
+  color: hsl(100, 10%, 50%);
+  cursor: pointer;
+  transition:
+    background $t,
+    color $t,
+    border-color $t;
+  letter-spacing: 0.04em;
+
+  &:hover {
+    background: hsl(100, 13%, 18%);
+    color: hsl(100, 10%, 75%);
+    border-color: hsl(100, 13%, 30%);
+  }
+
+  // type-specific accent on hover
+  &.success:hover {
+    color: $primary-text;
+    border-color: $primary-bd;
+  }
+  &.error:hover {
+    color: $danger-text;
+    border-color: $danger-bd;
+  }
+  &.warning:hover {
+    color: $warning-text;
+    border-color: $warning-bd;
+  }
+  &.info:hover {
+    color: $ml-text;
+    border-color: $ml-bd;
+  }
+}

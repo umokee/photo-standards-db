@@ -8,27 +8,14 @@
 @use "shared/content";
 @use "shared/badge";
 @use "shared/table";
+@use "shared/scrollbar";
 
-@use "components/button";
-@use "components/input";
-@use "components/image-input";
-@use "components/range-input";
-@use "components/select";
-@use "components/toggle";
-@use "components/modal";
-@use "components/query-state";
-@use "components/progress-bar";
-@use "components/modals/segment_form_modal";
-@use "components/items/segment-item";
-
-@use "pages/groups/group_sidebar";
-@use "pages/groups/group_details";
-@use "pages/groups/standard-item";
+@use "pages/standard-item";
+@use "pages/image-card";
+@use "pages/segment-groups-modal";
 
 @use "pages/segments/segment_sidebar";
-
-@use "pages/models/class_selector";
-@use "pages/models/model_details";
+@use "pages/segment-panel";
 
 @use "pages/cameras/camera_sidebar";
 @use "pages/cameras/camera_details";
