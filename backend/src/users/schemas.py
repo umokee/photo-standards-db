@@ -1,34 +1,9 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
-
-Username = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=3,
-        max_length=100,
-        pattern=r"^[a-zA-Z0-9_.-]+$",
-    ),
-]
-FullName = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=3,
-        max_length=255,
-    ),
-]
-Password = Annotated[
-    str,
-    StringConstraints(
-        min_length=6,
-        max_length=255,
-    ),
-]
+from _shared.schemas import FullName, Password, UpdateNotEmpty, Username
+from pydantic import BaseModel, ConfigDict
 
 
 class Role(StrEnum):
@@ -44,18 +19,12 @@ class UserCreate(BaseModel):
     role: Role = Role.operator
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(UpdateNotEmpty):
     username: Username | None = None
     password: Password | None = None
     full_name: FullName | None = None
     role: Role | None = None
     is_active: bool | None = None
-
-    @model_validator(mode="after")
-    def check_not_empty(self) -> "UserUpdate":
-        if not self.model_dump(exclude_unset=True):
-            raise ValueError("Необходимо передать хотя бы одно поле")
-        return self
 
 
 class UserResponse(BaseModel):

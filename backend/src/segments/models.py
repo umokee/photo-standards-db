@@ -1,7 +1,14 @@
 from uuid import UUID, uuid4
 
 from database import Base
-from sqlalchemy import JSON, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -14,7 +21,9 @@ class SegmentGroup(Base):
         ForeignKey("standards.id", ondelete="CASCADE")
     )
     name: Mapped[str] = mapped_column(String(255))
-    hue: Mapped[int] = mapped_column(Integer, default=210)
+    hue: Mapped[int] = mapped_column(
+        Integer, CheckConstraint("hue BETWEEN 0 AND 359"), default=210
+    )
 
     standard: Mapped["Standard"] = relationship(back_populates="segment_groups")
     segments: Mapped[list["Segment"]] = relationship(back_populates="segment_group")
@@ -32,8 +41,8 @@ class Segment(Base):
     standard_id: Mapped[UUID] = mapped_column(
         ForeignKey("standards.id", ondelete="CASCADE")
     )
-    segment_group_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None
+    segment_group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("segment_groups.id", ondelete="CASCADE")
     )
     name: Mapped[str] = mapped_column(String(255))
 

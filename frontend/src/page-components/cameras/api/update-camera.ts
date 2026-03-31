@@ -13,8 +13,14 @@ export type UpdateCameraInput = {
   location: string;
 };
 
-export const updateCamera = ({ id, ...body }: UpdateCameraInput): Promise<Camera> => {
-  return client.put(`/cameras/${id}`, body);
+export const updateCamera = ({
+  id,
+  name,
+  rtspUrl: rtsp_url,
+  resolution,
+  location,
+}: UpdateCameraInput): Promise<Camera> => {
+  return client.put(`/cameras/${id}`, { name, rtsp_url, resolution, location });
 };
 
 type Options = {

@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 
+from cameras.models import Camera  # noqa: F401
+from cameras.router import router as cameras_router
 from config import STORAGE_PATH
 from database import Base, engine
 from exception import AppError
@@ -8,18 +10,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from models import *
-
-from backend.src.cameras import router
-from backend.src.groups import router
-from backend.src.images import (
-    router,
-)
-from backend.src.inspections import routes
-from backend.src.segment_groups import routes
-from backend.src.segments import router
-from backend.src.standards import router
-from backend.src.users import router
+from groups.models import Group  # noqa: F401
+from groups.router import router as groups_router
+from inspections.models import InspectionResult, InspectionSegmentResult  # noqa: F401
+from inspections.routes import router as inspections_router
+from mls.models import MlModel  # noqa: F401
+from mls.router import router as models_router
+from segments.models import Segment, SegmentAnnotation, SegmentGroup  # noqa: F401
+from segments.router import segment_group_router as segment_groups_router
+from segments.router import segment_router as segments_router
+from standards.models import Standard, StandardImage  # noqa: F401
+from standards.router import router as standards_router
+from users.models import User  # noqa: F401
+from users.router import router as users_router
 
 
 @asynccontextmanager
@@ -30,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Photo Standards DB",
+    title="База данных фотоэталонов API",
     lifespan=lifespan,
 )
 
@@ -76,14 +79,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
-app.include_router(router.router)
+app.include_router(users_router)
+app.include_router(groups_router)
+app.include_router(standards_router)
+app.include_router(segments_router)
+app.include_router(segment_groups_router)
+app.include_router(cameras_router)
+app.include_router(inspections_router)
+app.include_router(models_router)
 
 STORAGE_PATH.mkdir(exist_ok=True)
 (STORAGE_PATH / "standards").mkdir(exist_ok=True)

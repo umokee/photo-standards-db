@@ -20,6 +20,9 @@ class Group(Base):
     ml_models: Mapped[list["MlModel"]] = relationship(
         back_populates="group", cascade="all, delete-orphan"
     )
+    training_tasks: Mapped[list["TrainingTask"]] = relationship(
+        back_populates="group"
+    )
 
     @property
     def standards_count(self) -> int:
@@ -28,3 +31,7 @@ class Group(Base):
     @property
     def images_count(self) -> int:
         return sum(s.image_count for s in self.standards)
+
+    @property
+    def active_model(self) -> "MlModel | None":
+        return next((m for m in self.ml_models if m.is_active), None)

@@ -3,7 +3,7 @@ import { StandardImageDetail } from "@/types/api";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 export const getImage = (id: string): Promise<StandardImageDetail> => {
-  return client.get(`/images/${id}`);
+  return client.get(`/standards/images/${id}`);
 };
 
 export const getImageQueryOptions = (id: string) => {

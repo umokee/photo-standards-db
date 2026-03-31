@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStandardQueryOptions } from "./get-standard";
 
 export const setReference = (imageId: string): Promise<StandardImage> => {
-  return client.patch(`/images/${imageId}/reference`);
+  return client.patch(`/standards/images/${imageId}/reference`);
 };
 
 type Options = {

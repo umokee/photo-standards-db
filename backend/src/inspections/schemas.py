@@ -10,8 +10,8 @@ Mode = Literal["photo", "snapshot", "realtime"]
 
 class InspectionSegmentDetail(BaseModel):
     segment_group_id: UUID | None = None
-    label: str
-    found: bool
+    name: str
+    is_found: bool
     confidence: float = Field(ge=0, le=1)
 
 

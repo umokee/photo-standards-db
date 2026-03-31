@@ -1,15 +1,14 @@
 from uuid import UUID
 
+from _shared import file_service
 from exception import NotFoundError
 from fastapi import UploadFile
+from segments.models import Segment, SegmentGroup
 from sqlalchemy import select
 from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .._shared import file_service
-from ..segment_groups.models import SegmentGroup
-from ..segments.models import Segment
 from .models import Standard, StandardImage
 from .schemas import StandardCreate, StandardUpdate
 
@@ -186,7 +185,7 @@ async def get_image(
     result = await db.execute(
         select(Segment)
         .where(Segment.standard_id == image.standard_id)
-        .order_by(Segment.label)
+        .order_by(Segment.name)
     )
     all_segments = result.scalars().all()
     ann_map = {a.segment_id: a.points for a in image.annotations}
@@ -201,7 +200,7 @@ async def get_image(
             {
                 "id": seg.id,
                 "segment_group_id": seg.segment_group_id,
-                "label": seg.label,
+                "name": seg.name,
                 "points": ann_map.get(seg.id, []),
             }
             for seg in all_segments

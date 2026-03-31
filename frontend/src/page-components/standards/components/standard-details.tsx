@@ -1,10 +1,10 @@
-import Button from "@/components/ui/button/button";
 import ImageWithFallback from "@/components/ui/image-with-fallback/image-with-fallback";
 import QueryState from "@/components/ui/query-state/query-state";
+import { ManageSegmentGroups } from "@/page-components/segments/components/manage-segment-groups";
 import { Standard } from "@/types/api";
 import { BASE_URL } from "@/utils/constants";
 import clsx from "clsx";
-import { Hexagon, Star, Trash2 } from "lucide-react";
+import { Star, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDeleteImage } from "../api/delete-image";
 import { deafultStandard, useGetStandardDetail } from "../api/get-standard";
@@ -54,9 +54,7 @@ export const StandardDetails = ({ standard }: Props) => {
             Сегментов: <span>{segmentCount}</span>
           </div>
         </div>
-        <Button variant="ml" size="sm" icon={Hexagon} disabled={!standardDetail}>
-          Классы сегментации
-        </Button>
+        <ManageSegmentGroups standard={standardDetail} />
       </div>
 
       <QueryState

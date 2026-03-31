@@ -79,7 +79,7 @@ export const SegmentPanel = ({
                         background: `hsl(${group.hue}, 70%, 50%)`,
                       }}
                     />
-                    <span className="seg-class-item__label">{seg.label}</span>
+                    <span className="seg-class-item__label">{seg.name}</span>
                     <span
                       className={clsx(
                         "seg-class-item__cnt",
@@ -105,7 +105,7 @@ export const SegmentPanel = ({
       <div className="seg-sb-section seg-sb-section--anns">
         {selectedSeg && (
           <div className="seg-sb-head">
-            <span className="seg-sb-head__title">«{selectedSeg.label}»</span>
+            <span className="seg-sb-head__title">«{selectedSeg.name}»</span>
           </div>
         )}
         <div className="seg-ann-scroll">

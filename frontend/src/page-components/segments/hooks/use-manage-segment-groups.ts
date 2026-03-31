@@ -6,7 +6,7 @@ import { useSaveSegments } from "../api/save-segments";
 interface SegmentState {
   key: string;
   id: string | null;
-  label: string;
+  name: string;
 }
 
 interface GroupState {
@@ -32,7 +32,7 @@ type Action =
   | { type: "group/update-hue"; key: string; value: number }
   | { type: "segment/add"; groupKey: string }
   | { type: "segment/remove"; groupKey: string; segKey: string }
-  | { type: "segment/update-label"; groupKey: string; segKey: string; value: string };
+  | { type: "segment/update-name"; groupKey: string; segKey: string; value: string };
 
 const uid = () => crypto.randomUUID();
 
@@ -48,7 +48,7 @@ const initGroups = (segmentGroups: SegmentGroup[], segments: Segment[]): GroupSt
       .map((segment) => ({
         key: segment.id,
         id: segment.id,
-        label: segment.label,
+        name: segment.name,
       })),
   }));
 
@@ -136,7 +136,7 @@ function reducer(state: EditorState, action: Action): EditorState {
                   {
                     key: uid(),
                     id: null,
-                    label: "",
+                    name: "",
                   },
                 ],
               }
@@ -166,7 +166,7 @@ function reducer(state: EditorState, action: Action): EditorState {
       };
     }
 
-    case "segment/update-label":
+    case "segment/update-name":
       return {
         ...state,
         groups: state.groups.map((group) =>
@@ -174,7 +174,7 @@ function reducer(state: EditorState, action: Action): EditorState {
             ? {
                 ...group,
                 segments: group.segments.map((segment) =>
-                  segment.key === action.segKey ? { ...segment, label: action.value } : segment
+                  segment.key === action.segKey ? { ...segment, name: action.value } : segment
                 ),
               }
             : group
@@ -225,8 +225,8 @@ export const useManageSegmentGroups = (standard: StandardDetail) => {
     dispatch({ type: "segment/remove", groupKey, segKey });
   };
 
-  const updateSegmentLabel = (groupKey: string, segKey: string, value: string) => {
-    dispatch({ type: "segment/update-label", groupKey, segKey, value });
+  const updateSegmentName = (groupKey: string, segKey: string, value: string) => {
+    dispatch({ type: "segment/update-name", groupKey, segKey, value });
   };
 
   const save = async () => {
@@ -240,10 +240,10 @@ export const useManageSegmentGroups = (standard: StandardDetail) => {
           name: group.name.trim(),
           hue: group.hue,
           segments: group.segments
-            .filter((s) => s.label.trim())
+            .filter((s) => s.name.trim())
             .map((s) => ({
               id: s.id ?? undefined,
-              label: s.label.trim(),
+              name: s.name.trim(),
             })),
         })),
         deletedGroupIds: [...state.deletedGroupIds],
@@ -268,7 +268,7 @@ export const useManageSegmentGroups = (standard: StandardDetail) => {
     updateGroupHue,
     addSegment,
     removeSegment,
-    updateSegmentLabel,
+    updateSegmentName,
     save,
   };
 };

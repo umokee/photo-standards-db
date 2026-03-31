@@ -37,7 +37,7 @@ export const StandardItem = ({ standard }: Props) => {
           </div>
           <div className="standard-item__header-info">
             <div className="standard-item__header-info-name">
-              {standard.name} ({standard.angle})
+              {standard.name} {standard.angle && <>{standard.angle}</>}
             </div>
             <div className="standard-item__header-info-details">
               {standard.image_count} изображений &middot; {standard.segment_groups?.length ?? 0}{" "}

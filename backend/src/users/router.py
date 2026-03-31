@@ -4,8 +4,8 @@ from database import get_session
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import service
 from .schemas import UserCreate, UserResponse, UserUpdate
-from .service import service
 
 router = APIRouter(prefix="/users", tags=["users"])
 

@@ -5,9 +5,11 @@ from database import get_session
 from exception import NotFoundError
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from standards.models import StandardImage
+from standards.schemas import StandardDetailResponse
 
-from backend.src.segments import service
-from backend.src.segments.schemas import (
+from . import refiner_service, service
+from .schemas import (
     AnnotationSave,
     RefineRequest,
     RefineResponse,
@@ -20,9 +22,6 @@ from backend.src.segments.schemas import (
     SegmentUpdate,
     SegmentWithPointsResponse,
 )
-
-from .._shared import refiner_service
-from ..standards.models import StandardImage
 
 segment_router = APIRouter(prefix="/segments", tags=["segments"])
 segment_group_router = APIRouter(prefix="/segment-groups", tags=["segment-groups"])

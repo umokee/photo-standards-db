@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 export type UpdateSegmentInput = {
   id: string;
   segmentGroupId?: string;
-  label?: string;
+  name?: string;
 };
 
 export const updateSegment = ({ id, ...body }: UpdateSegmentInput): Promise<Segment> => {

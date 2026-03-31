@@ -20,6 +20,14 @@ dependencies = [
   "scipy",
 
   "onnxruntime",
+  "ultralytics",
+  "pillow"
+]
+
+[tool.uv]
+override-dependencies = [
+  "opencv-python; sys_platform == 'never'",
+  "opencv-python-headless",
 ]
 
 

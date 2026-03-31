@@ -3,6 +3,7 @@ import RootLayout from "./routes/root";
 
 const GroupsRoute = () => import("./routes/groups");
 const ImagesRoute = () => import("./routes/images");
+const ModelsRoute = () => import("./routes/models");
 
 export const router = createBrowserRouter([
   {
@@ -12,6 +13,7 @@ export const router = createBrowserRouter([
       { path: "/groups/:groupId?", lazy: GroupsRoute },
       { path: "/groups/:groupId/standards/:standardId?", lazy: GroupsRoute },
       { path: "/groups/:groupId/standards/:standardId/images/:imageId", lazy: ImagesRoute },
+      { path: "/models/:groupId?", lazy: GroupsRoute },
     ],
   },
 ]);

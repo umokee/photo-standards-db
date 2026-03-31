@@ -3,11 +3,11 @@ export type UserRole = "operator" | "inspector" | "admin";
 export type InspectionStatus = "passed" | "failed";
 export type InspectionMode = "photo" | "snapshot" | "realtime";
 export type Architecture =
-  | "yolov8n-seg"
-  | "yolov8s-seg"
-  | "yolov8m-seg"
-  | "yolov8l-seg"
-  | "yolov8x-seg";
+  | "yolov26n-seg"
+  | "yolov26s-seg"
+  | "yolov26m-seg"
+  | "yolov26l-seg"
+  | "yolov26x-seg";
 
 export interface User {
   id: string;
@@ -20,12 +20,13 @@ export interface User {
 
 export interface InspectionSegmentDetail {
   segment_group_id: string | null;
-  label: string;
+  name: string;
+  is_found: boolean;
   found: boolean;
   confidence: number;
 }
 
-export interface InspectionResult {
+export interface InspectionRunResult {
   inspection_id: string;
   status: InspectionStatus;
   matched: number;
@@ -34,6 +35,25 @@ export interface InspectionResult {
   details: InspectionSegmentDetail[];
   mode: InspectionMode;
   model_name: string | null;
+}
+
+export interface InspectionResult {
+  id: string;
+  standard_id: string | null;
+  model_id: string | null;
+  image_path: string;
+  result_image_path: string | null;
+  status: InspectionStatus;
+  mode: InspectionMode;
+  total_segments: number;
+  matched_segments: number;
+  serial_number: string | null;
+  notes: string | null;
+  inspected_at: string;
+}
+
+export interface InspectionDetail extends InspectionResult {
+  segment_results: InspectionSegmentDetail[];
 }
 
 export interface Camera {
@@ -51,7 +71,7 @@ export interface MlModel {
   id: string;
   group_id: string;
   name: string;
-  architecture: string;
+  architecture: Architecture | string;
   version: number;
   epochs: number | null;
   imgsz: number;
@@ -75,7 +95,7 @@ export interface SegmentGroup {
 export interface Segment {
   id: string;
   segment_group_id: string | null;
-  label: string;
+  name: string;
 }
 
 export interface SegmentWithPoints extends Segment {
@@ -97,11 +117,12 @@ export interface StandardImageDetail extends StandardImage {
 export interface Standard {
   id: string;
   group_id: string;
-  name: string | null;
+  name: string;
   angle: Angle | null;
   is_active: boolean;
   image_count: number;
   annotated_count: number;
+  reference_path: string | null;
   image_path: string | null;
   segment_groups: SegmentGroup[];
   created_at: string;
@@ -130,4 +151,5 @@ export interface Group {
 
 export interface GroupDetail extends Group {
   standards: Standard[];
+  active_model: MlModel | null;
 }

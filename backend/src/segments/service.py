@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from standards.models import Standard, StandardImage
 
-from backend.src.segments.models import Segment
-from backend.src.segments.schemas import (
+from .models import Segment, SegmentAnnotation, SegmentGroup
+from .schemas import (
     AnnotationSave,
     SaveSegmentsRequest,
     SegmentCreate,
@@ -17,9 +18,6 @@ from backend.src.segments.schemas import (
     SegmentWithPointsResponse,
 )
 
-from ..standards.models import Standard, StandardImage
-from .models import SegmentAnnotation, SegmentGroup
-
 
 async def create_segment(
     db: AsyncSession,
@@ -27,11 +25,11 @@ async def create_segment(
 ) -> Segment:
     existing = await db.scalar(
         select(Segment).where(
-            Segment.standard_id == data.standard_id, Segment.label == data.label
+            Segment.standard_id == data.standard_id, Segment.name == data.name
         )
     )
     if existing:
-        raise ConflictError(f"Сегмент <{data.label}> уже существует")
+        raise ConflictError(f"Сегмент <{data.name}> уже существует")
 
     segment = Segment(**data.model_dump())
     db.add(segment)
@@ -49,16 +47,16 @@ async def update_segment(
     if not segment:
         raise NotFoundError("Сегмент", segment_id)
 
-    if data.label is not None:
+    if data.name is not None:
         existing = await db.scalar(
             select(Segment).where(
                 Segment.standard_id == segment.standard_id,
-                Segment.label == data.label,
+                Segment.name == data.name,
                 Segment.id != segment_id,
             )
         )
         if existing:
-            raise ConflictError(f"Сегмент <{data.label}> уже существует")
+            raise ConflictError(f"Сегмент <{data.name}> уже существует")
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(segment, key, value)
@@ -121,7 +119,7 @@ async def save_annotation(
     return SegmentWithPointsResponse(
         id=segment.id,
         segment_group_id=segment.segment_group_id,
-        label=segment.label,
+        name=segment.name,
         points=data.points,
     )
 
@@ -239,7 +237,7 @@ async def save_segments(
                 segment = Segment(
                     standard_id=standard_id,
                     segment_group_id=group.id,
-                    label=segment_item.label,
+                    name=segment_item.name,
                 )
                 db.add(segment)
             else:
@@ -249,7 +247,7 @@ async def save_segments(
                 if segment.standard_id != standard_id:
                     raise ValidationError("Сегмент принадлежит другому эталону")
                 segment.segment_group_id = group.id
-                segment.label = segment_item.label
+                segment.name = segment_item.name
 
     try:
         await db.commit()
@@ -271,5 +269,3 @@ async def save_segments(
         .where(Standard.id == standard_id)
     )
     return result.scalar_one()
-
-

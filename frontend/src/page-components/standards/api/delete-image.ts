@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getStandardQueryOptions } from "./get-standard";
 
 export const deleteImage = (imageId: string): Promise<void> => {
-  return client.delete(`/images/${imageId}`);
+  return client.delete(`/standards/images/${imageId}`);
 };
 
 type Options = {

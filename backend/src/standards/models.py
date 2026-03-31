@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import sqlalchemy
 from database import Base
-from sqlalchemy import ForeignKey, String, func
+from sqlalchemy import ForeignKey, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 Angle = Literal["front", "top", "left", "right", "back"]
@@ -15,7 +15,7 @@ class Standard(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     group_id: Mapped[UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
-    name: Mapped[str | None] = mapped_column(String(255), default=None)
+    name: Mapped[str] = mapped_column(String(255))
     angle: Mapped[Angle | None] = mapped_column(
         sqlalchemy.Enum("front", "top", "left", "right", "back", name="angle_enum"),
         default=None,
@@ -46,13 +46,21 @@ class Standard(Base):
         return sum(1 for image in self.images if len(image.annotations) > 0)
 
     @property
-    def image_path(self) -> str | None:
+    def reference_path(self) -> str | None:
         ref = next((img for img in self.images if img.is_reference), None)
         return ref.image_path if ref else None
 
 
 class StandardImage(Base):
     __tablename__ = "standard_images"
+    __table_args__ = (
+        Index(
+            "uq_standard_reference",
+            "standard_id",
+            unique=True,
+            postgresql_where=text("is_reference = true"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     standard_id: Mapped[UUID] = mapped_column(

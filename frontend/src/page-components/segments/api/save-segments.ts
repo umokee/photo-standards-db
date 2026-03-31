@@ -13,7 +13,7 @@ export type SaveSegmentsInput = {
     hue: number;
     segments: {
       id?: string;
-      label: string;
+      name: string;
     }[];
   }[];
   deletedGroupIds: string[];
@@ -21,7 +21,7 @@ export type SaveSegmentsInput = {
 };
 
 export const saveSegments = ({ standardId, ...body }: SaveSegmentsInput): Promise<StandardDetail> =>
-  client.put(`/standards/${standardId}/segments`, {
+  client.put(`/segments/${standardId}/segments`, {
     groups: body.groups,
     deleted_group_ids: body.deletedGroupIds,
     deleted_segment_ids: body.deletedSegmentIds,

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import Camera
-from .schemes import CameraCreate, CameraResponse, CameraUpdate
+from .schemas import CameraCreate, CameraResponse, CameraUpdate
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
@@ -56,7 +56,7 @@ async def delete_camera(
 ):
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Сегмент не найден")
+        raise HTTPException(status_code=404, detail="Камера не найден")
 
     await db.delete(camera)
     await db.commit()

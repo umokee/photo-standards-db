@@ -46,7 +46,7 @@ const ManageSegmentGroupsModal = ({ standard }: Props) => {
     updateGroupHue,
     addSegment,
     removeSegment,
-    updateSegmentLabel,
+    updateSegmentName,
     save,
   } = useManageSegmentGroups(standard);
 
@@ -125,9 +125,9 @@ const ManageSegmentGroupsModal = ({ standard }: Props) => {
                         <span className="sgm__seg-dot" style={{ background: color }} />
                         <input
                           className="sgm__name-input"
-                          value={seg.label}
+                          value={seg.name}
                           placeholder="Название сегмента"
-                          onChange={(e) => updateSegmentLabel(group.key, seg.key, e.target.value)}
+                          onChange={(e) => updateSegmentName(group.key, seg.key, e.target.value)}
                         />
                         <button
                           type="button"
@@ -145,7 +145,7 @@ const ManageSegmentGroupsModal = ({ standard }: Props) => {
         </QueryState>
 
         <Button variant="ghost" size="sm" icon={Plus} onClick={addGroup}>
-          Добавить класс
+          Добавить группу классов
         </Button>
       </Modal.Body>
       <Modal.Footer>

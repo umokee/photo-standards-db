@@ -53,7 +53,7 @@ class InspectionSegmentResult(Base):
     segment_group_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None
     )
-    label: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(255))
     is_found: Mapped[bool] = mapped_column()
     confidence: Mapped[float | None] = mapped_column(default=None)
 

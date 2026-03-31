@@ -8,10 +8,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from standards.models import Standard
 
-from ..standards.models import Standard
 from .models import InspectionResult, InspectionSegmentResult
-from .schemes import (
+from .schemas import (
     InspectionRunResponse,
     InspectionSegmentDetail,
 )

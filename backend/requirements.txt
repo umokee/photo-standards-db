@@ -11,3 +11,9 @@ bcrypt
 numpy
 
 opencv-python-headless
+scikit-image 
+scipy
+
+onnxruntime
+ultralytics
+pillow

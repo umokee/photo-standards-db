@@ -1,16 +1,7 @@
-from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
-
-Name = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=255,
-    ),
-]
+from _shared.schemas import Name, OptionalName, UpdateNotEmpty
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SegmentGroupCreate(BaseModel):
@@ -19,19 +10,14 @@ class SegmentGroupCreate(BaseModel):
     hue: int = Field(210, ge=0, le=360)
 
 
-class SegmentGroupUpdate(BaseModel):
-    name: Name | None = None
+class SegmentGroupUpdate(UpdateNotEmpty):
+    name: OptionalName
     hue: int | None = Field(None, ge=0, le=360)
-
-    @model_validator(mode="after")
-    def check_not_empty(self) -> "SegmentGroupUpdate":
-        if not self.model_dump(exclude_unset=True):
-            raise ValueError("Необходимо передать хотя бы одно поле")
-        return self
 
 
 class SegmentGroupResponse(BaseModel):
     id: UUID
+    standard_id: UUID
     name: str
     hue: int
     segment_count: int = 0
@@ -45,21 +31,15 @@ class SegmentCreate(BaseModel):
     name: Name
 
 
-class SegmentUpdate(BaseModel):
+class SegmentUpdate(UpdateNotEmpty):
     segment_group_id: UUID | None = None
-    label: Name | None = None
-
-    @model_validator(mode="after")
-    def check_not_empty(self) -> "SegmentUpdate":
-        if not self.model_dump(exclude_unset=True):
-            raise ValueError("Необходимо передать хотя бы одно поле")
-        return self
+    name: OptionalName
 
 
 class SegmentResponse(BaseModel):
     id: UUID
     segment_group_id: UUID | None
-    label: str
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,7 +47,7 @@ class SegmentResponse(BaseModel):
 class SegmentWithPointsResponse(BaseModel):
     id: UUID
     segment_group_id: UUID | None
-    label: str
+    name: str
     points: list[list[list[float]]]
 
     model_config = ConfigDict(from_attributes=True)

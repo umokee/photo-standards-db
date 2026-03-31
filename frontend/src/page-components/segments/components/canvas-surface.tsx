@@ -352,20 +352,18 @@ export default function Canvas({
     );
   };
 
-  const handleGroupDragEnd = (seg: SegmentWithPoints, e: any) => {
+  const handleGroupDragEnd = (seg: SegmentWithPoints, ci: number, e: any) => {
     isDragging.current = false;
     setEdgeGhost(null);
     const node = e.target;
     const dx = node.x();
     const dy = node.y();
-    const newPoints = seg.points.map((contour) =>
-      contour.map(([ix, iy]: number[]) => {
-        const [cx, cy] = toCanvas(ix, iy);
-        return toImage(cx + dx, cy + dy);
-      })
-    );
+    const newContour = seg.points[ci].map(([ix, iy]: number[]) => {
+      const [cx, cy] = toCanvas(ix, iy);
+      return toImage(cx + dx, cy + dy);
+    });
     pendingResetNode.current = node;
-    onPointsChange(seg.id, newPoints);
+    onPointsChange(seg.id, seg.points.map((c, i) => (i === ci ? newContour : c)));
   };
 
   const stageVertexBound = (pos: { x: number; y: number }) => {
@@ -377,15 +375,15 @@ export default function Canvas({
     return { x: cx * sc + sx, y: cy * sc + sy };
   };
 
-  const getGroupBound = (seg: SegmentWithPoints) => (pos: { x: number; y: number }) => {
+  const getGroupBound = (seg: SegmentWithPoints, ci: number) => (pos: { x: number; y: number }) => {
     const stage = stageRef.current;
     const sc = stage.scaleX();
     const sx = stage.x(), sy = stage.y();
     const lx = (pos.x - sx) / sc, ly = (pos.y - sy) / sc;
 
-    const allPts = seg.points.flatMap((c) => c.map(([x, y]: number[]) => toCanvas(x, y)));
-    const xs = allPts.map(([x]) => x);
-    const ys = allPts.map(([, y]) => y);
+    const pts = seg.points[ci].map(([x, y]: number[]) => toCanvas(x, y));
+    const xs = pts.map(([x]) => x);
+    const ys = pts.map(([, y]) => y);
 
     const cx = clamp(lx, imageRect.offsetX - Math.min(...xs), imageRect.offsetX + imageRect.width - Math.max(...xs));
     const cy = clamp(ly, imageRect.offsetY - Math.min(...ys), imageRect.offsetY + imageRect.height - Math.max(...ys));
@@ -442,19 +440,19 @@ export default function Canvas({
             const { stroke, fill } = segmentColor(hueOf(seg), isSelected);
 
             return (
-              <Group
-                key={seg.id}
-                draggable={isSelected && !isDrawing}
-                dragBoundFunc={isSelected ? getGroupBound(seg) : undefined}
-                onDragStart={handleGroupDragStart}
-                onDragEnd={isSelected ? (e) => handleGroupDragEnd(seg, e) : undefined}
-              >
+              <Group key={seg.id}>
                 {seg.points.map((contour, ci) => {
                   const canvasPts = contour.map(([ix, iy]: number[]) => toCanvas(ix, iy));
                   const isEditableContour = isSelected && selectedContourIndex === ci && !isDrawing;
 
                   return (
-                    <Group key={ci}>
+                    <Group
+                      key={ci}
+                      draggable={isEditableContour}
+                      dragBoundFunc={isEditableContour ? getGroupBound(seg, ci) : undefined}
+                      onDragStart={isEditableContour ? handleGroupDragStart : undefined}
+                      onDragEnd={isEditableContour ? (e) => handleGroupDragEnd(seg, ci, e) : undefined}
+                    >
                       <Line
                         ref={(node) => {
                           if (node) lineRefs.current[`${seg.id}-${ci}`] = node;

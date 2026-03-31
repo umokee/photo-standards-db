@@ -7,19 +7,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type CreateSegmentInput = {
   standardId: string;
-  segmentGroupId?: string;
-  label: string;
+  segmentGroupId: string;
+  name: string;
 };
 
 export const createSegment = ({
   standardId,
   segmentGroupId,
-  label,
+  name,
 }: CreateSegmentInput): Promise<Segment> => {
   return client.post("/segments", {
     standard_id: standardId,
     segment_group_id: segmentGroupId || null,
-    label,
+    name,
   });
 };
 

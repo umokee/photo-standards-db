@@ -38,7 +38,10 @@ export function Component() {
   const handlePointsChange = (segmentId: string, points: number[][][]) => {
     qc.setQueryData(getImageQueryOptions(imageId).queryKey, (old: StandardImageDetail) => {
       if (!old) return old;
-      return { ...old, segments: old.segments.map((s) => s.id === segmentId ? { ...s, points } : s) };
+      return {
+        ...old,
+        segments: old.segments.map((s) => (s.id === segmentId ? { ...s, points } : s)),
+      };
     });
     annotate.mutate({ segmentId, imageId, points });
   };
@@ -47,6 +50,7 @@ export function Component() {
     if (!selectedSegmentId) return;
     setIsDrawMode(false);
     const existing = imageSegments.find((s) => s.id === selectedSegmentId)?.points ?? [];
+    setSelectedContourIndex(existing.length);
     const save = (pts: number[][]) =>
       annotate.mutate({ segmentId: selectedSegmentId, imageId, points: [...existing, pts] });
     refine.mutate(

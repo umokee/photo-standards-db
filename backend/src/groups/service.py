@@ -1,15 +1,14 @@
 from uuid import UUID
 
 from exception import ConflictError, NotFoundError
+from segments.models import SegmentGroup
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from standards.models import Standard, StandardImage
 
-from ..images.models import StandardImage
-from ..segment_groups.models import SegmentGroup
-from ..standards.models import Standard
 from .models import Group
-from .schemes import GroupCreate, GroupUpdate
+from .schemas import GroupCreate, GroupUpdate
 
 
 async def _get_group(
