@@ -12,10 +12,10 @@ services:
       interval: 5s
       retries: 5
 
-  backend:
-    build: ./backend
+  server:
+    build: ./server
     env_file:
-      - ./backend/.env
+      - ./server/.env
     environment:
       DB_HOST: db
     ports:
@@ -31,9 +31,9 @@ services:
       timeout: 5s
       retries: 5
 
-  frontend:
+  client:
     profiles: [prod]
-    build: ./frontend
+    build: ./client
     ports:
       - "80:80"
     depends_on:

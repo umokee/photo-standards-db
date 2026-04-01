@@ -1,0 +1,27 @@
+@use "@/styles/variables" as *;
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-4;
+
+  &.bordered {
+    padding-bottom: $space-4;
+    border-bottom: 1px solid $line-soft;
+  }
+}
+
+.title {
+  font-size: $text-small;
+  font-weight: $fw-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-hint;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}

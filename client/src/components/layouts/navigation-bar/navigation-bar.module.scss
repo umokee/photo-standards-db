@@ -1,0 +1,117 @@
+@use "@/styles/variables" as *;
+
+.root {
+  display: flex;
+  align-items: center;
+  height: $nav-height;
+  background: $nav-bg;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 $space-5;
+}
+
+.name {
+  font-size: $text-title;
+  font-weight: $fw-bold;
+  color: $nav-active-text;
+  letter-spacing: -0.3px;
+  margin-right: $space-6;
+}
+
+.links {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: $space-1;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: 5px 13px;
+  font-size: $text-small;
+  color: $nav-text;
+  border-radius: $radius-sm;
+  transition:
+    color $t,
+    background $t;
+
+  &:hover {
+    color: $nav-text-hover;
+  }
+}
+
+.linkActive {
+  color: $nav-active-text;
+  background: $nav-active-bg;
+  font-weight: $fw-medium;
+}
+
+.linkIcon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+}
+
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-sm;
+  color: $nav-text;
+  margin-right: $space-3;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $nav-active-text;
+  }
+
+  svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .name {
+    display: none;
+  }
+
+  .link {
+    flex-direction: column;
+    padding: 5px 9px;
+    gap: 2px;
+    font-size: 0;
+  }
+
+  .linkIcon {
+    width: 17px;
+    height: 17px;
+  }
+
+  .linkActive::after {
+    content: "";
+    display: block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: $primary;
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 767px) {
+  .menuButton {
+    display: flex;
+  }
+}

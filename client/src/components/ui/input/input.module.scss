@@ -1,0 +1,57 @@
+@use "@/styles/variables" as *;
+
+.root {
+  margin-bottom: $space-3;
+
+  &.noMargin {
+    margin-bottom: 0;
+  }
+}
+
+.label {
+  display: block;
+  font-size: $text-micro;
+  font-weight: $fw-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $text-hint;
+  margin-bottom: 5px;
+}
+
+.field {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: $text-small;
+  color: $text;
+  background: $surface2;
+  border: 1px solid $line;
+  border-radius: $radius-md;
+  outline: none;
+  transition:
+    border-color $t,
+    box-shadow $t;
+
+  &::placeholder {
+    color: $text-off;
+  }
+
+  &:focus {
+    border-color: $primary-bd;
+    box-shadow: 0 0 0 2px $primary-bg;
+  }
+
+  &.fieldError {
+    border-color: $danger-bd;
+
+    &:focus {
+      border-color: $danger;
+      box-shadow: 0 0 0 2px $danger-bg;
+    }
+  }
+}
+
+.errorMsg {
+  font-size: $text-micro;
+  color: $danger-text;
+  margin-top: $space-1;
+}
