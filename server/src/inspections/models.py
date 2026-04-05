@@ -12,18 +12,25 @@ class InspectionResult(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     standard_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("standards.id", ondelete="SET NULL"), default=None
+        ForeignKey("standards.id", ondelete="SET NULL"), default=None, index=True
     )
     model_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("ml_models.id", ondelete="SET NULL"), default=None
+        ForeignKey("ml_models.id", ondelete="SET NULL"), default=None, index=True
+    )
+    camera_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("cameras.id", ondelete="SET NULL"), default=None, index=True
+    )
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None, index=True
     )
     image_path: Mapped[str] = mapped_column(String(500))
     result_image_path: Mapped[str | None] = mapped_column(String(500), default=None)
     status: Mapped[str] = mapped_column(
-        sqlalchemy.Enum("passed", "failed", name="status_enum"), default="passed"
+        sqlalchemy.Enum("passed", "failed", name="inspection_status_enum"),
+        default="passed",
     )
     mode: Mapped[str] = mapped_column(
-        sqlalchemy.Enum("photo", "snapshot", "realtime", name="mode_enum"),
+        sqlalchemy.Enum("photo", "snapshot", "realtime", name="inspection_mode_enum"),
         default="photo",
     )
     total_segments: Mapped[int] = mapped_column()
@@ -38,6 +45,8 @@ class InspectionResult(Base):
 
     standard: Mapped["Standard | None"] = relationship(back_populates="inspections")
     ml_model: Mapped["MlModel | None"] = relationship(back_populates="inspections")
+    camera: Mapped["Camera | None"] = relationship()
+    user: Mapped["User | None"] = relationship()
     segment_results: Mapped[list["InspectionSegmentResult"]] = relationship(
         back_populates="inspection", cascade="all, delete-orphan"
     )
@@ -48,10 +57,10 @@ class InspectionSegmentResult(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     inspection_id: Mapped[UUID] = mapped_column(
-        ForeignKey("inspection_results.id", ondelete="CASCADE")
+        ForeignKey("inspection_results.id", ondelete="CASCADE"), index=True
     )
     segment_group_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None
+        ForeignKey("segment_groups.id", ondelete="SET NULL"), default=None, index=True
     )
     name: Mapped[str] = mapped_column(String(255))
     is_found: Mapped[bool] = mapped_column()

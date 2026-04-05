@@ -1,8 +1,8 @@
 import { client } from "@/lib/api-client";
-import { Group } from "@/types/api";
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import { GroupListItem } from "../schemas";
 
-export const getGroups = (): Promise<Group[]> => {
+export const getGroups = (): Promise<GroupListItem[]> => {
   return client.get("/groups");
 };
 

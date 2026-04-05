@@ -1,0 +1,359 @@
+@use "@/styles/variables" as *;
+
+.layout {
+  margin-top: $space-6;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+  gap: $space-4;
+}
+
+.main,
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+}
+
+.section,
+.panel,
+.trainCard {
+  border: 1px solid $line;
+  border-radius: $radius-lg;
+  background: $surface;
+}
+
+.section,
+.panel {
+  padding: $space-4;
+}
+
+.trainCard {
+  padding: $space-4;
+  background: linear-gradient(180deg, $surface 0%, $surface2 100%);
+}
+
+.trainSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+}
+
+.trainSummaryTitle {
+  color: $text;
+  font-size: $text-title;
+  font-weight: $fw-bold;
+  margin-bottom: 6px;
+}
+
+.trainSummaryText,
+.modalIntroText {
+  color: $text-hint;
+  font-size: $text-small;
+}
+
+.modalIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalIntroTitle {
+  color: $text;
+  font-size: $text-title;
+  font-weight: $fw-semibold;
+}
+
+.modalStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $space-2;
+}
+
+.trainGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-3;
+}
+
+.trainFooter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-4;
+  margin-top: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid $line-soft;
+}
+
+.requirements {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: $space-2;
+  flex: 1;
+}
+
+.requirement {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: $space-3;
+  border-radius: $radius-md;
+  border: 1px solid $line;
+  background: $surface;
+
+  span {
+    font-size: $text-small;
+    color: $text-hint;
+  }
+
+  strong {
+    font-size: $text-body;
+    color: $text;
+    font-family: $font-mono;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $space-2;
+}
+
+.warningText,
+.helperText {
+  color: $text-hint;
+  font-size: $text-small;
+}
+
+.warningBox {
+  padding: $space-3;
+  border-radius: $radius-md;
+  background: $warning-bg;
+  border: 1px solid $warning-bd;
+  color: $warning-text;
+  font-size: $text-small;
+}
+
+.valueDanger {
+  color: $danger-text;
+}
+
+.countBadge,
+.countBadgeLive,
+.countBadgeQueued,
+.liveBadge,
+.queueHeaderBadge,
+.liveBadgeIdle,
+.statusBadge,
+.modelBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: $text-small;
+  font-weight: $fw-semibold;
+}
+
+.countBadge {
+  background: $surface2;
+  border: 1px solid $line;
+  color: $text-sub;
+}
+
+.countBadgeLive,
+.liveBadge {
+  background: hsl(208, 80%, 92%);
+  color: hsl(208, 80%, 28%);
+  border: 1px solid hsl(208, 70%, 82%);
+}
+
+.countBadgeQueued,
+.queueHeaderBadge {
+  background: hsl(42, 85%, 92%);
+  color: hsl(35, 70%, 32%);
+  border: 1px solid hsl(42, 75%, 84%);
+}
+
+.liveBadgeIdle {
+  background: $surface2;
+  color: $text-hint;
+  border: 1px solid $line;
+}
+
+.modelList,
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.modelItem {
+  text-align: left;
+  border: 1px solid $line;
+  border-radius: $radius-md;
+  background: $surface;
+  padding: $space-3;
+  cursor: pointer;
+  transition:
+    transform $t,
+    border-color $t,
+    background $t;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: $primary-bd;
+    background: $surface2;
+  }
+
+  &[data-active="true"] {
+    border-color: $primary;
+    background: $surface2;
+  }
+}
+
+.modelItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  margin-bottom: 4px;
+
+  strong {
+    color: $text;
+  }
+}
+
+.modelBadge {
+  background: hsl(142, 45%, 92%);
+  color: hsl(142, 45%, 26%);
+}
+
+.modelItemMeta {
+  color: $text-hint;
+  font-size: $text-small;
+}
+
+.taskItem {
+  border: 1px solid $line;
+  border-radius: $radius-md;
+  background: $surface;
+  padding: $space-3;
+}
+
+.taskHead,
+.taskProgressTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+}
+
+.taskTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: $text;
+  font-weight: $fw-medium;
+}
+
+.taskMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: $space-2;
+  color: $text-hint;
+  font-size: $text-small;
+}
+
+.taskProgress {
+  margin-top: $space-3;
+}
+
+.taskBar {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: $surface2;
+  overflow: hidden;
+}
+
+.taskBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(208, 85%, 58%), hsl(154, 68%, 44%));
+}
+
+.taskError {
+  margin-top: $space-2;
+  padding: $space-2;
+  border-radius: $radius-sm;
+  background: hsl(6, 72%, 95%);
+  color: hsl(6, 62%, 38%);
+  font-size: $text-small;
+}
+
+.statusBadge {
+  border: 1px solid transparent;
+}
+
+.statusPending {
+  background: hsl(42, 85%, 92%);
+  color: hsl(35, 70%, 32%);
+}
+
+.statusPreparing {
+  background: hsl(210, 78%, 93%);
+  color: hsl(210, 60%, 30%);
+}
+
+.statusTraining {
+  background: hsl(190, 80%, 92%);
+  color: hsl(190, 62%, 28%);
+}
+
+.statusSaving {
+  background: hsl(265, 78%, 93%);
+  color: hsl(265, 48%, 34%);
+}
+
+.statusDone {
+  background: hsl(142, 45%, 92%);
+  color: hsl(142, 45%, 26%);
+}
+
+.statusFailed {
+  background: hsl(6, 72%, 95%);
+  color: hsl(6, 62%, 38%);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .trainGrid,
+  .requirements,
+  .modalStats {
+    grid-template-columns: 1fr;
+  }
+
+  .trainSummary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trainFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    align-items: stretch;
+  }
+}

@@ -14,7 +14,9 @@ class Standard(Base):
     __tablename__ = "standards"
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    group_id: Mapped[UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
+    group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str] = mapped_column(String(255))
     angle: Mapped[Angle | None] = mapped_column(
         sqlalchemy.Enum("front", "top", "left", "right", "back", name="angle_enum"),
@@ -64,7 +66,7 @@ class StandardImage(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE")
+        ForeignKey("standards.id", ondelete="CASCADE"), index=True
     )
     image_path: Mapped[str] = mapped_column(String(500))
     is_reference: Mapped[bool] = mapped_column(default=False)

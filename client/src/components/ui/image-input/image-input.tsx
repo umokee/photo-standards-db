@@ -7,11 +7,12 @@ const PREVIEW_LIMIT = 4;
 
 interface Props {
   label?: string;
+  multiple?: boolean;
   value: File[] | null;
   onChange: (value: File[] | null) => void;
 }
 
-export default function ImageInput({ label, value, onChange }: Props) {
+export default function ImageInput({ label, multiple = false, value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -48,6 +49,7 @@ export default function ImageInput({ label, value, onChange }: Props) {
       <input
         ref={inputRef}
         type={"file"}
+        multiple={multiple}
         accept="image/jpeg,image/png"
         style={{ display: "none" }}
         onChange={(e) => {

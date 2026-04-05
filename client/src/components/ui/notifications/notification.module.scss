@@ -22,7 +22,7 @@
 
 .container {
   position: fixed;
-  top: $space-6;
+  top: calc($nav-height + $space-1);
   left: 50%;
   z-index: 9999;
   display: flex;
@@ -43,25 +43,23 @@
   background: $surface;
   border-radius: $radius-md;
   border: 1px solid $line-soft;
-  border-left-width: 3px;
   box-shadow: $shadow-float;
   overflow: hidden;
   pointer-events: all;
   animation: slide-in $t;
 }
 
-// Цвет левой полосы по типу
 .success {
-  border-left-color: $primary;
+  border-color: $primary;
 }
 .error {
-  border-left-color: $danger;
+  border-color: $danger;
 }
 .warning {
-  border-left-color: $warning;
+  border-color: $warning;
 }
 .info {
-  border-left-color: $ml;
+  border-color: $ml;
 }
 
 .icon {

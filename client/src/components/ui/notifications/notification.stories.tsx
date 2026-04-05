@@ -7,6 +7,7 @@ const meta: Meta<typeof Notification> = {
     notification: {
       id: "1",
       title: "Уведомление",
+      message: "Текст уведомления",
       type: "success",
     },
   },

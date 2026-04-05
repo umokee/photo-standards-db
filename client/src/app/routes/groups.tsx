@@ -11,13 +11,14 @@ import { CreateGroup } from "@/page-components/groups/components/create-group";
 import { DeleteGroup } from "@/page-components/groups/components/delete-group";
 import { UpdateGroup } from "@/page-components/groups/components/update-group";
 import { CreateStandard } from "@/page-components/standards/components/create-standard";
-import { StandardItem } from "@/page-components/standards/components/standard-item";
+import { StandardCard } from "@/page-components/standards/components/standard-card/standard-card";
 import { formatDate } from "@/utils/formatDate";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import s from "./groups.module.scss";
 
 export function Component() {
-  const { groupId = null } = useParams();
+  const { groupId = null, standardId = null } = useParams();
   const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
@@ -34,13 +35,18 @@ export function Component() {
     [groups, search]
   );
   const standards = group.standards;
-  const totalImages = standards.reduce((c, s) => c + (s.image_count ?? 0), 0) ?? 0;
-  const annotated = standards.reduce((c, s) => c + (s.annotated_count ?? 0), 0) ?? 0;
-  const totalPolygons =
-    standards.reduce(
-      (c, s) => c + (s.segment_groups?.reduce((c2, sg) => c2 + (sg.segment_count ?? 0), 0) ?? 0),
-      0
-    ) ?? 0;
+  const stats = group.stats;
+
+  const toggleStandard = (targetStandardId: string) => {
+    if (!groupId) return;
+
+    if (standardId === targetStandardId) {
+      navigate(`/groups/${groupId}`);
+      return;
+    }
+
+    navigate(`/groups/${groupId}/standards/${targetStandardId}`);
+  };
 
   return (
     <SplitLayout>
@@ -73,7 +79,7 @@ export function Component() {
                   <Sidebar.ItemBody>
                     <Sidebar.ItemName>{group.name}</Sidebar.ItemName>
                   </Sidebar.ItemBody>
-                  <Sidebar.ItemSide>{group.standards_count ?? 0}</Sidebar.ItemSide>
+                  <Sidebar.ItemSide>{group.stats.standards_count}</Sidebar.ItemSide>
                 </Sidebar.Item>
               ))}
             </QueryState>
@@ -92,38 +98,44 @@ export function Component() {
             emptyText="Выберите группу"
           >
             <ContentHeader>
-              <ContentHeader.Top>
-                <div>
-                  <ContentHeader.Title>{group.name}</ContentHeader.Title>
-                  <ContentHeader.Subtitle>
-                    {group.description && group.description}
-                  </ContentHeader.Subtitle>
-                  <ContentHeader.Subtitle>{formatDate(group.created_at)}</ContentHeader.Subtitle>
-                </div>
+              <ContentHeader.Top
+                title={group.name}
+                subtitles={[
+                  ...(group.description ? [group.description] : []),
+                  formatDate(group.created_at),
+                ]}
+                meta={[
+                  `${stats.standards_count} эталонов`,
+                  `${stats.images_count} изображений`,
+                  `${stats.annotated_count} размечено`,
+                  `${stats.polygons_count} аннотаций`,
+                ]}
+              >
                 <ContentHeader.Actions>
                   <CreateStandard groupId={group.id} />
                   <UpdateGroup group={group} />
                   <DeleteGroup id={group.id} name={group.name} />
                 </ContentHeader.Actions>
               </ContentHeader.Top>
-              <ContentHeader.Meta>
-                <ContentHeader.Stat>{standards.length} эталонов</ContentHeader.Stat>
-                <ContentHeader.Stat>{totalImages} изображений</ContentHeader.Stat>
-                <ContentHeader.Stat>{annotated} размечено</ContentHeader.Stat>
-                <ContentHeader.Stat>{totalPolygons} аннотаций</ContentHeader.Stat>
-              </ContentHeader.Meta>
             </ContentHeader>
-            <div className="section">
+            <section className={s.section}>
               <SectionHeader>
                 <SectionHeader.Title>Эталоны</SectionHeader.Title>
                 <SectionHeader.Side>
-                  <span className="badge badge--ghost">{standards.length}</span>
+                  <span className={s.countBadge}>{standards.length}</span>
                 </SectionHeader.Side>
               </SectionHeader>
-              {standards.map((standard) => (
-                <StandardItem key={standard.id} standard={standard} />
-              ))}
-            </div>
+              <div className={s.cards}>
+                {standards.map((standard) => (
+                  <StandardCard
+                    key={standard.id}
+                    standard={standard}
+                    expanded={standardId === standard.id}
+                    onToggle={() => toggleStandard(standard.id)}
+                  />
+                ))}
+              </div>
+            </section>
           </QueryState>
         </SplitLayout.Body>
       </SplitLayout.Content>

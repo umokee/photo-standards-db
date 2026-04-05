@@ -8,6 +8,9 @@ interface Props {
   error?: string;
   noMargin?: boolean;
   type?: "text" | "password" | "number";
+  min?: number;
+  max?: number;
+  step?: number;
   onChange: (value: string) => void;
 }
 
@@ -18,6 +21,9 @@ export default function Input({
   error,
   type = "text",
   noMargin,
+  min,
+  max,
+  step,
   onChange,
 }: Props) {
   return (
@@ -28,6 +34,9 @@ export default function Input({
         type={type}
         placeholder={placeholder}
         value={value}
+        min={min}
+        max={max}
+        step={step}
         onChange={(e) => onChange(e.target.value)}
       />
       {error && <span className={s.errorMsg}>{error}</span>}

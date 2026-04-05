@@ -18,7 +18,7 @@ class SegmentGroup(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE")
+        ForeignKey("standards.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(255))
     hue: Mapped[int] = mapped_column(
@@ -39,10 +39,10 @@ class Segment(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE")
+        ForeignKey("standards.id", ondelete="CASCADE"), index=True
     )
     segment_group_id: Mapped[UUID] = mapped_column(
-        ForeignKey("segment_groups.id", ondelete="CASCADE")
+        ForeignKey("segment_groups.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(255))
 
@@ -63,10 +63,10 @@ class SegmentAnnotation(Base):
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
     segment_id: Mapped[UUID] = mapped_column(
-        ForeignKey("segments.id", ondelete="CASCADE")
+        ForeignKey("segments.id", ondelete="CASCADE"), index=True
     )
     image_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standard_images.id", ondelete="CASCADE")
+        ForeignKey("standard_images.id", ondelete="CASCADE"), index=True
     )
     points: Mapped[list] = mapped_column(JSON, default=list)
 

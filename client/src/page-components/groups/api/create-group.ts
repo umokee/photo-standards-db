@@ -1,16 +1,11 @@
 import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
 import { MutationConfig } from "@/lib/react-query";
-import { Group } from "@/types/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CreateGroupInput, GroupMutationResponse } from "../schemas";
 import { getGroupsQueryOptions } from "./get-groups";
 
-export type CreateGroupInput = {
-  name: string;
-  description?: string;
-};
-
-export const createGroup = (data: CreateGroupInput): Promise<Group> => {
+export const createGroup = (data: CreateGroupInput): Promise<GroupMutationResponse> => {
   return client.post("/groups", data);
 };
 

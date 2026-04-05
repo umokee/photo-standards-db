@@ -19,49 +19,39 @@ const useInsideTop = (componentName: string) => {
   }
 };
 
-const InsideMetaContext = createContext(false);
-const useInsideMeta = (componentName: string) => {
-  const insideMeta = useContext(InsideMetaContext);
-
-  if (!insideMeta) {
-    throw new Error(`${componentName} должен быть использован внутри ContentHeader.Meta`);
-  }
-};
-
-const Stat = ({ children }: { children: ReactNode }) => {
-  useInsideMeta("ContentHeader.Stat");
-  return <div className={s.stat}>{children}</div>;
-};
-
-const Title = ({ children }: { children: ReactNode }) => {
-  useInsideTop("ContentHeader.Title");
-  return <div className={s.title}>{children}</div>;
-};
-
-const Subtitle = ({ children }: { children: ReactNode }) => {
-  useInsideTop("ContentHeader.Subtitle");
-  return <div className={s.sub}>{children}</div>;
-};
-
 const Actions = ({ children }: { children: ReactNode }) => {
   useInsideTop("ContentHeader.Actions");
   return <div className={s.actions}>{children}</div>;
 };
 
-const Meta = ({ children }: { children: ReactNode }) => {
-  useInsideRoot("ContentHeader.Meta");
-  return (
-    <InsideMetaContext.Provider value={true}>
-      <div className={s.meta}>{children}</div>
-    </InsideMetaContext.Provider>
-  );
-};
-
-const Top = ({ children }: { children: ReactNode }) => {
+const Top = ({
+  children,
+  title,
+  subtitles,
+  meta,
+}: {
+  children: ReactNode;
+  title: string;
+  subtitles?: string[];
+  meta?: string[];
+}) => {
   useInsideRoot("ContentHeader.Top");
   return (
     <InsideTopContext.Provider value={true}>
-      <div className={s.top}>{children}</div>
+      <div className={s.top}>
+        <div>
+          <div>{title}</div>
+          {subtitles.map((st) => (
+            <div className={s.sub}>{st}</div>
+          ))}
+        </div>
+        {children}
+      </div>
+      <div className={s.meta}>
+        {meta.map((m) => (
+          <div className={s.stat}>{m}</div>
+        ))}
+      </div>
     </InsideTopContext.Provider>
   );
 };
@@ -76,9 +66,5 @@ const Root = ({ children }: { children: ReactNode }) => {
 
 export const ContentHeader = Object.assign(Root, {
   Top,
-  Title,
-  Subtitle,
   Actions,
-  Meta,
-  Stat,
 });

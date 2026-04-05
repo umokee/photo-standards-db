@@ -140,16 +140,3 @@ export interface StandardDetail {
   segment_groups: SegmentGroup[];
 }
 
-export interface Group {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  standards_count: number;
-  images_count: number;
-}
-
-export interface GroupDetail extends Group {
-  standards: Standard[];
-  active_model: MlModel | null;
-}

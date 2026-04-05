@@ -18,6 +18,14 @@ async def get_models(
     return await service.get_models(db, group_id)
 
 
+@router.get("/tasks", response_model=list[TrainingTaskResponse])
+async def get_tasks(
+    group_id: UUID,
+    db: AsyncSession = Depends(get_session),
+) -> list[TrainingTaskResponse]:
+    return await service.get_tasks(db, group_id)
+
+
 @router.post("/train", response_model=TrainingTaskResponse, status_code=201)
 async def train(
     data: MlModelTrainRequest,

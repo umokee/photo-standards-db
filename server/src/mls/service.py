@@ -20,6 +20,18 @@ async def get_models(
     return models.scalars().all()
 
 
+async def get_tasks(
+    db: AsyncSession,
+    group_id: UUID,
+) -> list[TrainingTaskResponse]:
+    tasks = await db.execute(
+        select(TrainingTask)
+        .where(TrainingTask.group_id == group_id)
+        .order_by(TrainingTask.created_at.desc())
+    )
+    return tasks.scalars().all()
+
+
 async def activate(
     db: AsyncSession,
     model_id: UUID,

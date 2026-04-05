@@ -1,13 +1,13 @@
 import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
-import { Group } from "@/types/api";
 import { getChangedFields, getFieldError } from "@/utils/form";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GroupDetail } from "../schemas";
 import { useUpdateGroup } from "../api/update-group";
 
-export const UpdateGroup = ({ group }: { group: Group }) => (
+export const UpdateGroup = ({ group }: { group: GroupDetail }) => (
   <Modal>
     <Modal.Trigger>
       <Button variant="ghost" size="icon" icon={Pencil} />
@@ -18,7 +18,7 @@ export const UpdateGroup = ({ group }: { group: Group }) => (
   </Modal>
 );
 
-const UpdateGroupModal = ({ group }: { group: Group }) => {
+const UpdateGroupModal = ({ group }: { group: GroupDetail }) => {
   const close = useModalClose();
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");

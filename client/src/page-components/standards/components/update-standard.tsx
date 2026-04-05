@@ -1,15 +1,18 @@
 import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
+import { GroupStandardShort } from "@/page-components/groups/schemas";
 import Select from "@/components/ui/select/select";
-import type { Angle, Standard } from "@/types/api";
+import type { Angle } from "@/types/api";
 import { ANGLES } from "@/utils/constants";
 import { getChangedFields, getFieldError } from "@/utils/form";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUpdateStandard } from "../api/update-standard";
 
-export const UpdateStandard = ({ standard }: { standard: Standard }) => (
+type EditableStandard = Pick<GroupStandardShort, "id" | "name" | "angle">;
+
+export const UpdateStandard = ({ standard }: { standard: EditableStandard }) => (
   <Modal>
     <Modal.Trigger>
       <Button variant="ghost" size="icon" icon={Pencil} />
@@ -20,7 +23,7 @@ export const UpdateStandard = ({ standard }: { standard: Standard }) => (
   </Modal>
 );
 
-const UpdateStandardModal = ({ standard }: { standard: Standard }) => {
+const UpdateStandardModal = ({ standard }: { standard: EditableStandard }) => {
   const close = useModalClose();
   const [name, setName] = useState(standard.name);
   const [angle, setAngle] = useState<Angle | null>(standard.angle);

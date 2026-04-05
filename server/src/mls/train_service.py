@@ -61,7 +61,7 @@ class TrainingSplitPlan:
     total: int
 
 
-async def _load_training_data(
+async def _build_training_data(
     db: AsyncSession,
     group_id: UUID,
 ) -> TrainingData:
@@ -69,21 +69,16 @@ async def _load_training_data(
     if not group:
         raise NotFoundError("Группа", group_id, "не найдена")
 
-    standards = (
-        await db.execute(
-            select(Standard)
-            .options(
-                selectinload(Standard.images).selectinload(StandardImage.annotations),
-                selectinload(Standard.segments),
-                selectinload(Standard.segment_groups).selectinload(
-                    SegmentGroup.segments
-                ),
-            )
-            .where(Standard.group_id == group.id)
+    result = await db.execute(
+        select(Standard)
+        .options(
+            selectinload(Standard.images).selectinload(StandardImage.annotations),
+            selectinload(Standard.segments),
+            selectinload(Standard.segment_groups).selectinload(SegmentGroup.segments),
         )
-        .scalars()
-        .all()
+        .where(Standard.group_id == group.id)
     )
+    standards = result.scalars().all()
 
     all_segments = [seg for standard in standards for seg in standard.segments]
     class_names = list(dict.fromkeys(seg.name for seg in all_segments))
@@ -373,32 +368,41 @@ def _start_next_task() -> None:
         if active:
             return
 
-        task = db.execute(
-            select(TrainingTask)
-            .where(TrainingTask.status == "pending")
-            .order_by(TrainingTask.created_at)
-            .limit(1)
-        ).scalar_one_or_none()
-        if not task:
-            return
+        while True:
+            task = db.execute(
+                select(TrainingTask)
+                .where(TrainingTask.status == "pending")
+                .order_by(TrainingTask.created_at)
+                .limit(1)
+            ).scalar_one_or_none()
+            if not task:
+                return
 
-        model = db.get(MlModel, task.model_id)
-        process = multiprocessing.Process(
-            target=_training_worker,
-            args=(
-                task.id,
-                model.id,
-                task.group_id,
-                model.version,
-                model.weights_path,
-                model.epochs,
-                model.imgsz,
-                model.batch_size,
-                task.train_ratio,
-                task.val_ratio,
-            ),
-        )
-        process.start()
+            model = db.get(MlModel, task.model_id) if task.model_id else None
+            if not model:
+                task.status = "failed"
+                task.error = "Связанная модель для задачи не найдена"
+                task.finished_at = datetime.now()
+                db.commit()
+                continue
+
+            process = multiprocessing.Process(
+                target=_training_worker,
+                args=(
+                    task.id,
+                    model.id,
+                    task.group_id,
+                    model.version,
+                    model.weights_path,
+                    model.epochs,
+                    model.imgsz,
+                    model.batch_size,
+                    task.train_ratio,
+                    task.val_ratio,
+                ),
+            )
+            process.start()
+            return
 
 
 async def run_train(
@@ -424,6 +428,7 @@ async def run_train(
         class_names=train_data.class_names,
     )
     db.add(model)
+    await db.flush()
 
     task = TrainingTask(
         group_id=data.group_id,
@@ -434,9 +439,5 @@ async def run_train(
     )
     db.add(task)
     await db.commit()
-    await db.refresh(model)
     await db.refresh(task)
-
-    _start_next_task()
-
     return task

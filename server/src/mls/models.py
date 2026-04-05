@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import sqlalchemy
 from database import Base
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, func
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,9 +17,19 @@ Imgsz = Literal[320, 416, 512, 640, 768, 1024, 1280]
 
 class MlModel(Base):
     __tablename__ = "ml_models"
+    __table_args__ = (
+        Index(
+            "uq_group_active_model",
+            "group_id",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    group_id: Mapped[UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
+    group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"), index=True
+    )
     name: Mapped[str] = mapped_column(String(255))
     architecture: Mapped[Architecture] = mapped_column(
         sqlalchemy.Enum(
@@ -37,11 +47,10 @@ class MlModel(Base):
     epochs: Mapped[int | None] = mapped_column(
         Integer, CheckConstraint("epochs > 0"), default=None
     )
-    imgsz: Mapped[Imgsz] = mapped_column(
-        sqlalchemy.Enum(
-            "320", "416", "512", "640", "768", "1024", "1280", name="imgsz_enum"
-        ),
-        default="640",
+    imgsz: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("imgsz IN (320, 416, 512, 640, 768, 1024, 1280)"),
+        default=640,
     )
     batch_size: Mapped[int | None] = mapped_column(
         Integer, CheckConstraint("batch_size > 0"), default=None
@@ -68,9 +77,11 @@ class TrainingTask(Base):
     __tablename__ = "training_tasks"
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    group_id: Mapped[UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
+    group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"), index=True
+    )
     model_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("ml_models.id", ondelete="CASCADE"), default=None
+        ForeignKey("ml_models.id", ondelete="SET NULL"), default=None, index=True
     )
     status: Mapped[Status] = mapped_column(
         sqlalchemy.Enum(
@@ -80,7 +91,7 @@ class TrainingTask(Base):
             "saving",
             "done",
             "failed",
-            name="status_enum",
+            name="training_status_enum",
         ),
         default="pending",
     )
