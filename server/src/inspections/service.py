@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from config import STORAGE_PATH
 from exception import NotFoundError, ValidationError
 from mls.models import MlModel
+from mls.weights import resolve_weights_path
 from segments.models import SegmentGroup
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,7 +56,7 @@ async def load_inspection_context(
     if not model:
         raise ValidationError("Для группы нет активной модели")
 
-    weights_path = STORAGE_PATH / model.weights_path
+    weights_path = resolve_weights_path(model.weights_path)
     if not weights_path.exists():
         raise ValidationError(f"Файл весов не найден: {weights_path}")
 
@@ -64,7 +64,7 @@ async def load_inspection_context(
 
 
 def load_yolo_model(weights_path: str) -> YOLO:
-    path = STORAGE_PATH / weights_path
+    path = resolve_weights_path(weights_path)
     key = str(path)
     if key not in _model:
         _model[key] = YOLO(key)

@@ -3,7 +3,7 @@ import Button from "@/components/ui/button/button";
 import ProgressBar from "@/components/ui/progress-bar/progress-bar";
 import { GroupDetail } from "@/page-components/groups/schemas";
 import { formatDate } from "@/utils/formatDate";
-import { CheckCircle2, Clock3, Cpu, Sparkles } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, Cpu, Sparkles } from "lucide-react";
 import { MlModelListItem, TrainingTaskItem } from "../schemas";
 import s from "./model-details.module.scss";
 
@@ -11,6 +11,7 @@ interface Props {
   group: GroupDetail;
   model: MlModelListItem | null;
   task?: TrainingTaskItem | null;
+  pendingLabel?: string;
   onActivate?: () => void;
   isActivating?: boolean;
 }
@@ -27,7 +28,14 @@ const formatMetric = (value: number | null | undefined) => {
   return value.toFixed(3);
 };
 
-export default function ModelDetails({ group, model, task, onActivate, isActivating }: Props) {
+export default function ModelDetails({
+  group,
+  model,
+  task,
+  pendingLabel = "В очереди",
+  onActivate,
+  isActivating,
+}: Props) {
   if (!model) {
     return (
       <div className={s.empty}>
@@ -41,6 +49,8 @@ export default function ModelDetails({ group, model, task, onActivate, isActivat
   const isDeployActive = model.is_active && isTrained;
   const isQueued = task?.status === "pending";
   const isBusy = task && ["preparing", "training", "saving"].includes(task.status);
+  const isFailed = task?.status === "failed";
+  const canActivate = !!onActivate && !isActivating;
 
   return (
     <div className={s.root}>
@@ -55,15 +65,20 @@ export default function ModelDetails({ group, model, task, onActivate, isActivat
           ) : isQueued ? (
             <span className={s.queueBadge}>
               <Clock3 size={14} />
-              В очереди
+              {pendingLabel}
             </span>
           ) : isBusy ? (
             <span className={s.busyBadge}>
               <Cpu size={14} />
               Обучается
             </span>
+          ) : isFailed ? (
+            <span className={s.queueBadge}>
+              <AlertCircle size={14} />
+              Ошибка
+            </span>
           ) : (
-            <Button variant="ml" size="sm" disabled={isActivating} onClick={onActivate}>
+            <Button variant="ml" size="sm" disabled={!canActivate} onClick={onActivate}>
               Активировать
             </Button>
           )}
@@ -125,8 +140,10 @@ export default function ModelDetails({ group, model, task, onActivate, isActivat
             <strong>
               {isDeployActive
                 ? "активная"
+                : isFailed
+                  ? "ошибка обучения"
                 : isQueued
-                  ? "в очереди"
+                  ? pendingLabel.toLowerCase()
                   : isBusy
                     ? "обучается"
                     : "неактивная"}
@@ -144,6 +161,13 @@ export default function ModelDetails({ group, model, task, onActivate, isActivat
           ))}
         </div>
       </div>
+
+      {isFailed && task?.error && (
+        <div className={s.card}>
+          <div className={s.blockTitle}>Ошибка обучения</div>
+          <div className={s.emptyText}>{task.error}</div>
+        </div>
+      )}
 
       <div className={s.card}>
         <div className={s.blockTitle}>Классы модели</div>

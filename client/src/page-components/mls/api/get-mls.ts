@@ -19,10 +19,3 @@ export const getMlsQueryOptions = (groupId: string) => {
 export const useGetMls = (groupId: string | null) => {
   return useQuery({ ...getMlsQueryOptions(groupId!) });
 };
-
-export const useGetMlsPolling = (groupId: string | null, refetchInterval = 5000) => {
-  return useQuery({
-    ...getMlsQueryOptions(groupId!),
-    refetchInterval: groupId ? refetchInterval : false,
-  });
-};

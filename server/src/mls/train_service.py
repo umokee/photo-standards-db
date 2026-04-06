@@ -1,25 +1,32 @@
-import asyncio
-import multiprocessing
 import random
 import shutil
 from dataclasses import dataclass
-from datetime import datetime
 from uuid import UUID
 
 import yaml
-from config import MAX_SUM_TRAIN_VAL_RATIO, MAX_TRAIN_RATIO, STORAGE_PATH, settings
+from config import MAX_SUM_TRAIN_VAL_RATIO, MAX_TRAIN_RATIO, STORAGE_PATH
 from exception import NotFoundError, ValidationError
 from groups.models import Group
 from PIL import Image
 from segments.models import SegmentGroup
-from sqlalchemy import Engine, create_engine, func, select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
 from standards.models import Standard, StandardImage
-from ultralytics import YOLO
 
-from .models import MlModel, Status, TrainingTask
+from .models import MlModel, TrainingTask
 from .schemas import MlModelTrainRequest
+from .weights import canonicalize_weights_path
+
+BASE_WEIGHTS_FILE_MAP = {
+    "yolov26n-seg": "yolo26n-seg.pt",
+    "yolov26s-seg": "yolo26s-seg.pt",
+    "yolov26m-seg": "yolo26m-seg.pt",
+    "yolov26l-seg": "yolo26l-seg.pt",
+    "yolov26x-seg": "yolo26x-seg.pt",
+}
+
+ACTIVE_TRAINING_TASK_STATUSES = ("pending", "preparing", "training", "saving")
 
 
 @dataclass
@@ -61,25 +68,16 @@ class TrainingSplitPlan:
     total: int
 
 
-async def _build_training_data(
-    db: AsyncSession,
-    group_id: UUID,
-) -> TrainingData:
-    group = await db.get(Group, group_id)
-    if not group:
-        raise NotFoundError("Группа", group_id, "не найдена")
+def _standard_load_options():
+    """Общие options для загрузки standards с images, annotations, segments."""
+    return [
+        selectinload(Standard.images).selectinload(StandardImage.annotations),
+        selectinload(Standard.segments),
+        selectinload(Standard.segment_groups).selectinload(SegmentGroup.segments),
+    ]
 
-    result = await db.execute(
-        select(Standard)
-        .options(
-            selectinload(Standard.images).selectinload(StandardImage.annotations),
-            selectinload(Standard.segments),
-            selectinload(Standard.segment_groups).selectinload(SegmentGroup.segments),
-        )
-        .where(Standard.group_id == group.id)
-    )
-    standards = result.scalars().all()
 
+def _build_training_data(group: Group, standards: list[Standard]) -> TrainingData:
     all_segments = [seg for standard in standards for seg in standard.segments]
     class_names = list(dict.fromkeys(seg.name for seg in all_segments))
     class_index_map = {name: i for i, name in enumerate(class_names)}
@@ -118,7 +116,42 @@ async def _build_training_data(
     )
 
 
-def _validate_training_data(data: TrainingData) -> None:
+async def load_training_data(
+    db: AsyncSession,
+    group_id: UUID,
+) -> TrainingData:
+    group = await db.get(Group, group_id)
+    if not group:
+        raise NotFoundError("Группа", group_id, "не найдена")
+
+    result = await db.execute(
+        select(Standard)
+        .options(*_standard_load_options())
+        .where(Standard.group_id == group.id)
+    )
+    standards = result.scalars().all()
+    return _build_training_data(group, standards)
+
+
+def load_training_data_sync(
+    db: Session,  # <-- SYNC Session, не AsyncSession!
+    group_id: UUID,
+) -> TrainingData:
+    """Синхронная версия для worker-потока."""
+    group = db.get(Group, group_id)
+    if not group:
+        raise NotFoundError("Группа", group_id, "не найдена")
+
+    result = db.execute(
+        select(Standard)
+        .options(*_standard_load_options())
+        .where(Standard.group_id == group.id)
+    )
+    standards = result.scalars().all()
+    return _build_training_data(group, standards)
+
+
+def validate_training_data(data: TrainingData) -> None:
     if not data.standards:
         raise ValidationError("Группа не содержит эталонов")
     if not data.class_names:
@@ -145,7 +178,7 @@ def _validate_training_data(data: TrainingData) -> None:
         raise ValidationError("Не все аннотации имеют полигоны")
 
 
-def _plan_dataset_split(
+def plan_dataset_split(
     data: TrainingData,
     train_ratio: int,
     val_ratio: int,
@@ -168,13 +201,19 @@ def _plan_dataset_split(
         images_count = len(images)
         random.shuffle(images)
 
-        train_count = int(images_count * train_ratio / 100)
+        train_count = max(1, int(images_count * train_ratio / 100))
         val_count = int(images_count * val_ratio / 100)
+
+        if train_count + val_count > images_count:
+            val_count = images_count - train_count
 
         train += images[:train_count]
         val += images[train_count : train_count + val_count]
         test += images[train_count + val_count :]
         total += images_count
+
+    if not val:
+        val = list(train)
 
     return TrainingSplitPlan(
         train=train,
@@ -184,7 +223,7 @@ def _plan_dataset_split(
     )
 
 
-def _build_dataset(
+def build_dataset(
     data: TrainingData,
     split_plan: TrainingSplitPlan,
 ) -> str:
@@ -240,186 +279,35 @@ def _build_dataset(
 
 async def _next_version(db: AsyncSession, group_id: UUID) -> int:
     result = await db.execute(
-        select(func.coalesce(func.max(MlModel.version), 0)).where(
-            MlModel.group_id == group_id
+        select(func.coalesce(func.max(MlModel.version), 0))
+        .select_from(MlModel)
+        .outerjoin(TrainingTask, TrainingTask.model_id == MlModel.id)
+        .where(
+            MlModel.group_id == group_id,
+            or_(
+                MlModel.trained_at.is_not(None),
+                TrainingTask.status.in_(ACTIVE_TRAINING_TASK_STATUSES),
+            ),
         )
     )
     return result.scalar() + 1
 
 
-def _update_task_status(
-    engine: Engine,
-    task_id: UUID,
-    status: Status,
-    error: str | None = None,
-    started_at: datetime | None = None,
-    finished_at: datetime | None = None,
-) -> None:
-    with Session(engine) as db:
-        task = db.get(TrainingTask, task_id)
-        task.status = status
-        if error:
-            task.error = error
-        if started_at:
-            task.started_at = started_at
-        if finished_at:
-            task.finished_at = finished_at
-        db.commit()
-
-
-def _update_task_progress(
-    engine: Engine,
-    task_id: UUID,
-    progress: int,
-    stage: str,
-) -> None:
-    with Session(engine) as db:
-        task = db.get(TrainingTask, task_id)
-        task.progress = progress
-        task.stage = stage
-        db.commit()
-
-
-async def _prepare_dataset(group_id: UUID, train_ratio: int, val_ratio: int) -> str:
-    engine = create_async_engine(settings.database_url)
-    async with AsyncSession(engine) as db:
-        data = await _load_training_data(db, group_id)
-        split_plan = _plan_dataset_split(data, train_ratio, val_ratio)
-        yaml_path = _build_dataset(data, split_plan)
-        return yaml_path
-
-
-def _training_worker(
-    task_id: UUID,
-    model_id: UUID,
-    group_id: UUID,
-    version: int,
-    weights_path: str,
-    epochs: int,
-    imgsz: int,
-    batch_size: int,
-    train_ratio: int,
-    val_ratio: int,
-) -> None:
-    engine = create_engine(settings.database_url_sync)
-    temp_dir = STORAGE_PATH / "models" / str(group_id) / "temp"
-
-    try:
-        _update_task_status(engine, task_id, "preparing")
-        yaml_path = asyncio.run(_prepare_dataset(group_id, train_ratio, val_ratio))
-        _update_task_status(engine, task_id, "training", started_at=datetime.now())
-
-        model = YOLO(weights_path)
-        model.add_callback(
-            "on_train_epoch_end",
-            lambda trainer: _update_task_progress(
-                engine,
-                task_id=task_id,
-                progress=trainer.epoch + 1,
-                stage=f"Эпоха {trainer.epoch + 1}/{epochs}",
-            ),
-        )
-
-        results = model.train(
-            data=yaml_path,
-            epochs=epochs,
-            imgsz=imgsz,
-            batch=batch_size,
-            project=str(temp_dir),
-            name="run",
-            exist_ok=True,
-        )
-
-        src = temp_dir / "run" / "weights" / "best.pt"
-        dst = STORAGE_PATH / "models" / str(group_id) / f"v{version}.pt"
-        shutil.move(str(src), str(dst))
-
-        _update_task_status(engine, task_id, "saving")
-        with Session(engine) as db:
-            ml_model = db.get(MlModel, model_id)
-            ml_model.weights_path = f"models/{group_id}/v{version}.pt"
-            ml_model.metrics = {
-                "mAP50": results.results_dict.get("metrics/mAP50(B)"),
-                "mAP50_95": results.results_dict.get("metrics/mAP50-95(B)"),
-                "precision": results.results_dict.get("metrics/precision(B)"),
-                "recall": results.results_dict.get("metrics/recall(B)"),
-            }
-            ml_model.trained_at = datetime.now()
-            db.commit()
-
-        _update_task_status(engine, task_id, "done", finished_at=datetime.now())
-    except Exception as err:
-        _update_task_status(
-            engine, task_id, "failed", str(err), finished_at=datetime.now()
-        )
-    finally:
-        shutil.rmtree(str(temp_dir), ignore_errors=True)
-        _start_next_task()
-
-
-def _start_next_task() -> None:
-    engine = create_engine(settings.database_url_sync)
-    with Session(engine) as db:
-        active = db.execute(
-            select(TrainingTask).where(
-                TrainingTask.status.in_(["preparing", "training", "saving"])
-            )
-        ).scalar_one_or_none()
-        if active:
-            return
-
-        while True:
-            task = db.execute(
-                select(TrainingTask)
-                .where(TrainingTask.status == "pending")
-                .order_by(TrainingTask.created_at)
-                .limit(1)
-            ).scalar_one_or_none()
-            if not task:
-                return
-
-            model = db.get(MlModel, task.model_id) if task.model_id else None
-            if not model:
-                task.status = "failed"
-                task.error = "Связанная модель для задачи не найдена"
-                task.finished_at = datetime.now()
-                db.commit()
-                continue
-
-            process = multiprocessing.Process(
-                target=_training_worker,
-                args=(
-                    task.id,
-                    model.id,
-                    task.group_id,
-                    model.version,
-                    model.weights_path,
-                    model.epochs,
-                    model.imgsz,
-                    model.batch_size,
-                    task.train_ratio,
-                    task.val_ratio,
-                ),
-            )
-            process.start()
-            return
-
-
-async def run_train(
-    db: AsyncSession,
-    data: MlModelTrainRequest,
-) -> TrainingTask:
-    train_data = await _load_training_data(db, data.group_id)
-    _validate_training_data(train_data)
+async def run_train(db: AsyncSession, data: MlModelTrainRequest) -> TrainingTask:
+    train_data = await load_training_data(db, data.group_id)
+    validate_training_data(train_data)
 
     version = await _next_version(db, data.group_id)
+    base_weights_filename = BASE_WEIGHTS_FILE_MAP[data.architecture]
+    base_weights_path = STORAGE_PATH / "models" / "_basic" / base_weights_filename
+    if not base_weights_path.is_file():
+        raise ValidationError(f"Базовые веса не найдены: {base_weights_path}")
+
     model = MlModel(
         group_id=data.group_id,
         name=f"{data.architecture}_v{version}",
         architecture=data.architecture,
-        weights_path=str(
-            STORAGE_PATH / "models" / "_basic" / f"{data.architecture}.pt"
-        ),
+        weights_path=canonicalize_weights_path(str(base_weights_path)),
         version=version,
         epochs=data.epochs,
         imgsz=data.imgsz,
@@ -439,5 +327,11 @@ async def run_train(
     )
     db.add(task)
     await db.commit()
+    await db.refresh(model)
     await db.refresh(task)
+
+    from mls.worker import notify
+
+    notify()
+
     return task

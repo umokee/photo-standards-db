@@ -16,9 +16,17 @@ export const getTrainingTasksQueryOptions = (groupId: string) => {
   };
 };
 
-export const useGetTrainingTasks = (groupId: string | null, refetchInterval = 5000) => {
+const ACTIVE_STATUSES = ["pending", "preparing", "training", "saving"];
+
+const hasActiveTasks = (tasks: TrainingTaskItem[] | undefined): boolean => {
+  return tasks?.some((t) => ACTIVE_STATUSES.includes(t.status)) ?? false;
+};
+
+export const useGetTrainingTasks = (groupId: string | null) => {
   return useQuery({
     ...getTrainingTasksQueryOptions(groupId!),
-    refetchInterval: groupId ? refetchInterval : false,
+    refetchInterval: (query) => {
+      return hasActiveTasks(query.state.data) ? 3000 : false;
+    },
   });
 };

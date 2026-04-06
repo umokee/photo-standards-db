@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from exception import NotFoundError
+from exception import NotFoundError, ValidationError
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import MlModel, TrainingTask
 from .schemas import MlModelResponse, TrainingTaskResponse
+from .weights import resolve_weights_path
 
 
 async def get_models(
@@ -14,7 +15,7 @@ async def get_models(
 ) -> list[MlModelResponse]:
     models = await db.execute(
         select(MlModel)
-        .where(MlModel.group_id == group_id)
+        .where(MlModel.group_id == group_id, MlModel.trained_at.is_not(None))
         .order_by(MlModel.version.desc())
     )
     return models.scalars().all()
@@ -39,6 +40,13 @@ async def activate(
     model = await db.get(MlModel, model_id)
     if not model:
         raise NotFoundError("Модель", model_id, "не найдена")
+
+    if not model.trained_at:
+        raise ValidationError("Активировать можно только успешно обученную модель")
+
+    weights_path = resolve_weights_path(model.weights_path)
+    if not weights_path.is_file():
+        raise ValidationError("Невозможно активировать модель: файл весов не найден")
 
     await db.execute(
         update(MlModel)

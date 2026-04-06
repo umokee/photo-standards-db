@@ -8,10 +8,10 @@ import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import QueryState from "@/components/ui/query-state/query-state";
 import Select from "@/components/ui/select/select";
 import useSidebar from "@/hooks/use-sidebar";
-import { useGetGroup, deafultGroup } from "@/page-components/groups/api/get-group";
+import { deafultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
 import { useGetGroups } from "@/page-components/groups/api/get-groups";
 import { useActivateModel } from "@/page-components/mls/api/activate-model";
-import { useGetMlsPolling } from "@/page-components/mls/api/get-mls";
+import { useGetMls } from "@/page-components/mls/api/get-mls";
 import { useGetTrainingTasks } from "@/page-components/mls/api/get-training-tasks";
 import { useTrainModel } from "@/page-components/mls/api/train-model";
 import ModelDetails from "@/page-components/mls/components/ModelDetails";
@@ -80,6 +80,9 @@ const formatPercent = (value: number | null | undefined) => {
 const clampNumber = (value: number, min: number, max: number) => {
   return Math.min(max, Math.max(min, value));
 };
+
+const sortByCreatedAtAsc = <T extends { created_at: string }>(items: T[]) =>
+  [...items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
 const sanitizeNumericInput = (value: string, min: number, max: number) => {
   const digits = value.replace(/\D/g, "");
@@ -222,9 +225,7 @@ const TrainingLaunchModal = ({
         </div>
 
         {!hasTrainData && (
-          <div className={s.warningBox}>
-            Для обучения нужны эталоны, фото, классы и аннотации.
-          </div>
+          <div className={s.warningBox}>Для обучения нужны эталоны, фото, классы и аннотации.</div>
         )}
         {isRatioInvalid && (
           <div className={s.warningBox}>
@@ -268,17 +269,13 @@ export function Component() {
     isError: groupError,
   } = useGetGroup(groupId);
 
-  const {
-    data: models = [],
-    isLoading: modelsLoading,
-    isError: modelsError,
-  } = useGetMlsPolling(groupId, 5000);
+  const { data: models = [], isLoading: modelsLoading, isError: modelsError } = useGetMls(groupId);
 
   const {
     data: tasks = [],
     isLoading: tasksLoading,
     isError: tasksError,
-  } = useGetTrainingTasks(groupId, 5000);
+  } = useGetTrainingTasks(groupId);
 
   const filtered = useMemo(
     () => groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())),
@@ -297,16 +294,39 @@ export function Component() {
   const activeTask = tasks.find((task) =>
     ["pending", "preparing", "training", "saving"].includes(task.status)
   );
-  const runningTask = tasks.find((task) => ["preparing", "training", "saving"].includes(task.status));
+  const runningTask = tasks.find((task) =>
+    ["preparing", "training", "saving"].includes(task.status)
+  );
   const queuedTask = tasks.find((task) => task.status === "pending");
-  const selectedModelTask =
-    selectedModel ? tasks.find((task) => task.model_id === selectedModel.id) ?? null : null;
+  const pendingTasks = useMemo(
+    () => sortByCreatedAtAsc(tasks.filter((task) => task.status === "pending")),
+    [tasks]
+  );
+  const nextPendingTask = pendingTasks[0] ?? null;
+  const selectedModelTask = selectedModel
+    ? (tasks.find((task) => task.model_id === selectedModel.id) ?? null)
+    : null;
+  const isStartingSoon = (task: { id: string; status: TrainingStatus }) =>
+    task.status === "pending" && !runningTask && nextPendingTask?.id === task.id;
+  const getPendingPosition = (taskId: string) =>
+    pendingTasks.findIndex((task) => task.id === taskId) + 1;
+  const selectedModelPendingLabel =
+    selectedModelTask?.status === "pending"
+      ? isStartingSoon(selectedModelTask)
+        ? "Скоро стартует"
+        : "В очереди"
+      : undefined;
+  const canActivateSelectedModel =
+    !!selectedModel &&
+    !selectedModel.is_active &&
+    !!selectedModel.trained_at &&
+    selectedModelTask?.status !== "failed";
 
   const trainMutation = useTrainModel({
     groupId: groupId ?? "",
     mutationConfig: {
-      onSuccess: (task) => {
-        navigate(`/training/${groupId}/models/${task.model_id ?? ""}`);
+      onSuccess: () => {
+        navigate(`/training/${groupId}`);
       },
     },
   });
@@ -329,11 +349,7 @@ export function Component() {
       group_id: groupId,
       architecture,
       epochs: clampNumber(Number(epochs || EPOCHS_MIN), EPOCHS_MIN, EPOCHS_MAX),
-      batch_size: clampNumber(
-        Number(batchSize || BATCH_SIZE_MIN),
-        BATCH_SIZE_MIN,
-        BATCH_SIZE_MAX
-      ),
+      batch_size: clampNumber(Number(batchSize || BATCH_SIZE_MIN), BATCH_SIZE_MIN, BATCH_SIZE_MAX),
       imgsz: Number(imageSize || 0),
       train_ratio: clampNumber(
         Number(trainRatio || TRAIN_RATIO_MIN),
@@ -415,7 +431,7 @@ export function Component() {
                   ) : queuedTask ? (
                     <span className={s.queueHeaderBadge}>
                       <Clock3 size={14} />
-                      Задача в очереди
+                      {isStartingSoon(queuedTask) ? "Задача скоро стартует" : "Задача в очереди"}
                     </span>
                   ) : (
                     <span className={s.liveBadgeIdle}>Ожидание</span>
@@ -439,17 +455,16 @@ export function Component() {
                   <div className={s.trainCard}>
                     <div className={s.trainSummary}>
                       <div>
-                        <div className={s.trainSummaryTitle}>Запуск новой модели через модальное окно</div>
+                        <div className={s.trainSummaryTitle}>
+                          Запуск новой модели через модальное окно
+                        </div>
                         <div className={s.trainSummaryText}>
                           Форма обучения открывается отдельно и не перегружает основную страницу.
                         </div>
                       </div>
                       <Modal>
                         <Modal.Trigger>
-                          <Button
-                            variant="ml"
-                            disabled={trainMutation.isPending || !hasTrainData}
-                          >
+                          <Button variant="ml" disabled={trainMutation.isPending || !hasTrainData}>
                             Запустить обучение
                           </Button>
                         </Modal.Trigger>
@@ -511,7 +526,9 @@ export function Component() {
                             Сумма `train` и `val` не должна превышать {RATIO_SUM_MAX}%.
                           </span>
                         )}
-                        <span className={s.helperText}>Допустимые пределы задаются сервером и UI.</span>
+                        <span className={s.helperText}>
+                          Допустимые пределы задаются сервером и UI.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -531,10 +548,11 @@ export function Component() {
                     group={group}
                     model={selectedModel}
                     task={selectedModelTask}
+                    pendingLabel={selectedModelPendingLabel}
                     isActivating={activateMutation.isPending}
                     onActivate={
-                      selectedModel && !selectedModel.is_active && !!selectedModel.trained_at
-                        ? () => activateMutation.mutate(selectedModel.id)
+                      canActivateSelectedModel
+                        ? () => activateMutation.mutate(selectedModel!.id)
                         : undefined
                     }
                   />
@@ -610,7 +628,11 @@ export function Component() {
                             <div className={s.taskHead}>
                               <div className={s.taskTitle}>
                                 <Icon size={15} />
-                                <span>{task.model_id ? `Модель ${task.model_id.slice(0, 8)}` : "Новая модель"}</span>
+                                <span>
+                                  {task.model_id
+                                    ? `Модель ${task.model_id.slice(0, 8)}`
+                                    : "Новая модель"}
+                                </span>
                               </div>
                               <span className={`${s.statusBadge} ${statusToneMap[task.status]}`}>
                                 {statusLabelMap[task.status]}
@@ -623,21 +645,37 @@ export function Component() {
                               <span>{formatDate(task.created_at)}</span>
                             </div>
 
-                            {(task.progress !== null || task.stage || task.status === "pending") && (
+                            {(task.progress !== null ||
+                              task.stage ||
+                              task.status === "pending") && (
                               <div className={s.taskProgress}>
                                 <div className={s.taskProgressTop}>
                                   <span>
                                     {task.status === "pending"
-                                      ? "Ожидает запуска"
-                                      : task.stage ?? "В процессе"}
+                                      ? isStartingSoon(task)
+                                        ? "Ожидает захвата воркером"
+                                        : "Ожидает запуска"
+                                      : (task.stage ?? "В процессе")}
                                   </span>
-                                  <strong>{task.status === "pending" ? "queue" : task.progress ?? 0}</strong>
+                                  <strong>
+                                    {task.status === "pending"
+                                      ? isStartingSoon(task)
+                                        ? "soon"
+                                        : `#${getPendingPosition(task.id)}`
+                                      : (task.progress ?? 0)}
+                                  </strong>
                                 </div>
                                 <div className={s.taskBar}>
                                   <div
                                     className={s.taskBarFill}
                                     style={{
-                                      width: `${task.status === "pending" ? 12 : Math.min(task.progress ?? 0, 100)}%`,
+                                      width: `${
+                                        task.status === "pending"
+                                          ? isStartingSoon(task)
+                                            ? 18
+                                            : 12
+                                          : Math.min(task.progress ?? 0, 100)
+                                      }%`,
                                     }}
                                   />
                                 </div>

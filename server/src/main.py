@@ -14,7 +14,8 @@ from groups.models import Group  # noqa: F401
 from groups.router import router as groups_router
 from inspections.models import InspectionResult, InspectionSegmentResult  # noqa: F401
 from inspections.router import router as inspections_router
-from mls.models import MlModel  # noqa: F401
+from mls import worker
+from mls.models import MlModel, TrainingTask  # noqa: F401
 from mls.router import router as models_router
 from segments.models import Segment, SegmentAnnotation, SegmentGroup  # noqa: F401
 from segments.router import segment_group_router as segment_groups_router
@@ -29,7 +30,9 @@ from users.router import router as users_router
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    worker.start()
     yield
+    worker.stop()
 
 
 app = FastAPI(
