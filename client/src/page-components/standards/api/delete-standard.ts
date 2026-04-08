@@ -1,9 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getGroupsQueryOptions } from "@/page-components/groups/api/get-groups";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStandardQueryOptions } from "./get-standard";
 
 export const deleteStandard = (id: string): Promise<void> => {
   return client.delete(`/standards/${id}`);
@@ -20,12 +18,9 @@ export const useDeleteStandard = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: deleteStandard,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: ["group"] });
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(vars).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Эталон успешно удален",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars) });
+      notifySuccess("Эталон успешно удален");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

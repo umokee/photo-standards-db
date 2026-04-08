@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 
 from config import STORAGE_PATH
 from database import get_session
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from exception import NotFoundError, ValidationError
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -34,9 +35,9 @@ async def run_inspection(
     )
     standard = result.scalar_one_or_none()
     if not standard:
-        raise HTTPException(status_code=404, detail="Эталон не найден")
+        raise NotFoundError("Эталон", "standard", standard_id)
     if not standard.segments:
-        raise HTTPException(status_code=422, detail="У эталона нет сегментов")
+        raise ValidationError("У эталона нет сегментов")
 
     inspection_id = uuid4()
     suffix = Path(image.filename).suffix if image.filename else ".jpg"

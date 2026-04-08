@@ -1,9 +1,8 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { Angle, Standard } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { Angle, StandardMutationResponse } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getStandardQueryOptions } from "./get-standard";
 
 export type UpdateStandardInput = {
   id: string;
@@ -13,27 +12,27 @@ export type UpdateStandardInput = {
   };
 };
 
-export const updateStandard = ({ id, data }: UpdateStandardInput): Promise<Standard> => {
+export const updateStandard = ({
+  id,
+  data,
+}: UpdateStandardInput): Promise<StandardMutationResponse> => {
   return client.put(`/standards/${id}`, data);
 };
 
-type UpdateStandardOptions = {
+type Options = {
   mutationConfig?: MutationConfig<typeof updateStandard>;
 };
 
-export const useUpdateStandard = ({ mutationConfig }: UpdateStandardOptions = {}) => {
+export const useUpdateStandard = ({ mutationConfig }: Options = {}) => {
   const qc = useQueryClient();
   const { onSuccess, ...rest } = mutationConfig || {};
 
   return useMutation({
     mutationFn: updateStandard,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: ["group"] });
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(vars.id).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Эталон успешно обновлен",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars.id) });
+      notifySuccess("Эталон успешно обновлен");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

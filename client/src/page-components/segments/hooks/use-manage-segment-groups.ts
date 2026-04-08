@@ -1,6 +1,6 @@
 import { useReducer, useState } from "react";
 
-import type { Segment, SegmentGroup, StandardDetail } from "@/types/api";
+import { Segment, SegmentGroup, StandardDetail } from "@/types/contracts";
 import { useSaveSegments } from "../api/save-segments";
 
 interface SegmentState {

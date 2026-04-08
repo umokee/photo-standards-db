@@ -1,9 +1,9 @@
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import QueryState from "@/components/ui/query-state/query-state";
+import { StandardDetail } from "@/types/contracts";
 import clsx from "clsx";
 import { ChevronRight, Hexagon, Plus, X } from "lucide-react";
 import Button from "../../../components/ui/button/button";
-import { StandardDetail } from "../../../types/api";
 import { useManageSegmentGroups } from "../hooks/use-manage-segment-groups";
 
 interface Props {
@@ -59,7 +59,7 @@ const ManageSegmentGroupsModal = ({ standard }: Props) => {
     <>
       <Modal.Header>{`Классы сегментации - ${standard.name}`}</Modal.Header>
       <Modal.Body>
-        <QueryState isEmpty={!groups.length} emptyText="Нет классов сегментации">
+        <QueryState isEmpty={!groups.length} emptyTitle="Нет классов сегментации">
           <div className="sgm__list">
             {groups.map((group) => {
               const color = `hsl(${group.hue}, 65%, 55%)`;

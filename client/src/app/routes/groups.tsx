@@ -5,7 +5,7 @@ import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
 import Input from "@/components/ui/input/input";
 import QueryState from "@/components/ui/query-state/query-state";
 import useSidebar from "@/hooks/use-sidebar";
-import { deafultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
+import { defaultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
 import { useGetGroups } from "@/page-components/groups/api/get-groups";
 import { CreateGroup } from "@/page-components/groups/components/create-group";
 import { DeleteGroup } from "@/page-components/groups/components/delete-group";
@@ -15,6 +15,7 @@ import { StandardCard } from "@/page-components/standards/components/standard-ca
 import { formatDate } from "@/utils/formatDate";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "../paths";
 import s from "./groups.module.scss";
 
 export function Component() {
@@ -25,7 +26,7 @@ export function Component() {
   const { close: closeSidebar } = useSidebar();
   const { data: groups = [], isLoading: groupsLoading, isError: groupsError } = useGetGroups();
   const {
-    data: group = deafultGroup,
+    data: group = defaultGroup,
     isLoading: groupLoading,
     isError: groupError,
   } = useGetGroup(groupId);
@@ -41,11 +42,11 @@ export function Component() {
     if (!groupId) return;
 
     if (standardId === targetStandardId) {
-      navigate(`/groups/${groupId}`);
+      navigate(paths.groupDetail(groupId));
       return;
     }
 
-    navigate(`/groups/${groupId}/standards/${targetStandardId}`);
+    navigate(paths.standardDetail(groupId, targetStandardId));
   };
 
   return (
@@ -63,15 +64,14 @@ export function Component() {
               isLoading={groupsLoading}
               isError={groupsError}
               isEmpty={!filtered.length}
-              emptyText="Нет групп"
-              loader="skeleton"
+              emptyTitle="Нет групп"
             >
               {filtered.map((group) => (
                 <Sidebar.Item
                   key={group.id}
                   active={groupId === group.id}
                   onClick={() => {
-                    navigate(`/groups/${group.id}`);
+                    navigate(paths.groupDetail(group.id));
                     closeSidebar();
                   }}
                 >
@@ -95,7 +95,7 @@ export function Component() {
             isLoading={groupLoading}
             isError={groupError}
             isEmpty={!group.id}
-            emptyText="Выберите группу"
+            emptyTitle="Выберите группу"
           >
             <ContentHeader>
               <ContentHeader.Top

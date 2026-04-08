@@ -1,9 +1,13 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import type { GroupMutationResponse } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateGroupInput, GroupMutationResponse } from "../schemas";
-import { getGroupsQueryOptions } from "./get-groups";
+
+export type CreateGroupInput = {
+  name: string;
+  description?: string;
+};
 
 export const createGroup = (data: CreateGroupInput): Promise<GroupMutationResponse> => {
   return client.post("/groups", data);
@@ -20,11 +24,8 @@ export const useCreateGroup = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: createGroup,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getGroupsQueryOptions().queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Группа успешно создана",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      notifySuccess("Группа успешно создана");
       onSuccess?.(...args);
     },
     ...rest,

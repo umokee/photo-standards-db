@@ -1,8 +1,9 @@
 import Button from "@/components/ui/button/button";
-import { Segment, SegmentGroup, SegmentWithPoints, StandardDetail } from "@/types/api";
+import { Segment, SegmentGroup, SegmentWithPoints, StandardDetail } from "@/types/contracts";
 import clsx from "clsx";
 import { Trash2 } from "lucide-react";
-import { ManageSegmentGroups } from "./manage-segment-groups";
+import { ManageSegmentGroups } from "../manage-segment-groups";
+import s from "./segment-panel.module.scss"
 
 interface Props {
   standard?: StandardDetail;

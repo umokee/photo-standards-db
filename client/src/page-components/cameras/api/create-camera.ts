@@ -1,9 +1,8 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { Camera } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { Camera } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCamerasQueryOptions } from "./get-cameras";
 
 export type CreateCameraInput = {
   name: string;
@@ -37,11 +36,8 @@ export const useCreateCamera = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: createCamera,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getCamerasQueryOptions().queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Камера успешно создана",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.cameras.all() });
+      notifySuccess("Камера успешно создана");
       onSuccess?.(...args);
     },
     ...rest,

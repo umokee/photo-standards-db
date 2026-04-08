@@ -1,25 +1,5 @@
 @use "@/styles/variables" as *;
 
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes progress {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
 .container {
   position: fixed;
   top: calc($nav-height + $space-1);
@@ -46,7 +26,6 @@
   box-shadow: $shadow-float;
   overflow: hidden;
   pointer-events: all;
-  animation: slide-in $t;
 }
 
 .success {
@@ -116,10 +95,6 @@
   cursor: pointer;
   color: $text-hint;
   padding: 0;
-  transition:
-    background $t,
-    color $t;
-
   &:hover {
     background: $surface2;
     color: $text-sub;
@@ -134,7 +109,6 @@
   height: 2px;
   width: 100%;
   transform-origin: left;
-  animation: progress var(--duration, 5000ms) linear forwards;
 
   .success & {
     background: $primary;

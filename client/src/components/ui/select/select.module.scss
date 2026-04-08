@@ -29,13 +29,10 @@
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
-  transition:
-    border-color $t,
-    box-shadow $t;
+  transition: border-color $t;
 
   &:focus {
     border-color: $primary-bd;
-    box-shadow: 0 0 0 2px $primary-bg;
   }
 
   &:disabled {
@@ -48,7 +45,6 @@
 
     &:focus {
       border-color: $danger;
-      box-shadow: 0 0 0 2px $danger-bg;
     }
   }
 }

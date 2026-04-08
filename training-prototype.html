@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Обучение модели — PhotoStandards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --page:      hsl(40, 18%, 89%);
+      --page2:     hsl(40, 16%, 86%);
+      --surface:   hsl(42, 29%, 93%);
+      --surface2:  hsl(40, 20%, 90%);
+      --line:      hsl(42, 13%, 77%);
+      --line-soft: hsl(42, 12%, 82%);
+
+      --text:      hsl(100, 13%, 11%);
+      --text-sub:  hsl(102, 8%, 32%);
+      --text-hint: hsl(102, 7%, 54%);
+      --text-off:  hsl(100, 6%, 72%);
+
+      --primary:        hsl(150, 44%, 43%);
+      --primary-hover:  hsl(150, 44%, 38%);
+      --primary-bg:     hsla(150, 44%, 43%, 0.10);
+      --primary-bd:     hsla(150, 44%, 43%, 0.22);
+      --primary-text:   hsl(150, 44%, 48%);
+
+      --ml:        hsl(264, 49%, 55%);
+      --ml-hover:  hsl(264, 42%, 49%);
+      --ml-active: hsl(264, 46%, 44%);
+      --ml-text:   hsl(264, 51%, 64%);
+      --ml-bg:     hsla(264, 49%, 55%, 0.10);
+      --ml-bd:     hsla(264, 49%, 55%, 0.22);
+
+      --danger:      hsl(0, 59%, 45%);
+      --danger-bg:   hsla(0, 59%, 45%, 0.10);
+      --danger-bd:   hsla(0, 59%, 45%, 0.22);
+      --danger-text: hsl(0, 55%, 51%);
+
+      --warning:      hsl(42, 66%, 46%);
+      --warning-bg:   hsla(42, 66%, 46%, 0.10);
+      --warning-bd:   hsla(42, 66%, 46%, 0.22);
+      --warning-text: hsl(42, 65%, 51%);
+
+      --nav-bg:          hsl(100, 13%, 11%);
+      --nav-border:      hsl(105, 13%, 16%);
+      --nav-text:        hsl(100, 10%, 42%);
+      --nav-text-hover:  hsl(100, 9%, 62%);
+      --nav-active-text: hsl(42, 26%, 92%);
+
+      --r-sm: 3px; --r-md: 5px; --r-lg: 8px; --r-xl: 12px; --r-2xl: 16px;
+      --nav-h: 48px; --sidebar-w: 260px;
+      --t: 0.18s ease;
+      --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
+      --shadow-float: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    html { height: 100%; }
+    body {
+      min-height: 100%; font-family: 'Outfit', 'Segoe UI', sans-serif;
+      font-size: 14px; color: var(--text); background: var(--page);
+      -webkit-font-smoothing: antialiased;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    .nav {
+      height: var(--nav-h); background: var(--nav-bg);
+      border-bottom: 1px solid var(--nav-border);
+      display: flex; align-items: center; padding: 0 16px; gap: 6px;
+      position: sticky; top: 0; z-index: 100; flex-shrink: 0;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--nav-active-text); font-weight: 700; font-size: 14px;
+      text-decoration: none;
+    }
+    .nav-logo-mark {
+      width: 26px; height: 26px; background: var(--primary);
+      border-radius: var(--r-md);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nav-links { display: flex; align-items: center; margin-left: 12px; gap: 2px; }
+    .nav-link {
+      padding: 6px 10px; border-radius: var(--r-md);
+      color: var(--nav-text); font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none; background: none; font-family: inherit;
+      transition: color var(--t), background var(--t); text-decoration: none;
+    }
+    .nav-link:hover { color: var(--nav-text-hover); }
+    .nav-link.active { background: rgba(255,255,255,0.12); color: var(--nav-active-text); }
+    .spacer { flex: 1; }
+    .nav-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--nav-text); font-size: 11px; font-weight: 700;
+      cursor: pointer; border: none; font-family: inherit;
+    }
+
+    /* ── APP BODY ── */
+    .app-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* ── CONTROLS HEADER ── */
+    .controls-header {
+      background: var(--surface); border-bottom: 1px solid var(--line);
+      padding: 10px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      flex-shrink: 0; z-index: 50;
+    }
+    .group-row { display: flex; align-items: center; gap: 10px; }
+    .field-label {
+      font-size: 11px; font-weight: 700; color: var(--text-hint);
+      letter-spacing: 0.6px; text-transform: uppercase;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .select {
+      flex: 1; height: 36px; padding: 0 28px 0 10px;
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      background-color: var(--surface2);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
+      color: var(--text); font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer; appearance: none; -webkit-appearance: none;
+      outline: none; transition: border-color var(--t);
+    }
+    .select:focus { border-color: var(--ml); }
+
+    /* Mobile tabs */
+    .mobile-tabs {
+      display: none;
+      gap: 3px; background: var(--surface2);
+      border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 3px;
+    }
+    .mobile-tab {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 7px 6px; border: none; border-radius: var(--r-md);
+      background: transparent; color: var(--text-hint);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all var(--t); min-height: 34px;
+    }
+    .mobile-tab:hover:not(.active) { color: var(--text-sub); background: rgba(0,0,0,0.04); }
+    .mobile-tab.active { background: var(--ml); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
+
+    /* ── SPLIT LAYOUT ── */
+    .content-wrap { flex: 1; display: flex; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+      background: var(--page2);
+    }
+    .sidebar-head {
+      padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line-soft);
+      flex-shrink: 0;
+    }
+    .sidebar-title { font-size: 13px; font-weight: 700; color: var(--text-sub); }
+    .models-list { flex: 1; overflow-y: auto; }
+    .model-item {
+      padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 4px;
+      border-bottom: 1px solid var(--line-soft);
+      cursor: pointer; transition: background var(--t);
+    }
+    .model-item:hover { background: var(--surface); }
+    .model-item.selected { background: var(--surface); border-left: 2px solid var(--ml); padding-left: 12px; }
+    .model-item-top {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .model-version {
+      font-size: 11px; font-weight: 800;
+      background: var(--ml-bg); color: var(--ml-text);
+      border: 1px solid var(--ml-bd);
+      border-radius: var(--r-sm);
+      padding: 1px 6px; flex-shrink: 0;
+    }
+    .model-arch { font-size: 12px; font-weight: 600; color: var(--text-sub); flex: 1; }
+    .model-active-badge {
+      font-size: 10px; font-weight: 700;
+      background: var(--primary-bg); color: var(--primary-text);
+      border: 1px solid var(--primary-bd);
+      border-radius: var(--r-sm); padding: 1px 6px; flex-shrink: 0;
+    }
+    .model-item-bottom {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .model-date { font-size: 11px; color: var(--text-hint); }
+    .model-map {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600; color: var(--ml-text);
+    }
+    .sidebar-empty {
+      padding: 32px 16px; text-align: center;
+      color: var(--text-hint); font-size: 13px; font-weight: 500;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+
+    /* Main area */
+    .main {
+      flex: 1; overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; height: 36px; padding: 0 14px;
+      border-radius: var(--r-md); border: none;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all var(--t);
+      white-space: nowrap; outline: none; flex-shrink: 0;
+    }
+    .btn:disabled { opacity: 0.42; cursor: not-allowed; pointer-events: none; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-ml { background: var(--ml); color: #fff; }
+    .btn-ml:hover { background: var(--ml-hover); }
+    .btn-ml:active { background: var(--ml-active); }
+    .btn-ghost { background: var(--surface); color: var(--text-sub); border: 1px solid var(--line); }
+    .btn-ghost:hover { background: var(--surface2); }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-bd); }
+    .btn-danger:hover { background: hsla(0,59%,45%,0.18); }
+    .btn-lg   { height: 44px; padding: 0 20px; font-size: 14px; }
+    .btn-sm   { height: 30px; padding: 0 10px; font-size: 12px; }
+    .btn-full { width: 100%; }
+    .row { display: flex; align-items: center; gap: 8px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--line-soft);
+      border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .card-head {
+      padding: 10px 14px; border-bottom: 1px solid var(--line-soft);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; color: var(--text-hint);
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .card-body { padding: 14px; }
+
+    /* ── FORM SECTIONS ── */
+    .form-page { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .form-section { display: flex; flex-direction: column; gap: 10px; }
+    .form-row { display: flex; gap: 10px; }
+    .form-field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+    .form-label {
+      font-size: 11px; font-weight: 700; color: var(--text-hint);
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .input {
+      height: 36px; padding: 0 10px;
+      border: 1px solid var(--line); border-radius: var(--r-md);
+      background: var(--surface2); color: var(--text);
+      font-family: inherit; font-size: 13px;
+      outline: none; transition: border-color var(--t);
+    }
+    .input:focus { border-color: var(--ml); }
+    .input-hint { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+
+    /* ── ARCHITECTURE CARDS ── */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .arch-card {
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 10px 8px;
+      cursor: pointer;
+      background: var(--surface);
+      transition: all var(--t);
+      display: flex; flex-direction: column; gap: 5px;
+      position: relative; overflow: hidden;
+    }
+    .arch-card:hover { border-color: var(--ml-bd); background: var(--ml-bg); }
+    .arch-card.selected {
+      border-color: var(--ml); background: var(--ml-bg);
+      box-shadow: 0 0 0 2px var(--ml-bg);
+    }
+    .arch-letter {
+      font-size: 22px; font-weight: 800; color: var(--text);
+      line-height: 1;
+    }
+    .arch-card.selected .arch-letter { color: var(--ml); }
+    .arch-name {
+      font-size: 11px; font-weight: 600; color: var(--text-hint);
+    }
+    .arch-rec {
+      font-size: 9px; font-weight: 800;
+      background: var(--ml); color: #fff;
+      border-radius: 3px; padding: 1px 5px;
+      position: absolute; top: 7px; right: 7px;
+      letter-spacing: 0.3px;
+    }
+    .arch-dots-row {
+      display: flex; flex-direction: column; gap: 3px; margin-top: 3px;
+    }
+    .arch-dot-line { display: flex; align-items: center; gap: 4px; }
+    .arch-dot-label { font-size: 9px; color: var(--text-hint); width: 36px; flex-shrink: 0; }
+    .arch-dots { display: flex; gap: 2px; }
+    .dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--line); transition: background var(--t);
+    }
+    .dot.on { background: var(--ml); }
+    .arch-card.selected .dot.on { background: var(--ml); }
+
+    /* ── DATASET SPLIT ── */
+    .split-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .split-sliders { display: flex; flex-direction: column; gap: 6px; }
+    .split-slider-row { display: flex; align-items: center; gap: 10px; }
+    .split-slider-label { font-size: 12px; font-weight: 600; color: var(--text-sub); width: 64px; flex-shrink: 0; }
+    .split-slider-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      width: 36px; text-align: right; flex-shrink: 0;
+    }
+    input[type="range"] {
+      flex: 1; accent-color: var(--ml);
+      height: 4px; cursor: pointer;
+    }
+    .split-visual { border-radius: var(--r-md); overflow: hidden; height: 20px; display: flex; }
+    .split-seg { display: flex; align-items: center; justify-content: center; transition: width 0.3s ease; }
+    .split-seg-train   { background: var(--ml); }
+    .split-seg-val     { background: var(--primary); }
+    .split-seg-test    { background: var(--warning); }
+    .split-seg-label   { font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.9); letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
+    .split-legend      { display: flex; gap: 10px; flex-wrap: wrap; }
+    .split-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-hint); }
+    .legend-dot        { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── TRAINING PROGRESS ── */
+    .progress-page { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 28px; padding: 0 12px;
+      border-radius: 14px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .status-pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .status-pending   { background: var(--surface2); color: var(--text-hint); }
+    .status-pending   .status-pill-dot { background: var(--text-off); }
+    .status-preparing { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-bd); }
+    .status-preparing .status-pill-dot { background: var(--warning); animation: dotBlink 1s ease infinite; }
+    .status-training  { background: var(--ml-bg); color: var(--ml-text); border: 1px solid var(--ml-bd); }
+    .status-training  .status-pill-dot { background: var(--ml); animation: dotBlink 0.8s ease infinite; }
+    .status-saving    { background: var(--primary-bg); color: var(--primary-text); border: 1px solid var(--primary-bd); }
+    .status-saving    .status-pill-dot { background: var(--primary); animation: dotBlink 0.6s ease infinite; }
+    .status-done      { background: var(--primary-bg); color: var(--primary-text); border: 1px solid var(--primary-bd); }
+    .status-done      .status-pill-dot { background: var(--primary); }
+    .status-failed    { background: var(--danger-bg);  color: var(--danger-text);  border: 1px solid var(--danger-bd); }
+    .status-failed    .status-pill-dot { background: var(--danger); }
+    @keyframes dotBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+    .progress-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .progress-info { display: flex; align-items: center; gap: 10px; }
+    .progress-label {
+      font-size: 22px; font-weight: 800; color: var(--text);
+    }
+    .progress-sub { font-size: 13px; color: var(--text-hint); margin-top: 2px; }
+    .elapsed-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: var(--text-hint);
+    }
+
+    .progress-bar-wrap { position: relative; }
+    .progress-bar {
+      height: 10px; border-radius: 5px;
+      background: var(--surface2); overflow: hidden;
+      border: 1px solid var(--line-soft);
+    }
+    .progress-fill {
+      height: 100%; border-radius: 5px;
+      background: var(--ml);
+      transition: width 0.4s ease;
+      position: relative; overflow: hidden;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; right: -20px;
+      width: 40px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: shimmer 1.2s ease infinite;
+    }
+    .progress-fill.done::after { display: none; }
+    @keyframes shimmer { 0%,100% { transform: translateX(-40px); } 50% { transform: translateX(20px); } }
+
+    .progress-epoch-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px;
+    }
+    .progress-stage { font-size: 12px; color: var(--text-hint); font-weight: 500; }
+    .progress-epoch-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text-hint);
+    }
+
+    /* Training log */
+    .train-log {
+      background: hsl(100, 13%, 11%);
+      border-radius: var(--r-lg);
+      padding: 12px 14px;
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 3px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    }
+    .log-entry { display: flex; gap: 10px; color: rgba(255,255,255,0.6); }
+    .log-time  { color: rgba(255,255,255,0.3); white-space: nowrap; flex-shrink: 0; }
+    .log-msg   { flex: 1; }
+    .log-entry.info  .log-msg { color: rgba(255,255,255,0.8); }
+    .log-entry.ok    .log-msg { color: hsl(150,60%,56%); }
+    .log-entry.warn  .log-msg { color: hsl(42,80%,65%); }
+    .log-entry.error .log-msg { color: hsl(0,70%,65%); }
+
+    /* ── MODEL DETAILS ── */
+    .detail-page { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .detail-header {
+      display: flex; align-items: flex-start; gap: 12px;
+      flex-wrap: wrap;
+    }
+    .detail-title-wrap { flex: 1; }
+    .detail-title { font-size: 18px; font-weight: 800; color: var(--text); }
+    .detail-sub   { font-size: 12px; color: var(--text-hint); margin-top: 3px; }
+    .detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .badge {
+      display: inline-flex; align-items: center;
+      height: 22px; padding: 0 8px;
+      border-radius: var(--r-sm);
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-ml      { background: var(--ml-bg); color: var(--ml-text); border: 1px solid var(--ml-bd); }
+    .badge-active  { background: var(--primary-bg); color: var(--primary-text); border: 1px solid var(--primary-bd); }
+    .badge-neutral { background: var(--surface2); color: var(--text-hint); border: 1px solid var(--line-soft); }
+
+    /* Metrics grid */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .metric-card {
+      background: var(--surface); border: 1px solid var(--line-soft);
+      border-radius: var(--r-lg); padding: 12px 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .metric-label { font-size: 10px; font-weight: 700; color: var(--text-hint); letter-spacing: 0.5px; text-transform: uppercase; }
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 600; color: var(--text);
+    }
+    .metric-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+    .metric-fill { height: 100%; border-radius: 2px; background: var(--ml); }
+
+    /* Class names */
+    .class-chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px 14px; }
+    .class-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      height: 24px; padding: 0 9px;
+      background: var(--surface2); border: 1px solid var(--line-soft);
+      border-radius: var(--r-md);
+      font-size: 12px; font-weight: 500; color: var(--text-sub);
+    }
+    .class-chip-num {
+      width: 16px; height: 16px;
+      background: var(--ml-bg); color: var(--ml-text);
+      border-radius: 3px;
+      font-size: 9px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Info table */
+    .info-table { padding: 0; }
+    .info-row {
+      display: flex; align-items: center;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { font-size: 12px; color: var(--text-hint); font-weight: 500; flex: 1; }
+    .info-val {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; padding: 40px; text-align: center; color: var(--text-hint);
+    }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text-sub); }
+    .empty-sub   { font-size: 13px; max-width: 280px; line-height: 1.5; }
+
+    /* ── UTILS ── */
+    .hidden { display: none !important; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .slide-in { animation: slideIn 0.24s ease forwards; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.75s linear infinite; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .arch-grid { grid-template-columns: repeat(3, 1fr); }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .nav-links { display: none; }
+      .mobile-tabs { display: flex; }
+      .app-body { overflow: auto; }
+      .content-wrap { flex: auto; overflow: visible; }
+      .main { overflow: visible; }
+      .controls-header { position: sticky; top: var(--nav-h); }
+      .arch-grid { grid-template-columns: repeat(3, 1fr); }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .arch-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+        <circle cx="12" cy="13" r="3"/>
+      </svg>
+    </div>
+    PhotoStandards
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#">Группы</a>
+    <a class="nav-link" href="#">Проверка</a>
+    <a class="nav-link" href="#">Камеры</a>
+    <a class="nav-link active" href="#">Модели</a>
+  </div>
+  <div class="spacer"></div>
+  <button class="nav-avatar">АИ</button>
+</nav>
+
+<!-- ══ APP BODY ══ -->
+<div class="app-body">
+
+  <!-- Controls header -->
+  <div class="controls-header">
+    <div class="group-row">
+      <span class="field-label">Группа</span>
+      <select class="select" id="groupSelect">
+        <option value="">— Выберите группу —</option>
+        <option value="1" selected>Молочная продукция</option>
+        <option value="2">Соки и нектары</option>
+        <option value="3">Консервация</option>
+      </select>
+    </div>
+    <div class="mobile-tabs">
+      <button class="mobile-tab active" data-panel="training">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Обучение
+      </button>
+      <button class="mobile-tab" data-panel="models">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="11" width="6" height="10" rx="1"/>
+        </svg>
+        Модели
+      </button>
+    </div>
+  </div>
+
+  <!-- Content wrap -->
+  <div class="content-wrap">
+
+    <!-- ══ SIDEBAR: Models ══ -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <span class="sidebar-title">Обученные модели</span>
+        <button class="btn btn-sm btn-ml" id="newTrainingBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Новое
+        </button>
+      </div>
+      <div class="models-list" id="modelsList">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ══ MAIN AREA ══ -->
+    <div class="main" id="mainArea">
+
+      <!-- VIEW: Training Form -->
+      <div id="viewForm" class="form-page slide-in">
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Архитектура</span>
+          </div>
+          <div class="card-body">
+            <div class="arch-grid" id="archGrid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-title">Параметры обучения</span></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label">Эпох</label>
+                <input class="input" type="number" id="epochsInput" value="100" min="1" max="1000">
+                <span class="input-hint">1 – 1000</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Размер изображения</label>
+                <select class="select" id="imgszSelect" style="flex:1;">
+                  <option value="320">320 px — быстро</option>
+                  <option value="416">416 px</option>
+                  <option value="512">512 px</option>
+                  <option value="640" selected>640 px — рекомендуется</option>
+                  <option value="768">768 px</option>
+                  <option value="1024">1024 px</option>
+                  <option value="1280">1280 px — точно</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Размер батча</label>
+                <input class="input" type="number" id="batchInput" value="16" min="1" max="256">
+                <span class="input-hint">1 – 256</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-title">Разбивка датасета</span></div>
+          <div class="card-body">
+            <div class="split-bar-wrap">
+              <div class="split-sliders">
+                <div class="split-slider-row">
+                  <span class="split-slider-label">Обучение</span>
+                  <input type="range" id="trainSlider" min="50" max="80" value="80">
+                  <span class="split-slider-num" id="trainVal">80%</span>
+                </div>
+                <div class="split-slider-row">
+                  <span class="split-slider-label">Проверка</span>
+                  <input type="range" id="valSlider" min="0" max="45" value="10">
+                  <span class="split-slider-num" id="valVal">10%</span>
+                </div>
+                <div class="split-slider-row">
+                  <span class="split-slider-label" style="color:var(--text-hint);">Тест</span>
+                  <div style="flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden;">
+                    <div id="testBarInner" style="height:100%;background:var(--warning);width:10%;transition:width 0.3s ease;border-radius:2px;"></div>
+                  </div>
+                  <span class="split-slider-num" id="testVal" style="color:var(--warning-text);">10%</span>
+                </div>
+              </div>
+              <div class="split-visual" id="splitVisual">
+                <div class="split-seg split-seg-train" id="sv-train" style="width:80%">
+                  <span class="split-seg-label">Обучение</span>
+                </div>
+                <div class="split-seg split-seg-val" id="sv-val" style="width:10%">
+                  <span class="split-seg-label">Провер.</span>
+                </div>
+                <div class="split-seg split-seg-test" id="sv-test" style="width:10%">
+                  <span class="split-seg-label">Тест</span>
+                </div>
+              </div>
+              <div class="split-legend">
+                <div class="split-legend-item">
+                  <div class="legend-dot" style="background:var(--ml)"></div>Обучение
+                </div>
+                <div class="split-legend-item">
+                  <div class="legend-dot" style="background:var(--primary)"></div>Проверка
+                </div>
+                <div class="split-legend-item">
+                  <div class="legend-dot" style="background:var(--warning)"></div>Тест
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="groupWarning" class="hidden" style="background:var(--warning-bg);border:1px solid var(--warning-bd);border-radius:var(--r-lg);padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--warning-text);font-weight:500;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Выберите группу для запуска обучения
+        </div>
+
+        <button class="btn btn-ml btn-lg btn-full" id="startBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Запустить обучение
+        </button>
+      </div><!-- /viewForm -->
+
+      <!-- VIEW: Training Progress -->
+      <div id="viewProgress" class="progress-page hidden slide-in">
+        <div class="card">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="progress-header">
+              <div class="progress-info">
+                <div>
+                  <div class="progress-label" id="progLabel">0%</div>
+                  <div class="progress-sub" id="progSub">Инициализация...</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div id="statusPill" class="status-pill status-pending">
+                  <div class="status-pill-dot"></div>
+                  <span id="statusText">Ожидание</span>
+                </div>
+                <span class="elapsed-time" id="elapsedTime">00:00</span>
+              </div>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progFill" style="width:0%"></div>
+              </div>
+              <div class="progress-epoch-row">
+                <span class="progress-stage" id="progStage">Подготовка...</span>
+                <span class="progress-epoch-num" id="progEpoch">— / —</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="train-log" id="trainLog"></div>
+      </div><!-- /viewProgress -->
+
+      <!-- VIEW: Model Detail -->
+      <div id="viewDetail" class="detail-page hidden slide-in">
+        <div class="detail-header">
+          <div class="detail-title-wrap">
+            <div class="detail-title" id="detTitle">—</div>
+            <div class="detail-sub"   id="detSub">—</div>
+            <div class="detail-badges" id="detBadges"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <button class="btn btn-primary" id="activateBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Активировать
+            </button>
+            <button class="btn btn-ml hidden" id="activeLabel" style="pointer-events:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              Активная модель
+            </button>
+          </div>
+        </div>
+
+        <div class="metrics-grid" id="detMetrics"></div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Классы сегментов</span>
+            <span style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-hint);" id="detClassCount">—</span>
+          </div>
+          <div class="class-chips" id="detClasses"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-title">Параметры обучения</span></div>
+          <div class="info-table" id="detInfo"></div>
+        </div>
+      </div><!-- /viewDetail -->
+
+      <!-- VIEW: Empty (no group) -->
+      <div id="viewEmpty" class="empty-main hidden">
+        <svg style="opacity:.25" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="11" width="6" height="10" rx="1"/>
+        </svg>
+        <div class="empty-title">Выберите группу</div>
+        <div class="empty-sub">Выберите группу эталонов в верхней панели, чтобы начать обучение или просмотреть модели</div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /content-wrap -->
+</div><!-- /app-body -->
+
+<!-- ══ Mobile sidebar sheet (models list) ══ -->
+<div class="sheet-overlay" id="sheetOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:300;backdrop-filter:blur(2px);"></div>
+<div id="mobileModelSheet" style="position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--surface);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.12);">
+  <div style="padding:12px;display:flex;justify-content:center;flex-shrink:0;">
+    <div style="width:36px;height:4px;border-radius:2px;background:var(--line);"></div>
+  </div>
+  <div style="padding:0 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft);flex-shrink:0;">
+    <div style="font-size:16px;font-weight:700;">Обученные модели</div>
+    <button onclick="closeMobileSheet()" style="width:30px;height:30px;border-radius:50%;border:none;background:var(--surface2);color:var(--text-hint);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">✕</button>
+  </div>
+  <div id="mobileModelsList" style="flex:1;overflow-y:auto;"></div>
+</div>
+
+<script>
+// ── Mock data ─────────────────────────────────────────────────────────────
+const MOCK_MODELS = [
+  {
+    id: '3', version: 3, name: 'yolov26m-seg_v3',
+    architecture: 'yolov26m-seg', is_active: true,
+    epochs: 100, imgsz: 640, batch_size: 16,
+    train_ratio: 80, val_ratio: 10,
+    num_classes: 5,
+    class_names: ['Крышка', 'Этикетка', 'Штрихкод', 'Срок годности', 'Логотип'],
+    metrics: { mAP50: 0.847, mAP50_95: 0.621, precision: 0.891, recall: 0.812 },
+    trained_at: '2026-04-05T14:32:00',
+  },
+  {
+    id: '2', version: 2, name: 'yolov26s-seg_v2',
+    architecture: 'yolov26s-seg', is_active: false,
+    epochs: 150, imgsz: 640, batch_size: 8,
+    train_ratio: 75, val_ratio: 15,
+    num_classes: 5,
+    class_names: ['Крышка', 'Этикетка', 'Штрихкод', 'Срок годности', 'Логотип'],
+    metrics: { mAP50: 0.792, mAP50_95: 0.573, precision: 0.845, recall: 0.771 },
+    trained_at: '2026-03-28T09:15:00',
+  },
+  {
+    id: '1', version: 1, name: 'yolov26n-seg_v1',
+    architecture: 'yolov26n-seg', is_active: false,
+    epochs: 50, imgsz: 416, batch_size: 32,
+    train_ratio: 80, val_ratio: 10,
+    num_classes: 5,
+    class_names: ['Крышка', 'Этикетка', 'Штрихкод', 'Срок годности', 'Логотип'],
+    metrics: { mAP50: 0.681, mAP50_95: 0.478, precision: 0.734, recall: 0.652 },
+    trained_at: '2026-03-15T16:48:00',
+  },
+];
+
+// ── Architecture definitions ──────────────────────────────────────────────
+const ARCHS = [
+  { key: 'yolov26n-seg', letter: 'N', name: 'Nano',   speed: 5, acc: 1, rec: false },
+  { key: 'yolov26s-seg', letter: 'S', name: 'Small',  speed: 4, acc: 2, rec: false },
+  { key: 'yolov26m-seg', letter: 'M', name: 'Medium', speed: 3, acc: 3, rec: true  },
+  { key: 'yolov26l-seg', letter: 'L', name: 'Large',  speed: 2, acc: 4, rec: false },
+  { key: 'yolov26x-seg', letter: 'X', name: 'XLarge', speed: 1, acc: 5, rec: false },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let models        = [...MOCK_MODELS];
+let selectedModel = null;
+let selectedArch  = 'yolov26m-seg';
+let currentView   = 'form'; // 'form' | 'progress' | 'detail'
+let trainTimer    = null;
+let elapsedTimer  = null;
+let elapsedSecs   = 0;
+let nextVersion   = 4;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+renderArchGrid();
+renderModelsList();
+showView('form');
+
+// ── Architecture grid ─────────────────────────────────────────────────────
+function renderArchGrid() {
+  const grid = document.getElementById('archGrid');
+  grid.innerHTML = ARCHS.map(a => `
+    <div class="arch-card${a.key === selectedArch ? ' selected' : ''}" data-arch="${a.key}" onclick="selectArch('${a.key}')">
+      ${a.rec ? '<div class="arch-rec">Рекомендуется</div>' : ''}
+      <div class="arch-letter">${a.letter}</div>
+      <div class="arch-name">${a.name}</div>
+      <div class="arch-dots-row">
+        <div class="arch-dot-line">
+          <span class="arch-dot-label">Скорость</span>
+          <div class="arch-dots">${dots(a.speed, 5)}</div>
+        </div>
+        <div class="arch-dot-line">
+          <span class="arch-dot-label">Точность</span>
+          <div class="arch-dots">${dots(a.acc, 5)}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function dots(filled, total) {
+  let s = '';
+  for (let i = 1; i <= total; i++) s += `<div class="dot ${i<=filled?'on':''}"></div>`;
+  return s;
+}
+
+function selectArch(key) {
+  selectedArch = key;
+  document.querySelectorAll('.arch-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.arch === key);
+  });
+}
+
+// ── Dataset split sliders ─────────────────────────────────────────────────
+const trainSlider = document.getElementById('trainSlider');
+const valSlider   = document.getElementById('valSlider');
+
+function updateSplit() {
+  let train = +trainSlider.value;
+  let val   = +valSlider.value;
+  // Clamp: train + val ≤ 90, test ≥ 10
+  if (train + val > 90) { val = 90 - train; valSlider.value = val; }
+  const test = 100 - train - val;
+
+  document.getElementById('trainVal').textContent = train + '%';
+  document.getElementById('valVal').textContent   = val   + '%';
+  document.getElementById('testVal').textContent  = test  + '%';
+  document.getElementById('testBarInner').style.width = test + '%';
+
+  document.getElementById('sv-train').style.width = train + '%';
+  document.getElementById('sv-val').style.width   = val   + '%';
+  document.getElementById('sv-test').style.width  = test  + '%';
+}
+
+trainSlider.addEventListener('input', updateSplit);
+valSlider.addEventListener('input', updateSplit);
+updateSplit();
+
+// ── Group select ──────────────────────────────────────────────────────────
+document.getElementById('groupSelect').addEventListener('change', function () {
+  const has = !!this.value;
+  document.getElementById('groupWarning').classList.toggle('hidden', has);
+  document.getElementById('startBtn').disabled = !has;
+  if (!has && currentView === 'form') renderModelsList();
+});
+
+// Show warning by default if no group selected (group 1 is pre-selected, so hide)
+document.getElementById('groupWarning').classList.add('hidden');
+document.getElementById('startBtn').disabled = false;
+
+// ── Models list ───────────────────────────────────────────────────────────
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function archShort(arch) {
+  return arch.replace('yolov26', '').replace('-seg', '').toUpperCase() + '-seg';
+}
+
+function renderModelsList() {
+  const html = models.length === 0
+    ? `<div class="sidebar-empty">
+        <svg style="opacity:.3" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="11" width="6" height="10" rx="1"/>
+        </svg>
+        <span>Нет обученных моделей</span>
+       </div>`
+    : models.map(m => `
+        <div class="model-item${selectedModel && selectedModel.id === m.id ? ' selected' : ''}"
+             onclick="selectModel('${m.id}')">
+          <div class="model-item-top">
+            <span class="model-version">v${m.version}</span>
+            <span class="model-arch">${archShort(m.architecture)}</span>
+            ${m.is_active ? '<span class="model-active-badge">Активная</span>' : ''}
+          </div>
+          <div class="model-item-bottom">
+            <span class="model-date">${fmtDate(m.trained_at)}</span>
+            <span class="model-map">mAP ${(m.metrics.mAP50 * 100).toFixed(1)}%</span>
+          </div>
+        </div>`).join('');
+
+  document.getElementById('modelsList').innerHTML = html;
+  document.getElementById('mobileModelsList').innerHTML = html;
+}
+
+function selectModel(id) {
+  selectedModel = models.find(m => m.id === id) || null;
+  renderModelsList();
+  if (selectedModel) showDetail(selectedModel);
+  closeMobileSheet();
+}
+
+// ── Views ─────────────────────────────────────────────────────────────────
+function showView(view) {
+  currentView = view;
+  ['viewForm', 'viewProgress', 'viewDetail', 'viewEmpty'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+  const el = document.getElementById('view' + view.charAt(0).toUpperCase() + view.slice(1));
+  if (el) { el.classList.remove('hidden'); el.classList.remove('slide-in'); void el.offsetWidth; el.classList.add('slide-in'); }
+}
+
+// ── Model detail ──────────────────────────────────────────────────────────
+function showDetail(m) {
+  const isActive = m.is_active;
+  document.getElementById('detTitle').textContent = m.name;
+  document.getElementById('detSub').textContent   = `Обучена ${fmtDate(m.trained_at)} · ${m.num_classes} классов`;
+
+  const badges = `
+    <span class="badge badge-ml">${archShort(m.architecture)}</span>
+    <span class="badge badge-neutral">${m.epochs} эпох</span>
+    <span class="badge badge-neutral">${m.imgsz}px</span>
+    ${isActive ? '<span class="badge badge-active">Активная</span>' : ''}`;
+  document.getElementById('detBadges').innerHTML = badges;
+
+  const activateBtn = document.getElementById('activateBtn');
+  const activeLabel = document.getElementById('activeLabel');
+  if (isActive) {
+    activateBtn.classList.add('hidden');
+    activeLabel.classList.remove('hidden');
+  } else {
+    activateBtn.classList.remove('hidden');
+    activeLabel.classList.add('hidden');
+    activateBtn.onclick = () => activateModel(m.id);
+  }
+
+  // Metrics
+  const metrics = [
+    { key: 'mAP50',    label: 'mAP50',      val: m.metrics.mAP50 },
+    { key: 'mAP50_95', label: 'mAP50-95',   val: m.metrics.mAP50_95 },
+    { key: 'precision',label: 'Точность',   val: m.metrics.precision },
+    { key: 'recall',   label: 'Полнота',    val: m.metrics.recall },
+  ];
+  document.getElementById('detMetrics').innerHTML = metrics.map(mt => `
+    <div class="metric-card">
+      <div class="metric-label">${mt.label}</div>
+      <div class="metric-val">${mt.val.toFixed(3)}</div>
+      <div class="metric-bar">
+        <div class="metric-fill" style="width:${(mt.val*100).toFixed(1)}%"></div>
+      </div>
+    </div>`).join('');
+
+  // Classes
+  document.getElementById('detClassCount').textContent = m.class_names.length + ' классов';
+  document.getElementById('detClasses').innerHTML = m.class_names.map((name, i) => `
+    <div class="class-chip">
+      <div class="class-chip-num">${i}</div>
+      ${name}
+    </div>`).join('');
+
+  // Info table
+  const rows = [
+    ['Архитектура',      archShort(m.architecture)],
+    ['Версия',           'v' + m.version],
+    ['Эпох',             m.epochs],
+    ['Размер изображ.',  m.imgsz + ' px'],
+    ['Размер батча',     m.batch_size],
+    ['Обучение',         m.train_ratio + '%'],
+    ['Проверка',         m.val_ratio + '%'],
+    ['Тест',             (100 - m.train_ratio - m.val_ratio) + '%'],
+  ];
+  document.getElementById('detInfo').innerHTML = rows.map(([k, v]) => `
+    <div class="info-row">
+      <span class="info-key">${k}</span>
+      <span class="info-val">${v}</span>
+    </div>`).join('');
+
+  showView('detail');
+}
+
+function activateModel(id) {
+  models.forEach(m => m.is_active = m.id === id);
+  selectedModel = models.find(m => m.id === id);
+  renderModelsList();
+  showDetail(selectedModel);
+}
+
+// ── Start training ────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', startTraining);
+document.getElementById('newTrainingBtn').addEventListener('click', () => {
+  selectedModel = null;
+  renderModelsList();
+  showView('form');
+});
+
+function startTraining() {
+  const groupId = document.getElementById('groupSelect').value;
+  if (!groupId) {
+    document.getElementById('groupWarning').classList.remove('hidden');
+    return;
+  }
+
+  const epochs    = parseInt(document.getElementById('epochsInput').value) || 100;
+  const trainRatio = parseInt(trainSlider.value);
+  const valRatio   = parseInt(valSlider.value);
+
+  showView('progress');
+  clearLog();
+  elapsedSecs = 0;
+  updateElapsed();
+  elapsedTimer = setInterval(() => { elapsedSecs++; updateElapsed(); }, 1000);
+
+  // Simulation
+  setStatus('pending', 'Ожидание'); addLog('info', 'Задача добавлена в очередь');
+  setProgress(0, 'Ожидание запуска...', `— / ${epochs}`);
+
+  setTimeout(() => {
+    setStatus('preparing', 'Подготовка');
+    addLog('info', 'Загрузка данных группы...');
+    setProgress(0, 'Построение датасета...', `— / ${epochs}`);
+
+    setTimeout(() => {
+      addLog('ok', `Датасет готов · обучение ${trainRatio}%, проверка ${valRatio}%, тест ${100-trainRatio-valRatio}%`);
+      addLog('info', `Запуск YOLO · ${selectedArch} · ${epochs} эпох`);
+      setStatus('training', 'Обучение');
+
+      let epoch = 0;
+      const totalMs  = Math.min(12000, epochs * 80); // ~12s max for animation
+      const stepMs   = totalMs / epochs;
+      const fakeMapStart = 0.12;
+
+      function tick() {
+        epoch++;
+        const pct = Math.round(epoch / epochs * 100);
+        const fakeMap = +(fakeMapStart + (0.85 - fakeMapStart) * (epoch / epochs) * (0.9 + Math.random() * 0.1)).toFixed(3);
+        setProgress(pct, `Эпоха ${epoch} / ${epochs}`, `${epoch} / ${epochs}`);
+
+        // Log every 10% or first epoch
+        if (epoch === 1 || epoch % Math.max(1, Math.floor(epochs / 10)) === 0) {
+          addLog('info', `Эпоха ${epoch}/${epochs} · mAP50: ${fakeMap}`);
+        }
+
+        if (epoch < epochs) {
+          trainTimer = setTimeout(tick, stepMs);
+        } else {
+          // Done training → saving
+          setTimeout(() => {
+            setStatus('saving', 'Сохранение');
+            addLog('info', 'Сохранение весов модели...');
+            setProgress(100, 'Сохранение весов...', `${epochs} / ${epochs}`);
+
+            setTimeout(() => {
+              clearInterval(elapsedTimer);
+              setStatus('done', 'Завершено');
+              addLog('ok', 'Обучение завершено успешно');
+
+              const newModel = createNewModel(epochs, trainRatio, valRatio);
+              models.unshift(newModel);
+              renderModelsList();
+              setProgress(100, 'Готово', `${epochs} / ${epochs}`);
+              document.getElementById('progFill').classList.add('done');
+
+              // After short pause, show the new model detail
+              setTimeout(() => {
+                selectedModel = newModel;
+                renderModelsList();
+                showDetail(newModel);
+              }, 1800);
+            }, 1500);
+          }, 500);
+        }
+      }
+
+      tick();
+    }, 2200);
+  }, 1500);
+}
+
+function createNewModel(epochs, trainRatio, valRatio) {
+  const archDef = ARCHS.find(a => a.key === selectedArch);
+  const accFactor = archDef ? (archDef.acc / 5) : 0.5;
+  return {
+    id: String(Date.now()),
+    version: nextVersion++,
+    name: `${selectedArch}_v${nextVersion - 1}`,
+    architecture: selectedArch,
+    is_active: false,
+    epochs, imgsz: +document.getElementById('imgszSelect').value,
+    batch_size: +document.getElementById('batchInput').value,
+    train_ratio: trainRatio, val_ratio: valRatio,
+    num_classes: 5,
+    class_names: ['Крышка', 'Этикетка', 'Штрихкод', 'Срок годности', 'Логотип'],
+    metrics: {
+      mAP50:    +(0.70 + 0.20 * accFactor + Math.random() * 0.05).toFixed(3),
+      mAP50_95: +(0.50 + 0.15 * accFactor + Math.random() * 0.04).toFixed(3),
+      precision:+(0.74 + 0.18 * accFactor + Math.random() * 0.04).toFixed(3),
+      recall:   +(0.68 + 0.17 * accFactor + Math.random() * 0.04).toFixed(3),
+    },
+    trained_at: new Date().toISOString(),
+  };
+}
+
+// ── Progress helpers ──────────────────────────────────────────────────────
+const STATUS_MAP = {
+  pending:   ['status-pending',   'Ожидание'],
+  preparing: ['status-preparing', 'Подготовка'],
+  training:  ['status-training',  'Обучение'],
+  saving:    ['status-saving',    'Сохранение'],
+  done:      ['status-done',      'Завершено'],
+  failed:    ['status-failed',    'Ошибка'],
+};
+
+function setStatus(key, label) {
+  const pill = document.getElementById('statusPill');
+  pill.className = `status-pill ${STATUS_MAP[key]?.[0] || ''}`;
+  document.getElementById('statusText').textContent = label;
+}
+
+function setProgress(pct, stage, epochStr) {
+  document.getElementById('progLabel').textContent = pct + '%';
+  document.getElementById('progSub').textContent   = stage;
+  document.getElementById('progFill').style.width  = pct + '%';
+  document.getElementById('progStage').textContent = stage;
+  document.getElementById('progEpoch').textContent = epochStr;
+}
+
+function updateElapsed() {
+  const m = String(Math.floor(elapsedSecs / 60)).padStart(2, '0');
+  const s = String(elapsedSecs % 60).padStart(2, '0');
+  document.getElementById('elapsedTime').textContent = m + ':' + s;
+}
+
+function clearLog() { document.getElementById('trainLog').innerHTML = ''; }
+function addLog(type, msg) {
+  const log  = document.getElementById('trainLog');
+  const time = new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const el   = document.createElement('div');
+  el.className = `log-entry ${type}`;
+  el.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${msg}</span>`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Mobile tabs ───────────────────────────────────────────────────────────
+document.querySelectorAll('.mobile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    if (tab.dataset.panel === 'models') openMobileSheet();
+  });
+});
+
+function openMobileSheet() {
+  document.getElementById('mobileModelSheet').style.transform = 'translateY(0)';
+  document.getElementById('sheetOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileSheet() {
+  document.getElementById('mobileModelSheet').style.transform = 'translateY(100%)';
+  document.getElementById('sheetOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+  document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.mobile-tab[data-panel="training"]').classList.add('active');
+}
+document.getElementById('sheetOverlay').addEventListener('click', closeMobileSheet);
+
+// Select first model to show details on load
+selectModel('3');
+</script>
+</body>
+</html>

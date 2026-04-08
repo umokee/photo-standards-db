@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { paths } from "./paths";
 import RootLayout from "./routes/root";
 
 const GroupsRoute = () => import("./routes/groups");
@@ -10,7 +11,7 @@ export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: "/", element: <Navigate to="/groups" /> },
+      { path: paths.home(), element: <Navigate to={paths.groups()} /> },
       { path: "/groups/:groupId?", lazy: GroupsRoute },
       { path: "/groups/:groupId/standards/:standardId?", lazy: GroupsRoute },
       { path: "/groups/:groupId/standards/:standardId/images/:imageId", lazy: ImagesRoute },

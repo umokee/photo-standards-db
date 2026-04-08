@@ -1,6 +1,7 @@
 import { client } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
+import { TrainingTaskItem } from "@/types/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { TrainingTaskItem } from "../schemas";
 
 export const getTrainingTasks = (groupId: string): Promise<TrainingTaskItem[]> => {
   return client.get("/models/tasks", {
@@ -10,7 +11,7 @@ export const getTrainingTasks = (groupId: string): Promise<TrainingTaskItem[]> =
 
 export const getTrainingTasksQueryOptions = (groupId: string) => {
   return {
-    queryKey: ["training-tasks", groupId],
+    queryKey: queryKeys.training.tasks(groupId),
     queryFn: () => getTrainingTasks(groupId),
     enabled: !!groupId,
   };

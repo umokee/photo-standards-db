@@ -1,9 +1,9 @@
 import ImageWithFallback from "@/components/ui/image-with-fallback/image-with-fallback";
+import { GroupStandard } from "@/types/contracts";
 import { BASE_URL } from "@/utils/constants";
 import clsx from "clsx";
 import { ChevronRight } from "lucide-react";
 import { ReactNode, Suspense, lazy } from "react";
-import { GroupStandardShort } from "@/page-components/groups/schemas";
 import { DeleteStandard } from "../delete-standard";
 import { UpdateStandard } from "../update-standard";
 import { UploadImages } from "../upload-images";
@@ -20,12 +20,14 @@ const Header = ({
   onToggle,
   actions,
 }: {
-  standard: GroupStandardShort;
+  standard: GroupStandard;
   expanded: boolean;
   onToggle: () => void;
   actions?: ReactNode;
 }) => {
-  const src = standard.reference_path ? `${BASE_URL}/storage/${standard.reference_path}` : undefined;
+  const src = standard.reference_path
+    ? `${BASE_URL}/storage/${standard.reference_path}`
+    : undefined;
 
   return (
     <div
@@ -49,7 +51,7 @@ const Header = ({
           {standard.name} {standard.angle}
         </div>
         <div className={s.meta}>
-          {standard.image_count} изображений · {standard.annotated_count} размечено
+          {standard.images_count} изображений · {standard.annotated_images_count} размечено
         </div>
       </div>
       {actions && (
@@ -69,7 +71,7 @@ export const StandardCard = ({
   expanded,
   onToggle,
 }: {
-  standard: GroupStandardShort;
+  standard: GroupStandard;
   expanded: boolean;
   onToggle: () => void;
 }) => {

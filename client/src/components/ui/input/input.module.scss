@@ -27,9 +27,7 @@
   border: 1px solid $line;
   border-radius: $radius-md;
   outline: none;
-  transition:
-    border-color $t,
-    box-shadow $t;
+  transition: border-color $t;
 
   &::placeholder {
     color: $text-off;
@@ -37,7 +35,6 @@
 
   &:focus {
     border-color: $primary-bd;
-    box-shadow: 0 0 0 2px $primary-bg;
   }
 
   &.fieldError {
@@ -45,7 +42,6 @@
 
     &:focus {
       border-color: $danger;
-      box-shadow: 0 0 0 2px $danger-bg;
     }
   }
 }

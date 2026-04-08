@@ -1,7 +1,8 @@
 from uuid import UUID
 
 from database import get_session
-from fastapi import APIRouter, Depends, HTTPException
+from exception import NotFoundError
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,7 +40,7 @@ async def update_camera(
 ):
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Камера не найдена")
+        raise NotFoundError("Камера", "camera", camera_id)
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(camera, key, value)
@@ -56,7 +57,7 @@ async def delete_camera(
 ):
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Камера не найден")
+        raise NotFoundError("Камера", "camera", camera_id)
 
     await db.delete(camera)
     await db.commit()

@@ -1,6 +1,5 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
 import { useMutation } from "@tanstack/react-query";
 
 export type RefineContourInput = {
@@ -28,10 +27,7 @@ export const useRefineContour = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: refineContour,
     onSuccess: (...args) => {
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Контур полигона успешно уточнен",
-      });
+      notifySuccess("Контур полигона успешно уточнен");
       onSuccess?.(...args);
     },
     ...rest,

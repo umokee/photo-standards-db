@@ -1,8 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
-import { Segment } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { Segment } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type CreateSegmentInput = {
@@ -18,7 +17,7 @@ export const createSegment = ({
 }: CreateSegmentInput): Promise<Segment> => {
   return client.post("/segments", {
     standard_id: standardId,
-    segment_group_id: segmentGroupId || null,
+    segment_group_id: segmentGroupId,
     name,
   });
 };
@@ -34,11 +33,8 @@ export const useCreateSegment = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: createSegment,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(vars.standardId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Класс успешно создан",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars.standardId) });
+      notifySuccess("Класс успешно создан");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

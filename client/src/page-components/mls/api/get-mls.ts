@@ -1,6 +1,7 @@
 import { client } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
+import { MlModelListItem } from "@/types/contracts";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { MlModelListItem } from "../schemas";
 
 export const getMls = (groupId: string): Promise<MlModelListItem[]> => {
   return client.get("/models", {
@@ -10,7 +11,7 @@ export const getMls = (groupId: string): Promise<MlModelListItem[]> => {
 
 export const getMlsQueryOptions = (groupId: string) => {
   return queryOptions({
-    queryKey: ["mls", groupId],
+    queryKey: queryKeys.training.models(groupId),
     queryFn: () => getMls(groupId),
     enabled: !!groupId,
   });

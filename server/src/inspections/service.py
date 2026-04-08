@@ -37,7 +37,7 @@ async def load_inspection_context(
     )
     standard = result.scalar_one_or_none()
     if not standard:
-        raise NotFoundError("Эталон", standard_id)
+        raise NotFoundError("Эталон", "standard", standard_id)
 
     reference_image = next(
         (image for image in standard.images if image.is_reference), None

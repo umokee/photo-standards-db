@@ -1,8 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
-import { SegmentGroup } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { SegmentGroup } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type CreateSegmentGroupInput = {
@@ -30,11 +29,8 @@ export const useCreateSegmentGroup = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: createSegmentGroup,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(vars.standardId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Группа классов успешно создана",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars.standardId) });
+      notifySuccess("Группа классов успешно создана");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

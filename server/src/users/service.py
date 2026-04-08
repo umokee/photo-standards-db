@@ -21,7 +21,15 @@ async def _ensure_username_unique(
 
     existing = await db.scalar(query)
     if existing:
-        raise ConflictError(f"Пользователь <{username}> уже существует")
+        raise ConflictError(
+            "Пользователь уже существует",
+            details={
+                "entity": "user",
+                "entity_label": "Пользователь",
+                "field": "username",
+                "value": username,
+            },
+        )
 
 
 async def get_users(
@@ -37,7 +45,7 @@ async def get_user(
 ) -> User:
     user = await db.get(User, user_id)
     if not user:
-        raise NotFoundError("Пользователь", user_id)
+        raise NotFoundError("Пользователь", "user", user_id)
     return user
 
 

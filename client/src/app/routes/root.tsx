@@ -1,18 +1,19 @@
 import { NavigationBar } from "@/components/layouts/navigation-bar/navigation-bar";
 import { Brain, Camera, FolderOpen } from "lucide-react";
 import { Outlet } from "react-router-dom";
+import { paths } from "../paths";
 
 export default function RootLayout() {
   return (
     <>
       <NavigationBar>
-        <NavigationBar.Link to="/groups" icon={FolderOpen}>
+        <NavigationBar.Link to={paths.groups()} icon={FolderOpen}>
           Группы
         </NavigationBar.Link>
-        <NavigationBar.Link to="/training" icon={Brain}>
+        <NavigationBar.Link to={paths.training()} icon={Brain}>
           Обучение
         </NavigationBar.Link>
-        <NavigationBar.Link to="/cameras" icon={Camera}>
+        <NavigationBar.Link to={paths.cameras()} icon={Camera}>
           Камеры
         </NavigationBar.Link>
       </NavigationBar>

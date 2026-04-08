@@ -39,19 +39,6 @@ class Standard(Base):
         back_populates="standard"
     )
 
-    @property
-    def image_count(self) -> int:
-        return len(self.images)
-
-    @property
-    def annotated_count(self) -> int:
-        return sum(1 for image in self.images if len(image.annotations) > 0)
-
-    @property
-    def reference_path(self) -> str | None:
-        ref = next((img for img in self.images if img.is_reference), None)
-        return ref.image_path if ref else None
-
 
 class StandardImage(Base):
     __tablename__ = "standard_images"
@@ -76,7 +63,3 @@ class StandardImage(Base):
     annotations: Mapped[list["SegmentAnnotation"]] = relationship(
         back_populates="image", cascade="all, delete-orphan"
     )
-
-    @property
-    def annotation_count(self) -> int:
-        return len(self.annotations)

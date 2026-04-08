@@ -1,5 +1,3 @@
-import { Angle } from "@/types/api";
-
 export interface GroupStats {
   standards_count: number;
   images_count: number;
@@ -10,19 +8,19 @@ export interface GroupStats {
   models_count: number;
 }
 
-export interface GroupStandardShort {
+export interface GroupStandard {
   id: string;
   group_id: string;
-  name: string | null;
-  angle: Angle | null;
+  name: string;
+  angle: string | null;
   is_active: boolean;
-  image_count: number;
-  annotated_count: number;
-  reference_path: string | null;
   created_at: string;
+  reference_path: string | null;
+  images_count: number;
+  annotated_images_count: number;
 }
 
-export interface GroupModelShort {
+export interface GroupModel {
   id: string;
   group_id: string;
   name: string;
@@ -53,8 +51,8 @@ export interface GroupDetail {
   description: string | null;
   created_at: string;
   stats: GroupStats;
-  standards: GroupStandardShort[];
-  active_model: GroupModelShort | null;
+  standards: GroupStandard[];
+  active_model: GroupModel | null;
 }
 
 export interface GroupMutationResponse {
@@ -62,17 +60,4 @@ export interface GroupMutationResponse {
   name: string;
   description: string | null;
   created_at: string;
-}
-
-export interface CreateGroupInput {
-  name: string;
-  description?: string;
-}
-
-export interface UpdateGroupInput {
-  id: string;
-  data: {
-    name?: string;
-    description?: string;
-  };
 }

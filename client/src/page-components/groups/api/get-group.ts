@@ -1,6 +1,7 @@
 import { client } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
+import { GroupDetail } from "@/types/contracts";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { GroupDetail } from "../schemas";
 
 export const getGroup = (id: string): Promise<GroupDetail> => {
   return client.get(`/groups/${id}`);
@@ -8,13 +9,13 @@ export const getGroup = (id: string): Promise<GroupDetail> => {
 
 export const getGroupQueryOptions = (id: string) => {
   return queryOptions({
-    queryKey: ["group", id],
+    queryKey: queryKeys.groups.detail(id),
     queryFn: () => getGroup(id),
     enabled: !!id,
   });
 };
 
-export const deafultGroup: GroupDetail = {
+export const defaultGroup: GroupDetail = {
   id: "",
   name: "",
   description: null,

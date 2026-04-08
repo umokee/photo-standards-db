@@ -1,23 +1,17 @@
-""" ""
-Training Worker — фоновый поток внутри FastAPI, поллящий БД на pending-задачи.
-
-Архитектура:
-    FastAPI создаёт TrainingTask(status="pending") в БД.
-    Worker каждые POLL_INTERVAL секунд проверяет наличие pending-задач.
-    Берёт одну задачу (SELECT ... FOR UPDATE SKIP LOCKED), выполняет обучение,
-    пишет прогресс/статус обратно в БД. После завершения — проверяет следующую.
-
-    Никакого multiprocessing, никакого asyncio — полностью синхронный код в отдельном потоке.
-    YOLO train() блокирует — и это нормально, потому что мы в отдельном потоке.
-"""
-
 import logging
 import shutil
 import threading
 from datetime import datetime
 from uuid import UUID
 
-from config import STORAGE_PATH, settings
+from config import (
+    ACTIVE_TASK_STATUSES,
+    FALLBACK_POLL_INTERVAL,
+    MAX_RESTART_DELAY,
+    RESTART_DELAY,
+    STORAGE_PATH,
+    settings,
+)
 from mls.models import MlModel, TrainingTask
 from mls.train_service import (
     build_dataset,
@@ -31,19 +25,7 @@ from sqlalchemy.orm import Session
 from ultralytics import YOLO
 
 logger = logging.getLogger("training-worker")
-ACTIVE_TASK_STATUSES = ("pending", "preparing", "training", "saving")
 
-# ──────────────────────────────────────────────
-# Конфигурация
-# ──────────────────────────────────────────────
-
-FALLBACK_POLL_INTERVAL = 60  # секунд — страховочный poll когда нет notify
-RESTART_DELAY = 5  # секунд — пауза перед перезапуском после краша
-MAX_RESTART_DELAY = 120  # потолок экспоненциального backoff
-
-# ──────────────────────────────────────────────
-# Engine — создаётся лениво, не при импорте
-# ──────────────────────────────────────────────
 
 _engine = None
 _engine_lock = threading.Lock()
@@ -64,23 +46,13 @@ def _get_engine():
     return _engine
 
 
-# ──────────────────────────────────────────────
-# Состояние воркера
-# ──────────────────────────────────────────────
-
 _shutdown = threading.Event()
 _new_task_event = threading.Event()
 _worker_thread: threading.Thread | None = None
 
 
 def notify() -> None:
-    """Вызывается из train_service.run_train() — будит воркер мгновенно."""
     _new_task_event.set()
-
-
-# ──────────────────────────────────────────────
-# Обновление статуса задачи в БД
-# ──────────────────────────────────────────────
 
 
 def _update_status(
@@ -121,7 +93,6 @@ def _update_progress(task_id: UUID, progress: int, stage: str) -> None:
 
 
 def _delete_draft_model(task_id: UUID) -> None:
-    """Удаляет черновую модель, если обучение не дошло до успешного сохранения."""
     try:
         with Session(_get_engine()) as db:
             task = db.get(TrainingTask, task_id)
@@ -132,7 +103,9 @@ def _delete_draft_model(task_id: UUID) -> None:
             if not model or model.trained_at is not None:
                 return
 
-            weights_file = STORAGE_PATH / "models" / str(task.group_id) / f"v{model.version}.pt"
+            weights_file = (
+                STORAGE_PATH / "models" / str(task.group_id) / f"v{model.version}.pt"
+            )
             if weights_file.exists():
                 weights_file.unlink()
 
@@ -142,17 +115,7 @@ def _delete_draft_model(task_id: UUID) -> None:
         logger.exception("Не удалось удалить черновую модель для задачи %s", task_id)
 
 
-# ──────────────────────────────────────────────
-# Восстановление зависших задач
-# ──────────────────────────────────────────────
-
-
 def _recover_stale_tasks(db: Session) -> None:
-    """
-    Если воркер вызывает эту функцию — он сейчас ничего не выполняет.
-    Значит любая задача в активном статусе — зомби от предыдущего
-    крашнутого запуска. Помечаем как failed.
-    """
     stale_tasks = (
         db.execute(
             select(TrainingTask).where(
@@ -166,7 +129,7 @@ def _recover_stale_tasks(db: Session) -> None:
     for task in stale_tasks:
         stale_status = task.status
         logger.warning(
-            "Задача %s зависла в статусе '%s' — помечаю как failed",
+            "Задача %s зависла в статусе '%s' - помечаю как failed",
             task.id,
             stale_status,
         )
@@ -177,7 +140,10 @@ def _recover_stale_tasks(db: Session) -> None:
             model = db.get(MlModel, task.model_id)
             if model and model.trained_at is None:
                 weights_file = (
-                    STORAGE_PATH / "models" / str(task.group_id) / f"v{model.version}.pt"
+                    STORAGE_PATH
+                    / "models"
+                    / str(task.group_id)
+                    / f"v{model.version}.pt"
                 )
                 if weights_file.exists():
                     weights_file.unlink()
@@ -188,16 +154,7 @@ def _recover_stale_tasks(db: Session) -> None:
         logger.info("Восстановлено %d зависших задач", len(stale_tasks))
 
 
-# ──────────────────────────────────────────────
-# Захват следующей задачи
-# ──────────────────────────────────────────────
-
-
 def _claim_next_task():
-    """
-    Атомарно забирает следующую pending-задачу из очереди.
-    Возвращает (task_info, model_info) или None.
-    """
     with Session(_get_engine()) as db:
         _recover_stale_tasks(db)
 
@@ -221,11 +178,9 @@ def _claim_next_task():
             logger.error("Задача %s: модель не найдена, пропускаю", task.id)
             return None
 
-        # Помечаем как "preparing" — задача наша
         task.status = "preparing"
         db.commit()
 
-        # Собираем скалярные данные пока сессия открыта
         from types import SimpleNamespace
 
         task_info = SimpleNamespace(
@@ -245,19 +200,12 @@ def _claim_next_task():
         return task_info, model_info
 
 
-# ──────────────────────────────────────────────
-# Выполнение задачи обучения
-# ──────────────────────────────────────────────
-
-
 def _execute_task(task, model) -> None:
-    """Выполняет полный цикл обучения для одной задачи."""
     task_id = task.id
     group_id = task.group_id
     temp_dir = STORAGE_PATH / "models" / str(group_id) / "temp"
 
     try:
-        # ── 1. Подготовка датасета ──
         logger.info("Задача %s: загрузка данных для группы %s", task_id, group_id)
 
         with Session(_get_engine()) as db:
@@ -275,7 +223,6 @@ def _execute_task(task, model) -> None:
             len(split_plan.test),
         )
 
-        # ── 2. Обучение ──
         _update_status(task_id, "training", started_at=datetime.now())
         logger.info("Задача %s: обучение запущено (%d эпох)", task_id, model.epochs)
 
@@ -306,7 +253,6 @@ def _execute_task(task, model) -> None:
             exist_ok=True,
         )
 
-        # ── 3. Сохранение весов ──
         _update_status(task_id, "saving")
         logger.info("Задача %s: сохранение весов", task_id)
 
@@ -344,13 +290,7 @@ def _execute_task(task, model) -> None:
         shutil.rmtree(str(temp_dir), ignore_errors=True)
 
 
-# ──────────────────────────────────────────────
-# Главный цикл
-# ──────────────────────────────────────────────
-
-
 def _run_loop() -> None:
-    """Основной цикл воркера. Не выбрасывает исключений наружу."""
     logger.info("Worker loop запущен (poll=%ds)", FALLBACK_POLL_INTERVAL)
 
     while not _shutdown.is_set():
@@ -360,7 +300,6 @@ def _run_loop() -> None:
             claimed = _claim_next_task()
         except Exception:
             logger.exception("Ошибка при захвате задачи из очереди")
-            # Ждём перед повторной попыткой
             _shutdown.wait(timeout=FALLBACK_POLL_INTERVAL)
             continue
 
@@ -368,24 +307,17 @@ def _run_loop() -> None:
             task, model = claimed
             logger.info("Задача %s: взята в работу", task.id)
             _execute_task(task, model)
-            # После выполнения сразу проверяем следующую
             continue
 
-        # Нет задач — засыпаем до notify() или таймаута
         _new_task_event.wait(timeout=FALLBACK_POLL_INTERVAL)
 
 
 def _worker_entry() -> None:
-    """
-    Точка входа потока. При краше — автоматический перезапуск
-    с экспоненциальным backoff.
-    """
     delay = RESTART_DELAY
 
     while not _shutdown.is_set():
         try:
             _run_loop()
-            # _run_loop выходит только по _shutdown
             break
         except Exception:
             logger.exception(
@@ -399,7 +331,6 @@ def _worker_entry() -> None:
 
 
 def start() -> None:
-    """Запуск воркера в фоновом daemon-потоке. Вызывается из FastAPI lifespan."""
     global _worker_thread
     if _worker_thread and _worker_thread.is_alive():
         logger.info("Training worker уже запущен")
@@ -408,7 +339,6 @@ def start() -> None:
     _shutdown.clear()
     _new_task_event.clear()
 
-    # Проверяем подключение к БД до запуска потока
     try:
         engine = _get_engine()
         with Session(engine) as db:
@@ -422,14 +352,13 @@ def start() -> None:
         target=_worker_entry, daemon=True, name="training-worker"
     )
     _worker_thread.start()
-    _new_task_event.set()  # проверить pending-задачи при старте
+    _new_task_event.set()
     logger.info("Training worker запущен в фоновом потоке")
 
 
 def stop() -> None:
-    """Остановка воркера. Вызывается из FastAPI lifespan при shutdown."""
     _shutdown.set()
-    _new_task_event.set()  # разбудить поток
+    _new_task_event.set()
     if _worker_thread:
         _worker_thread.join(timeout=15)
     logger.info("Training worker остановлен")

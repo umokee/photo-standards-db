@@ -1,11 +1,18 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import type { MutationConfig } from "@/lib/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { notifySuccess, type MutationConfig } from "@/lib/react-query";
+import { Architecture, TrainingTaskItem } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getGroupQueryOptions } from "@/page-components/groups/api/get-group";
-import { getMlsQueryOptions } from "./get-mls";
-import { getTrainingTasksQueryOptions } from "./get-training-tasks";
-import { TrainModelInput, TrainingTaskItem } from "../schemas";
+
+export interface TrainModelInput {
+  group_id: string;
+  architecture: Architecture;
+  train_ratio: number;
+  val_ratio: number;
+  epochs: number;
+  imgsz: number;
+  batch_size: number;
+}
 
 export const trainModel = (data: TrainModelInput): Promise<TrainingTaskItem> => {
   return client.post("/models/train", data);
@@ -23,13 +30,10 @@ export const useTrainModel = ({ groupId, mutationConfig }: Options) => {
   return useMutation({
     mutationFn: trainModel,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getMlsQueryOptions(groupId).queryKey });
-      qc.invalidateQueries({ queryKey: getTrainingTasksQueryOptions(groupId).queryKey });
-      qc.invalidateQueries({ queryKey: getGroupQueryOptions(groupId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Обучение модели запущено",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.training.models(groupId) });
+      qc.invalidateQueries({ queryKey: queryKeys.training.tasks(groupId) });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
+      notifySuccess("Обучение модели запущено");
       onSuccess?.(...args);
     },
     ...rest,

@@ -6,6 +6,10 @@ ENV_PATH = str(Path(__file__).parent.parent / ".env")
 STORAGE_PATH = Path(__file__).parent.parent.parent / "storage"
 MAX_TRAIN_RATIO = 80
 MAX_SUM_TRAIN_VAL_RATIO = 90
+ACTIVE_TASK_STATUSES = ("pending", "preparing", "training", "saving")
+FALLBACK_POLL_INTERVAL = 60
+RESTART_DELAY = 5
+MAX_RESTART_DELAY = 120
 
 
 class Settings(BaseSettings):

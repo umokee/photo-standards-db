@@ -1,5 +1,6 @@
 import { client } from "@/lib/api-client";
-import { Camera } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { Camera } from "@/types/contracts";
 import { useQuery } from "@tanstack/react-query";
 
 export const getCameras = (): Promise<Camera[]> => {
@@ -8,7 +9,7 @@ export const getCameras = (): Promise<Camera[]> => {
 
 export const getCamerasQueryOptions = () => {
   return {
-    queryKey: ["cameras"],
+    queryKey: queryKeys.cameras.all(),
     queryFn: getCameras,
   };
 };

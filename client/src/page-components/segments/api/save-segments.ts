@@ -1,8 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
-import { StandardDetail } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { SaveSegmentsResponse } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type SaveSegmentsInput = {
@@ -20,7 +19,10 @@ export type SaveSegmentsInput = {
   deletedSegmentIds: string[];
 };
 
-export const saveSegments = ({ standardId, ...body }: SaveSegmentsInput): Promise<StandardDetail> =>
+export const saveSegments = ({
+  standardId,
+  ...body
+}: SaveSegmentsInput): Promise<SaveSegmentsResponse> =>
   client.put(`/segments/${standardId}/segments`, {
     groups: body.groups,
     deleted_group_ids: body.deletedGroupIds,
@@ -38,11 +40,8 @@ export const useSaveSegments = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: saveSegments,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(vars.standardId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Классы успешно сохранены",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars.standardId) });
+      notifySuccess("Классы успешно сохранены");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

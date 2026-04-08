@@ -1,4 +1,4 @@
-import { Angle } from "../types/api";
+import { Angle } from "@/types/contracts";
 
 export const BASE_URL = "http://localhost:3001";
 

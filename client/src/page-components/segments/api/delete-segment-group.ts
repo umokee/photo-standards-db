@@ -1,7 +1,6 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import type { MutationConfig } from "@/lib/react-query";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
+import { queryKeys } from "@/lib/query-keys";
+import { notifySuccess, type MutationConfig } from "@/lib/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const deleteSegmentGroup = (id: string): Promise<void> => {
@@ -20,11 +19,8 @@ export const useDeleteSegmentGroup = ({ standardId, mutationConfig }: Options) =
   return useMutation({
     mutationFn: deleteSegmentGroup,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(standardId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Группа классов успешно удалена",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(standardId) });
+      notifySuccess("Группа классов успешно удалена");
       onSuccess?.(...args);
     },
     ...rest,

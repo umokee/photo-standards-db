@@ -1,16 +1,15 @@
 import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
-import { GroupStandardShort } from "@/page-components/groups/schemas";
 import Select from "@/components/ui/select/select";
-import type { Angle } from "@/types/api";
+import { Angle, GroupStandard } from "@/types/contracts";
 import { ANGLES } from "@/utils/constants";
 import { getChangedFields, getFieldError } from "@/utils/form";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUpdateStandard } from "../api/update-standard";
 
-type EditableStandard = Pick<GroupStandardShort, "id" | "name" | "angle">;
+type EditableStandard = Pick<GroupStandard, "id" | "name" | "angle">;
 
 export const UpdateStandard = ({ standard }: { standard: EditableStandard }) => (
   <Modal>

@@ -7,6 +7,7 @@ import { useGetCameras } from "@/page-components/cameras/api/get-cameras";
 import { Wifi, WifiOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "../paths";
 
 export function Component() {
   const { cameraId = null } = useParams();
@@ -44,7 +45,7 @@ export function Component() {
                   key={camera.id}
                   active={cameraId === camera.id}
                   onClick={() => {
-                    navigate(`/cameras/${camera.id}`);
+                    navigate(paths.cameraDetail(camera.id));
                     closeSidebar();
                   }}
                 >

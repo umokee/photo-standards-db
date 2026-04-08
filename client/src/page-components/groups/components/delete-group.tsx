@@ -1,3 +1,4 @@
+import { paths } from "@/app/paths";
 import Button from "@/components/ui/button/button";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import { Trash2 } from "lucide-react";
@@ -26,7 +27,7 @@ const DeleteGroupModal = ({ id, name }: Props) => {
   const navigate = useNavigate();
   const mutation = useDeleteGroup({
     mutationConfig: {
-      onSuccess: () => navigate("/groups"),
+      onSuccess: () => navigate(paths.groups()),
     },
   });
 

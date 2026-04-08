@@ -21,6 +21,7 @@ $space-4: clamp(12px, 1.5vw, 16px);
 $space-5: clamp(14px, 2vw, 20px);
 $space-6: clamp(16px, 2.5vw, 24px);
 $space-7: clamp(22px, 3vw, 32px);
+$space-8: clamp(30px, 3.5vw, 40px);
 
 $radius-sm: 3px;
 $radius-md: 5px;
@@ -30,7 +31,7 @@ $nav-height: clamp(44px, 6vh, 48px);
 $sidebar-width: 240px;
 $content-max: 1100px;
 
-$t: 0.18s ease;
+$t: 0s linear;
 
 $primary: hsl(150, 44%, 43%);
 $primary-hover: hsl(150, 44%, 38%);
@@ -72,11 +73,9 @@ $text-hint: hsl(102, 7%, 54%);
 $text-off: hsl(100, 6%, 72%);
 $text-white: hsl(0, 0%, 100%);
 
-$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-$shadow-card:
-  0 1px 4px rgba(0, 0, 0, 0.07),
-  0 0 0 1px rgba(0, 0, 0, 0.03);
-$shadow-float: 0 4px 20px rgba(0, 0, 0, 0.15);
+$shadow-sm: none;
+$shadow-card: none;
+$shadow-float: none;
 
 $nav-bg: hsl(100, 13%, 11%);
 $nav-border: hsl(105, 13%, 16%);
@@ -87,64 +86,3 @@ $nav-active-text: hsl(42, 26%, 92%);
 $nav-avatar-bg: hsla(0, 0%, 100%, 0.08);
 $nav-avatar-text: hsl(100, 10%, 42%);
 $nav-meta: hsl(100, 10%, 42%);
-
-$btn-primary: (
-  bg: $primary,
-  hover: $primary-hover,
-  active: $primary-active,
-  text: $text-white,
-);
-
-$btn-secondary: (
-  bg: $surface,
-  hover: $card-hover,
-  text: $text-sub,
-  border: $line,
-);
-
-$btn-danger: (
-  bg: $danger-bg,
-  hover: hsl(0, 59%, 90%),
-  text: $danger,
-  border: $danger-bd,
-);
-
-$input: (
-  bg: $surface,
-  border: $line,
-  border-focus: $primary,
-  text: $text,
-  text-label: $text-sub,
-  placeholder: $text-hint,
-);
-
-$select: (
-  bg: $surface,
-  border: $line,
-  border-focus: $primary,
-  text: $text,
-);
-
-$badge-success: (
-  bg: $primary-bg,
-  border: $primary-bd,
-  text: $primary-text,
-);
-
-$badge-danger: (
-  bg: $danger-bg,
-  border: $danger-bd,
-  text: $danger,
-);
-
-$badge-warning: (
-  bg: $warning-bg,
-  border: $warning-bd,
-  text: $warning,
-);
-
-$badge-ml: (
-  bg: $ml-bg,
-  border: $ml-bd,
-  text: $ml,
-);

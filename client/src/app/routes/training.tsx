@@ -8,21 +8,22 @@ import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import QueryState from "@/components/ui/query-state/query-state";
 import Select from "@/components/ui/select/select";
 import useSidebar from "@/hooks/use-sidebar";
-import { deafultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
+import { defaultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
 import { useGetGroups } from "@/page-components/groups/api/get-groups";
 import { useActivateModel } from "@/page-components/mls/api/activate-model";
 import { useGetMls } from "@/page-components/mls/api/get-mls";
 import { useGetTrainingTasks } from "@/page-components/mls/api/get-training-tasks";
 import { useTrainModel } from "@/page-components/mls/api/train-model";
 import ModelDetails from "@/page-components/mls/components/ModelDetails";
-import { MlArchitecture, TrainingStatus } from "@/page-components/mls/schemas";
+import { Architecture, TrainingStatus } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { Activity, Brain, CheckCircle2, CircleAlert, Clock3, Cpu, Rocket } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "../paths";
 import s from "./training.module.scss";
 
-const ARCHITECTURE_OPTIONS: { value: MlArchitecture; label: string }[] = [
+const ARCHITECTURE_OPTIONS: { value: Architecture; label: string }[] = [
   { value: "yolov26n-seg", label: "YOLO v26 Nano" },
   { value: "yolov26s-seg", label: "YOLO v26 Small" },
   { value: "yolov26m-seg", label: "YOLO v26 Medium" },
@@ -110,8 +111,8 @@ const TrainingLaunchModal = ({
   isSuccess,
   onSubmit,
 }: {
-  architecture: MlArchitecture;
-  setArchitecture: (value: MlArchitecture) => void;
+  architecture: Architecture;
+  setArchitecture: (value: Architecture) => void;
   epochs: string;
   setEpochs: (value: string) => void;
   batchSize: string;
@@ -153,7 +154,7 @@ const TrainingLaunchModal = ({
             label="Архитектура"
             options={ARCHITECTURE_OPTIONS}
             value={architecture}
-            onChange={(value) => setArchitecture(value as MlArchitecture)}
+            onChange={(value) => setArchitecture(value as Architecture)}
           />
           <Input
             label="Эпохи"
@@ -255,7 +256,7 @@ export function Component() {
   const { groupId = null, modelId = null } = useParams();
   const [search, setSearch] = useState("");
 
-  const [architecture, setArchitecture] = useState<MlArchitecture>("yolov26n-seg");
+  const [architecture, setArchitecture] = useState<Architecture>("yolov26n-seg");
   const [epochs, setEpochs] = useState("100");
   const [batchSize, setBatchSize] = useState("16");
   const [imageSize, setImageSize] = useState("640");
@@ -264,7 +265,7 @@ export function Component() {
 
   const { data: groups = [], isLoading: groupsLoading, isError: groupsError } = useGetGroups();
   const {
-    data: group = deafultGroup,
+    data: group = defaultGroup,
     isLoading: groupLoading,
     isError: groupError,
   } = useGetGroup(groupId);
@@ -326,7 +327,7 @@ export function Component() {
     groupId: groupId ?? "",
     mutationConfig: {
       onSuccess: () => {
-        navigate(`/training/${groupId}`);
+        navigate(paths.trainingGroup(groupId));
       },
     },
   });
@@ -383,7 +384,7 @@ export function Component() {
                   key={group.id}
                   active={groupId === group.id}
                   onClick={() => {
-                    navigate(`/training/${group.id}`);
+                    navigate(paths.trainingGroup(group.id));
                     closeSidebar();
                   }}
                 >
@@ -581,7 +582,7 @@ export function Component() {
                           type="button"
                           className={s.modelItem}
                           data-active={selectedModel?.id === model.id}
-                          onClick={() => navigate(`/training/${groupId}/models/${model.id}`)}
+                          onClick={() => navigate(paths.trainingModel(groupId, model.id))}
                         >
                           <div className={s.modelItemTop}>
                             <strong>{model.name}</strong>

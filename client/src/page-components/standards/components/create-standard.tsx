@@ -2,12 +2,12 @@ import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import Select from "@/components/ui/select/select";
-import type { Angle } from "@/types/api";
 import { ANGLES } from "@/utils/constants";
 import { getFieldError } from "@/utils/form";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCreateStandard } from "../api/create-standard";
+import { Angle } from "@/types/contracts";
 
 export const CreateStandard = ({ groupId }: { groupId: string }) => (
   <Modal>

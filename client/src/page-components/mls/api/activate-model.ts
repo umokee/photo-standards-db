@@ -1,10 +1,8 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import type { MutationConfig } from "@/lib/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { notifySuccess, type MutationConfig } from "@/lib/react-query";
+import { MlModelListItem } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getGroupQueryOptions } from "@/page-components/groups/api/get-group";
-import { getMlsQueryOptions } from "./get-mls";
-import { MlModelListItem } from "../schemas";
 
 export const activateModel = (modelId: string): Promise<MlModelListItem> => {
   return client.put(`/models/${modelId}/activate`);
@@ -22,12 +20,9 @@ export const useActivateModel = ({ groupId, mutationConfig }: Options) => {
   return useMutation({
     mutationFn: activateModel,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getMlsQueryOptions(groupId).queryKey });
-      qc.invalidateQueries({ queryKey: getGroupQueryOptions(groupId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Модель активирована",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.training.models(groupId) });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
+      notifySuccess("Модель активирована");
       onSuccess?.(...args);
     },
     ...rest,

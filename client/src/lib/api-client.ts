@@ -1,25 +1,18 @@
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
+import { ApiErrorDetails, getErrorMessage } from "./errors";
 
 export class ApiError extends Error {
   code: string;
   status: number;
-  details?: {
-    errors?: Array<{ field: string; message: string; type: string }>;
-    [key: string]: unknown;
-  };
+  details: ApiErrorDetails;
 
-  constructor(data: {
-    code: string;
-    message: string;
-    status: number;
-    details?: Record<string, unknown>;
-  }) {
+  constructor(data: { code: string; message: string; status: number; details?: ApiErrorDetails }) {
     super(data.message);
     this.name = "ApiError";
     this.code = data.code;
     this.status = data.status;
-    this.details = data.details;
+    this.details = data.details ?? {};
   }
 }
 
@@ -33,10 +26,13 @@ client.interceptors.response.use(
     const data = error.response?.data;
     return Promise.reject(
       new ApiError({
-        code: data?.code ?? "SERVER_ERROR",
-        message: data?.message ?? "Сервер недоступен",
-        status: error.response?.status ?? 500,
-        details: data?.details,
+        code: data?.code ?? "INTERNAL_SERVER_ERROR",
+        message:
+          typeof data?.message === "string" && data.message.trim()
+            ? data.message
+            : getErrorMessage(error),
+        status: typeof data?.status === "number" ? data.status : (error.response?.status ?? 500),
+        details: data?.details ?? {},
       })
     );
   }

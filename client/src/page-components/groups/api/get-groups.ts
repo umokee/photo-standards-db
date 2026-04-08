@@ -1,6 +1,7 @@
 import { client } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
+import { GroupListItem } from "@/types/contracts";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { GroupListItem } from "../schemas";
 
 export const getGroups = (): Promise<GroupListItem[]> => {
   return client.get("/groups");
@@ -8,7 +9,7 @@ export const getGroups = (): Promise<GroupListItem[]> => {
 
 export const getGroupsQueryOptions = () => {
   return queryOptions({
-    queryKey: ["group", "all"],
+    queryKey: queryKeys.groups.all(),
     queryFn: getGroups,
   });
 };

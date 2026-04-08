@@ -1,9 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getGroupQueryOptions } from "@/page-components/groups/api/get-group";
-import { getGroupsQueryOptions } from "@/page-components/groups/api/get-groups";
-import { Angle, Standard } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { Angle, StandardMutationResponse } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type CreateStandardInput = {
@@ -16,7 +14,7 @@ export const createStandard = ({
   groupId,
   name,
   angle,
-}: CreateStandardInput): Promise<Standard> => {
+}: CreateStandardInput): Promise<StandardMutationResponse> => {
   return client.post(`/standards`, { group_id: groupId, name, angle });
 };
 
@@ -31,12 +29,9 @@ export const useCreateStandard = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: createStandard,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: getGroupsQueryOptions().queryKey });
-      qc.invalidateQueries({ queryKey: getGroupQueryOptions(vars.groupId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Эталон успешно создан",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.detail(vars.groupId) });
+      notifySuccess("Эталон успешно создан");
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

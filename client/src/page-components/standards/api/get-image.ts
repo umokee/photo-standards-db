@@ -1,5 +1,6 @@
 import { client } from "@/lib/api-client";
-import { StandardImageDetail } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { StandardImageDetail } from "@/types/contracts";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 export const getImage = (id: string): Promise<StandardImageDetail> => {
@@ -8,7 +9,7 @@ export const getImage = (id: string): Promise<StandardImageDetail> => {
 
 export const getImageQueryOptions = (id: string) => {
   return queryOptions({
-    queryKey: ["image", id],
+    queryKey: queryKeys.standards.image(id),
     queryFn: () => getImage(id),
     enabled: !!id,
   });
@@ -16,6 +17,7 @@ export const getImageQueryOptions = (id: string) => {
 
 export const defaultImage: StandardImageDetail = {
   id: "",
+  standard_id: "",
   image_path: "",
   is_reference: false,
   annotation_count: 0,

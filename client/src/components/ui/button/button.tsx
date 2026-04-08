@@ -5,6 +5,7 @@ import styles from "./button.module.scss";
 interface Props {
   children?: React.ReactNode;
   icon?: LucideIcon;
+  iconPosition?: "left" | "right";
   size?: "sm" | "md" | "lg" | "icon";
   variant?: "primary" | "ghost" | "warning" | "danger" | "ml";
   full?: boolean;
@@ -16,6 +17,7 @@ interface Props {
 export default function Button({
   children,
   icon: Icon,
+  iconPosition = "left",
   size = "md",
   variant = "primary",
   full = false,
@@ -30,8 +32,9 @@ export default function Button({
       disabled={disabled}
       onClick={onClick}
     >
-      {Icon && <Icon />}
+      {Icon && iconPosition === "left" && <Icon />}
       {children && <span>{children}</span>}
+      {Icon && iconPosition === "right" && <Icon />}
     </button>
   );
 }

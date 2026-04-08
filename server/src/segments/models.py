@@ -28,10 +28,6 @@ class SegmentGroup(Base):
     standard: Mapped["Standard"] = relationship(back_populates="segment_groups")
     segments: Mapped[list["Segment"]] = relationship(back_populates="segment_group")
 
-    @property
-    def segment_count(self) -> int:
-        return len(self.segments)
-
 
 class Segment(Base):
     __tablename__ = "segments"

@@ -1,10 +1,10 @@
 import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
+import { GroupDetail } from "@/types/contracts";
 import { getChangedFields, getFieldError } from "@/utils/form";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
-import { GroupDetail } from "../schemas";
 import { useUpdateGroup } from "../api/update-group";
 
 export const UpdateGroup = ({ group }: { group: GroupDetail }) => (

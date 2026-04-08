@@ -1,5 +1,5 @@
 import useImageLayout from "@/page-components/segments/hooks/use-image-layout";
-import { SegmentGroup, SegmentWithPoints } from "@/types/api";
+import { SegmentGroup, SegmentWithPoints } from "@/types/contracts";
 import {
   clamp,
   EDGE_HIT_RADIUS,

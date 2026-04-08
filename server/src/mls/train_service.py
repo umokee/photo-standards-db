@@ -122,7 +122,7 @@ async def load_training_data(
 ) -> TrainingData:
     group = await db.get(Group, group_id)
     if not group:
-        raise NotFoundError("Группа", group_id, "не найдена")
+        raise NotFoundError("Группа", "group", group_id)
 
     result = await db.execute(
         select(Standard)
@@ -140,7 +140,7 @@ def load_training_data_sync(
     """Синхронная версия для worker-потока."""
     group = db.get(Group, group_id)
     if not group:
-        raise NotFoundError("Группа", group_id, "не найдена")
+        raise NotFoundError("Группа", "group", group_id)
 
     result = db.execute(
         select(Standard)

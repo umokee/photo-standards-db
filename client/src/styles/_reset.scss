@@ -6,6 +6,9 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 html {

@@ -1,8 +1,7 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getGroupsQueryOptions } from "./get-groups";
 
 export const deleteGroup = (id: string): Promise<void> => {
   return client.delete(`/groups/${id}`);
@@ -19,11 +18,8 @@ export const useDeleteGroup = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: deleteGroup,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getGroupsQueryOptions().queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Группа успешно удалена",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
+      notifySuccess("Группа успешно удалена");
       onSuccess?.(...args);
     },
     ...rest,

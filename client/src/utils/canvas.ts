@@ -1,4 +1,4 @@
-import { SegmentWithPoints } from "@/types/api";
+import { SegmentWithPoints } from "@/types/contracts";
 
 export const SNAP_RADIUS = 10;
 export const EDGE_HIT_RADIUS = 15;

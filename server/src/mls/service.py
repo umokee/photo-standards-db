@@ -39,7 +39,7 @@ async def activate(
 ) -> MlModelResponse:
     model = await db.get(MlModel, model_id)
     if not model:
-        raise NotFoundError("Модель", model_id, "не найдена")
+        raise NotFoundError("Модель", "ml_model", model_id)
 
     if not model.trained_at:
         raise ValidationError("Активировать можно только успешно обученную модель")
@@ -66,5 +66,5 @@ async def get_task_status(
 ) -> TrainingTaskResponse:
     task = await db.get(TrainingTask, task_id)
     if not task:
-        raise NotFoundError("Задача", task_id, "не найдена")
+        raise NotFoundError("Задача", "training_task", task_id)
     return task

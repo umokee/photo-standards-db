@@ -11,14 +11,6 @@ Name = Annotated[
     ),
 ]
 
-OptionalName = Annotated[
-    str | None,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=255,
-    ),
-]
 
 Url = Annotated[
     str,

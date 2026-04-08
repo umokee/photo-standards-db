@@ -1,11 +1,21 @@
-export type MlArchitecture =
-  | "yolov26n-seg"
-  | "yolov26s-seg"
-  | "yolov26m-seg"
-  | "yolov26l-seg"
-  | "yolov26x-seg";
+import { Architecture, TrainingStatus } from "./shared";
 
-export type TrainingStatus = "pending" | "preparing" | "training" | "saving" | "done" | "failed";
+export interface MlModel {
+  id: string;
+  group_id: string;
+  name: string;
+  architecture: Architecture | string;
+  version: number;
+  epochs: number | null;
+  imgsz: number;
+  batch_size: number | null;
+  num_classes: number | null;
+  metrics: Record<string, unknown> | null;
+  class_names: string[] | null;
+  is_active: boolean;
+  trained_at: string | null;
+  created_at: string;
+}
 
 export interface MlModelListItem {
   id: string;
@@ -39,12 +49,3 @@ export interface TrainingTaskItem {
   created_at: string;
 }
 
-export interface TrainModelInput {
-  group_id: string;
-  architecture: MlArchitecture;
-  train_ratio: number;
-  val_ratio: number;
-  epochs: number;
-  imgsz: number;
-  batch_size: number;
-}

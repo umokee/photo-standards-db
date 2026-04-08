@@ -1,18 +1,19 @@
-import { useNotificationStore } from "@/components/ui/notifications/notifications-store";
 import { client } from "@/lib/api-client";
-import { MutationConfig } from "@/lib/react-query";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
-import { Segment } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
+import { MutationConfig, notifySuccess } from "@/lib/react-query";
+import { Segment } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type UpdateSegmentInput = {
   id: string;
-  segmentGroupId?: string;
-  name?: string;
+  data: {
+    segmentGroupId?: string;
+    name?: string;
+  };
 };
 
-export const updateSegment = ({ id, ...body }: UpdateSegmentInput): Promise<Segment> => {
-  return client.put(`/segments/${id}`, body);
+export const updateSegment = ({ id, data }: UpdateSegmentInput): Promise<Segment> => {
+  return client.put(`/segments/${id}`, data);
 };
 
 type Options = {
@@ -27,11 +28,8 @@ export const useUpdateSegment = ({ standardId, mutationConfig }: Options) => {
   return useMutation({
     mutationFn: updateSegment,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(standardId).queryKey });
-      useNotificationStore.getState().addNotification({
-        type: "success",
-        message: "Класс успешно обновлен",
-      });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(standardId) });
+      notifySuccess("Класс успешно обновлен");
       onSuccess?.(...args);
     },
     ...rest,

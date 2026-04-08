@@ -1,55 +1,81 @@
 import clsx from "clsx";
-import { AlertCircle, Inbox } from "lucide-react";
+import { AlertCircle, Inbox, LoaderCircle } from "lucide-react";
 import s from "./query-state.module.scss";
+
+type Size = "inline" | "block" | "page";
 
 interface Props {
   isLoading?: boolean;
   isError?: boolean;
   isEmpty?: boolean;
-  loader?: "spinner" | "skeleton";
-  skelRows?: number;
-  emptyText?: string;
+  size?: Size;
+  loadingText?: string;
+  errorTitle?: string;
+  errorDescription?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }
 
-const loadingState = (loader: string, skelRows: number) => {
-  return loader === "spinner" ? (
-    <div className={s.state}>
-      <div className={s.spinner} />
-    </div>
-  ) : (
-    <>
-      {Array.from({ length: skelRows }).map((_, i) => (
-        <div key={i} className={s.skelItem}>
-          <div className={clsx(s.skelDot, s.skelShimmer)} />
-          <div className={clsx(s.skelLine, s.skelShimmer)} />
-          <div className={clsx(s.skelEnd, s.skelShimmer)} />
-        </div>
-      ))}
-    </>
+const StateContainer = ({ size, children }: { size: Size; children: React.ReactNode }) => {
+  return <div className={clsx(s.state, s[`state--${size}`])}>{children}</div>;
+};
+
+const LoadingState = ({ size, text }: { size: Size; text: string }) => {
+  return (
+    <StateContainer size={size}>
+      <div className={clsx(s.icon, s.iconLoading)}>
+        <LoaderCircle className={s.spinner} />
+      </div>
+      <span className={s.title}>{text}</span>
+    </StateContainer>
   );
 };
 
-const errorState = () => {
+const ErrorState = ({
+  size,
+  title,
+  description,
+  action,
+}: {
+  size: Size;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) => {
   return (
-    <div className={s.state}>
+    <StateContainer size={size}>
       <div className={clsx(s.icon, s.iconError)}>
         <AlertCircle />
       </div>
-      <span className={clsx(s.title, s.titleError)}>Ошибка загрузки</span>
-      <span className={clsx(s.sub)}>Попробуйте обновить страницу</span>
-    </div>
+      <span className={clsx(s.title, s.titleError)}>{title}</span>
+      {description && <span className={s.sub}>{description}</span>}
+      {action && <div className={s.action}>{action}</div>}
+    </StateContainer>
   );
 };
 
-const emptyState = (emptyText: string) => {
+const EmptyState = ({
+  size,
+  title,
+  description,
+  action,
+}: {
+  size: Size;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) => {
   return (
-    <div className={s.state}>
+    <StateContainer size={size}>
       <div className={s.icon}>
         <Inbox />
       </div>
-      <span className={s.title}>{emptyText}</span>
-    </div>
+      <span className={s.title}>{title}</span>
+      {description && <span className={s.sub}>{description}</span>}
+      {action && <div className={s.action}>{action}</div>}
+    </StateContainer>
   );
 };
 
@@ -57,13 +83,30 @@ export default function QueryState({
   isLoading,
   isError,
   isEmpty,
-  loader = "spinner",
-  skelRows = 5,
-  emptyText = "Нет данных",
+  size = "block",
+  loadingText = "Загрузка...",
+  errorTitle = "Не удалось загрузить данные",
+  errorDescription = "Попробуйте обновить страницу или повторить действие позже",
+  emptyTitle = "Нет данных",
+  emptyDescription,
+  action,
   children,
 }: Props) {
-  if (isLoading) return loadingState(loader, skelRows);
-  if (isError) return errorState();
-  if (isEmpty) return emptyState(emptyText);
+  if (isLoading) {
+    return <LoadingState size={size} text={loadingText} />;
+  }
+
+  if (isError) {
+    return (
+      <ErrorState size={size} title={errorTitle} description={errorDescription} action={action} />
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <EmptyState size={size} title={emptyTitle} description={emptyDescription} action={action} />
+    );
+  }
+
   return children;
 }

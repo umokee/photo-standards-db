@@ -87,7 +87,7 @@ export default function CamerasPage() {
           onDelete={() =>
             remove.mutate(selectedId, {
               onSuccess: () => {
-                navigate("/cameras");
+                navigate();
                 close();
               },
             })

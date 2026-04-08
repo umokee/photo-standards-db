@@ -1,3 +1,4 @@
+import { paths } from "@/app/paths";
 import ImageWithFallback from "@/components/ui/image-with-fallback/image-with-fallback";
 import QueryState from "@/components/ui/query-state/query-state";
 import { ManageSegmentGroups } from "@/page-components/segments/components/manage-segment-groups";
@@ -7,7 +8,7 @@ import { Star, Trash2 } from "lucide-react";
 import { MouseEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDeleteImage } from "../../api/delete-image";
-import { deafultStandard, useGetStandardDetail } from "../../api/get-standard";
+import { defaultStandard, useGetStandardDetail } from "../../api/get-standard";
 import { useSetReference } from "../../api/set-reference";
 import s from "./standard-card.module.scss";
 
@@ -67,11 +68,7 @@ const ImageCard = ({
 export const StandardCardDetails = ({ standardId }: { standardId: string }) => {
   const { groupId = "" } = useParams();
   const navigate = useNavigate();
-  const {
-    data: standard = deafultStandard,
-    isLoading,
-    isError,
-  } = useGetStandardDetail(standardId);
+  const { data: standard = defaultStandard, isLoading, isError } = useGetStandardDetail(standardId);
 
   const deleteImage = useDeleteImage({ standardId });
   const setReference = useSetReference({ standardId });
@@ -82,7 +79,7 @@ export const StandardCardDetails = ({ standardId }: { standardId: string }) => {
   const classes = standard.segment_groups;
 
   const handleToEditor = (imageId: string) => {
-    navigate(`/groups/${groupId}/standards/${standardId}/images/${imageId}`);
+    navigate(paths.standardImage(groupId, standardId, imageId));
   };
 
   return (

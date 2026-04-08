@@ -1,8 +1,7 @@
 import { client } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
 import { MutationConfig } from "@/lib/react-query";
-import { getImageQueryOptions } from "@/page-components/standards/api/get-image";
-import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
-import { SegmentWithPoints } from "@/types/api";
+import { SegmentWithPoints } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export type AnnotateSegmentInput = {
@@ -31,8 +30,8 @@ export const useAnnotateSegment = ({ standardId, mutationConfig }: Options) => {
   return useMutation({
     mutationFn: annotateSegment,
     onSuccess: (data, vars, ctx, mutation) => {
-      qc.invalidateQueries({ queryKey: getImageQueryOptions(vars.imageId).queryKey });
-      qc.invalidateQueries({ queryKey: getStandardQueryOptions(standardId).queryKey });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.image(vars.imageId) });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.detail(standardId) });
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

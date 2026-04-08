@@ -1,11 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from _shared.schemas import Name, OptionalName, UpdateNotEmpty
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-)
+from _shared.schemas import Name, UpdateNotEmpty
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GroupStatsResponse(BaseModel):
@@ -18,7 +15,7 @@ class GroupStatsResponse(BaseModel):
     models_count: int = 0
 
 
-class GroupStandardShortResponse(BaseModel):
+class GroupStandardResponse(BaseModel):
     id: UUID
     group_id: UUID
     name: str
@@ -26,8 +23,8 @@ class GroupStandardShortResponse(BaseModel):
     is_active: bool
     created_at: datetime
     reference_path: str | None = None
-    image_count: int = 0
-    annotated_count: int = 0
+    images_count: int = 0
+    annotated_images_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,8 +64,10 @@ class GroupDetailResponse(BaseModel):
     description: str | None
     created_at: datetime
     stats: GroupStatsResponse
-    standards: list[GroupStandardShortResponse] = []
+    standards: list[GroupStandardResponse] = Field(default_factory=list)
     active_model: GroupActiveModelResponse | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GroupCreate(BaseModel):
@@ -77,7 +76,7 @@ class GroupCreate(BaseModel):
 
 
 class GroupUpdate(UpdateNotEmpty):
-    name: OptionalName
+    name: Name | None = None
     description: str | None = None
 
 

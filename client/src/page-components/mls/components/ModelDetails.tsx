@@ -1,10 +1,9 @@
 import { SectionHeader } from "@/components/layouts/section-header/section-header";
 import Button from "@/components/ui/button/button";
 import ProgressBar from "@/components/ui/progress-bar/progress-bar";
-import { GroupDetail } from "@/page-components/groups/schemas";
+import { GroupDetail, MlModelListItem, TrainingTaskItem } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { AlertCircle, CheckCircle2, Clock3, Cpu, Sparkles } from "lucide-react";
-import { MlModelListItem, TrainingTaskItem } from "../schemas";
 import s from "./model-details.module.scss";
 
 interface Props {
@@ -115,9 +114,9 @@ export default function ModelDetails({
             <div key={standard.id} className={s.standardRow}>
               <span className={s.standardName}>{standard.name ?? "Без названия"}</span>
               <ProgressBar
-                value={standard.annotated_count}
-                max={standard.image_count}
-                warn={standard.annotated_count < standard.image_count}
+                value={standard.annotated_images_count}
+                max={standard.images_count}
+                warn={standard.annotated_images_count < standard.images_count}
               />
             </div>
           ))}
@@ -142,11 +141,11 @@ export default function ModelDetails({
                 ? "активная"
                 : isFailed
                   ? "ошибка обучения"
-                : isQueued
-                  ? pendingLabel.toLowerCase()
-                  : isBusy
-                    ? "обучается"
-                    : "неактивная"}
+                  : isQueued
+                    ? pendingLabel.toLowerCase()
+                    : isBusy
+                      ? "обучается"
+                      : "неактивная"}
             </strong>
           </div>
         </div>

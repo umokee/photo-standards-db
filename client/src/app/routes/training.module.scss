@@ -199,13 +199,8 @@
   background: $surface;
   padding: $space-3;
   cursor: pointer;
-  transition:
-    transform $t,
-    border-color $t,
-    background $t;
 
   &:hover {
-    transform: translateY(-1px);
     border-color: $primary-bd;
     background: $surface2;
   }
