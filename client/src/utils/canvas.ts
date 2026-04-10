@@ -13,8 +13,8 @@ export const hasPoints = (seg: SegmentWithPoints | undefined | null) => {
 
 export function segmentColor(hue: number, isSelected: boolean) {
   return {
-    stroke: isSelected ? `hsl(${hue},80%,35%)` : `hsl(${hue},65%,45%)`,
-    fill: `hsla(${hue},65%,45%,0.6)`,
+    stroke: isSelected ? `hsl(${hue}, 76%, 58%)` : `hsl(${hue}, 64%, 54%)`,
+    fill: isSelected ? `hsl(${hue}, 76%, 58%)` : `hsl(${hue}, 64%, 54%)`,
   };
 }
 

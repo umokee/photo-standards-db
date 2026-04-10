@@ -30,10 +30,11 @@ export const saveSegments = ({
   });
 
 type Options = {
+  imageId: string;
   mutationConfig?: MutationConfig<typeof saveSegments>;
 };
 
-export const useSaveSegments = ({ mutationConfig }: Options = {}) => {
+export const useSaveSegments = ({ imageId, mutationConfig }: Options) => {
   const qc = useQueryClient();
   const { onSuccess, ...rest } = mutationConfig || {};
 
@@ -41,6 +42,7 @@ export const useSaveSegments = ({ mutationConfig }: Options = {}) => {
     mutationFn: saveSegments,
     onSuccess: (data, vars, ctx, mutation) => {
       qc.invalidateQueries({ queryKey: queryKeys.standards.detail(vars.standardId) });
+      qc.invalidateQueries({ queryKey: queryKeys.standards.image(imageId) });
       notifySuccess("Классы успешно сохранены");
       onSuccess?.(data, vars, ctx, mutation);
     },

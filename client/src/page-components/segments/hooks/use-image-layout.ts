@@ -56,10 +56,5 @@ export default function useImageLayout(image: HTMLImageElement | null) {
     clamp(cy, imageRect.offsetY, imageRect.offsetY + imageRect.height),
   ];
 
-  const vertexBound = (pos: { x: number; y: number }) => {
-    const [nx, ny] = clampToImage(pos.x, pos.y);
-    return { x: nx, y: ny };
-  };
-
-  return { containerRef, size, imageRect, toImage, toCanvas, clampToImage, vertexBound };
+  return { containerRef, size, imageRect, toImage, toCanvas, clampToImage };
 }

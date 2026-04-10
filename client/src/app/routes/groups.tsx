@@ -5,39 +5,78 @@ import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
 import Input from "@/components/ui/input/input";
 import QueryState from "@/components/ui/query-state/query-state";
 import useSidebar from "@/hooks/use-sidebar";
-import { defaultGroup, useGetGroup } from "@/page-components/groups/api/get-group";
+import { useGetGroup } from "@/page-components/groups/api/get-group";
 import { useGetGroups } from "@/page-components/groups/api/get-groups";
 import { CreateGroup } from "@/page-components/groups/components/create-group";
 import { DeleteGroup } from "@/page-components/groups/components/delete-group";
 import { UpdateGroup } from "@/page-components/groups/components/update-group";
+import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
 import { CreateStandard } from "@/page-components/standards/components/create-standard";
 import { StandardCard } from "@/page-components/standards/components/standard-card/standard-card";
 import { formatDate } from "@/utils/formatDate";
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { paths } from "../paths";
 import s from "./groups.module.scss";
 
+const useGroupSearch = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("search") ?? "";
+
+  const setSearch = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = value.trim();
+
+    if (trimmed) {
+      next.set("search", value);
+    } else {
+      next.delete("search");
+    }
+
+    setSearchParams(next, { replace: true });
+  };
+
+  return { search, setSearch };
+};
+
 export function Component() {
-  const { groupId = null, standardId = null } = useParams();
-  const [search, setSearch] = useState("");
-
   const navigate = useNavigate();
+  const { groupId, standardId } = useParams();
   const { close: closeSidebar } = useSidebar();
-  const { data: groups = [], isLoading: groupsLoading, isError: groupsError } = useGetGroups();
-  const {
-    data: group = defaultGroup,
-    isLoading: groupLoading,
-    isError: groupError,
-  } = useGetGroup(groupId);
+  const { search, setSearch } = useGroupSearch();
 
-  const filtered = useMemo(
-    () => groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())),
-    [groups, search]
-  );
+  const groupsQuery = useGetGroups(search);
+  const groupQuery = useGetGroup(groupId);
+  const standardQuery = useGetStandardDetail(standardId);
+
+  const groups = groupsQuery.data;
+  const group = groupQuery.data;
+  const standard = standardQuery.data;
+
+  const isLoading = groupsQuery.isPending || groupQuery.isPending || standardQuery.isPending;
+  const isError = !!groupsQuery.error || !!groupQuery.error || !!standardQuery.error;
+  const isEmpty = !isLoading && !isError && (!groups || !group || !standard);
+
+  if (isLoading || isError || isEmpty) {
+    return (
+      <QueryState
+        isLoading={isLoading}
+        isError={isError}
+        isEmpty={isEmpty}
+        size="page"
+        loadingText="Загрузка группы"
+        errorTitle="Не удалось открыть группы"
+        emptyTitle="Группа не найдена"
+      >
+        {null}
+      </QueryState>
+    );
+  }
+
   const standards = group.standards;
   const stats = group.stats;
+}
 
+const GroupsContent = () => {
   const toggleStandard = (targetStandardId: string) => {
     if (!groupId) return;
 
@@ -126,14 +165,22 @@ export function Component() {
                 </SectionHeader.Side>
               </SectionHeader>
               <div className={s.cards}>
-                {standards.map((standard) => (
-                  <StandardCard
-                    key={standard.id}
-                    standard={standard}
-                    expanded={standardId === standard.id}
-                    onToggle={() => toggleStandard(standard.id)}
-                  />
-                ))}
+                {standards.map((standard) => {
+                  const isExpanded = standardId === standard.id;
+                  const details = isExpanded ? expandedStandard : null;
+
+                  return (
+                    <StandardCard
+                      key={standard.id}
+                      standard={standard}
+                      expanded={isExpanded}
+                      details={details}
+                      detailsLoading={isExpanded && expandedStandardQuery.isPending}
+                      detailsError={isExpanded && expandedStandardQuery.isError}
+                      onToggle={() => toggleStandard(standard.id)}
+                    />
+                  );
+                })}
               </div>
             </section>
           </QueryState>
@@ -141,4 +188,4 @@ export function Component() {
       </SplitLayout.Content>
     </SplitLayout>
   );
-}
+};

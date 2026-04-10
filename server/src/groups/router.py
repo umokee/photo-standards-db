@@ -18,9 +18,10 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.get("", response_model=list[GroupListItemResponse])
 async def get_groups(
+    search: str | None = None,
     db: AsyncSession = Depends(get_session),
 ) -> list[GroupListItemResponse]:
-    return await service.get_groups(db)
+    return await service.get_groups(db, search=search)
 
 
 @router.get("/{group_id}", response_model=GroupDetailResponse)

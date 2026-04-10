@@ -2,8 +2,8 @@ import Button from "@/components/ui/button/button";
 import { Segment, SegmentGroup, SegmentWithPoints, StandardDetail } from "@/types/contracts";
 import clsx from "clsx";
 import { Trash2 } from "lucide-react";
-import { ManageSegmentGroups } from "../manage-segment-groups";
-import s from "./segment-panel.module.scss"
+import { ManageSegmentGroups } from "../manage-segment-groups/manage-segment-groups";
+import s from "./segment-panel.module.scss";
 
 interface Props {
   standard?: StandardDetail;
@@ -11,11 +11,11 @@ interface Props {
   segmentGroups: SegmentGroup[];
   imageSegments: SegmentWithPoints[];
   selectedSegmentId: string | null;
+  isRefining: boolean;
+  selectedContourIndex: number | null;
   onSelectSegment: (id: string) => void;
   onStartDraw: () => void;
   onRefine: () => void;
-  isRefining: boolean;
-  selectedContourIndex: number | null;
   onSelectContour: (index: number | null) => void;
   onDeleteContour: (contourIndex: number) => void;
 }
@@ -26,18 +26,16 @@ export const SegmentPanel = ({
   segmentGroups,
   imageSegments,
   selectedSegmentId,
+  isRefining,
+  selectedContourIndex,
   onSelectSegment,
   onStartDraw,
   onRefine,
-  isRefining,
-  selectedContourIndex,
   onSelectContour,
   onDeleteContour,
 }: Props) => {
   const selectedSeg = segments.find((s) => s.id === selectedSegmentId);
   const selectedImgSeg = imageSegments.find((s) => s.id === selectedSegmentId);
-  const selectedGroup = segmentGroups.find((g) => g.id === selectedSeg?.segment_group_id);
-  const selectedColor = selectedGroup ? `hsl(${selectedGroup.hue}, 70%, 50%)` : "#888";
 
   const groupedSegments = segmentGroups.map((group) => ({
     group,
@@ -45,56 +43,42 @@ export const SegmentPanel = ({
   }));
 
   return (
-    <div className="seg-sidebar">
-      <div className="seg-sb-section seg-sb-section--classes">
-        <div className="seg-sb-head">
-          <span className="seg-sb-head__title">Классы</span>
+    <div className={s.root}>
+      <div className={clsx(s.section, s.classes)}>
+        <div className={s.sectionHeader}>
+          <span className={s.sectionTitle}>Классы</span>
           {standard && <ManageSegmentGroups standard={standard} compact />}
         </div>
-        <div className="seg-class-scroll">
+        <div className={s.classes}>
           {groupedSegments.map(({ group, segments: groupSegs }) => (
-            <div key={group.id} className="seg-group-block">
-              <div className="seg-group-label">
+            <div key={group.id} className={s.groupBlock}>
+              <div className={s.groupLabel}>
                 <span
-                  className="seg-group-label__swatch"
+                  className={s.groupColor}
                   style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
                 />
                 {group.name}
               </div>
               {groupSegs.map((seg) => {
                 const segImgSeg = imageSegments.find((s) => s.id === seg.id);
-                const hasPoints = !!segImgSeg?.points?.length;
+                const hasPoints = !!segImgSeg?.points.length;
 
                 return (
                   <div
                     key={seg.id}
-                    className={clsx(
-                      "seg-class-item",
-                      selectedSegmentId === seg.id ? "selected" : ""
-                    )}
+                    className={clsx(s.classItem, selectedSegmentId === seg.id && s.selected)}
                     onClick={() => onSelectSegment(seg.id)}
                   >
                     <span
-                      className="seg-class-item__swatch"
+                      className={s.classColor}
                       style={{
                         background: `hsl(${group.hue}, 70%, 50%)`,
                       }}
                     />
-                    <span className="seg-class-item__label">{seg.name}</span>
-                    <span
-                      className={clsx(
-                        "seg-class-item__cnt",
-                        hasPoints ? "seg-class-item__cnt--has" : ""
-                      )}
-                    >
-                      {hasPoints ? `${segImgSeg.points.length} пол.` : "-"}
+                    <span className={s.classLabel}>{seg.name}</span>
+                    <span className={clsx(s.classCount, hasPoints && s.has)}>
+                      {hasPoints ? `${segImgSeg?.points.length} пол.` : "-"}
                     </span>
-                    <span
-                      className={clsx(
-                        "seg-class-item__status",
-                        hasPoints ? "seg-class-item__status--done" : "seg-class-item__status--none"
-                      )}
-                    />
                   </div>
                 );
               })}
@@ -103,35 +87,29 @@ export const SegmentPanel = ({
         </div>
       </div>
 
-      <div className="seg-sb-section seg-sb-section--anns">
+      <div className={clsx(s.section, s.anns)}>
         {selectedSeg && (
-          <div className="seg-sb-head">
-            <span className="seg-sb-head__title">«{selectedSeg.name}»</span>
+          <div className={s.sectionHeader}>
+            <span className={s.sectionTitle}>Полигоны</span>
+            <span className={s.sectionMeta}>{selectedSeg.name}</span>
           </div>
         )}
-        <div className="seg-ann-scroll">
+        <div className={s.anns}>
           {!selectedSeg ? (
-            <div className="seg-ann-empty">Выберите класс для просмотра разметки</div>
-          ) : !selectedImgSeg?.points?.length ? (
-            <div className="seg-ann-empty seg-ann-empty--draw">
-              Класс не размечен.
-              <br />
-              Нажмите «Добавить разметку».
-            </div>
+            <div className={s.annEmpty}>Выберите класс</div>
+          ) : !selectedImgSeg.points.length ? (
+            <div className={s.annEmpty}>Класс не размечен</div>
           ) : (
             <>
-              {selectedImgSeg.points.map((contour, i) => (
+              {selectedImgSeg.points.map((_, i) => (
                 <div
                   key={i}
-                  className={clsx("seg-ann-item", selectedContourIndex === i && "selected")}
+                  className={clsx(s.annItem, selectedContourIndex === i && s.selected)}
                   onClick={() => onSelectContour(i)}
                 >
-                  <div className="seg-ann-item__idx" style={{ background: selectedColor }}>
-                    {i + 1}
-                  </div>
-                  <div className="seg-ann-item__pts">{contour.length} точек</div>
+                  <div className={s.annPolygon}>Полигон {i + 1}</div>
                   <div
-                    className="seg-ann-item__del"
+                    className={s.annDelete}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteContour(i);
@@ -146,7 +124,7 @@ export const SegmentPanel = ({
         </div>
       </div>
 
-      <div className="seg-sb-footer">
+      <div className={s.actions}>
         <Button
           variant="ml"
           size="sm"

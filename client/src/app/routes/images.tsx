@@ -1,17 +1,18 @@
 import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
 import QueryState from "@/components/ui/query-state/query-state";
+import { queryKeys } from "@/lib/query-keys";
 import { useGetGroup } from "@/page-components/groups/api/get-group";
 import { useAnnotateSegment } from "@/page-components/segments/api/annotate-segment";
 import { useRefineContour } from "@/page-components/segments/api/refine-contour";
-import Canvas from "@/page-components/segments/components/canvas-surface";
+import Canvas from "@/page-components/segments/components/canvas-surface/canvas-surface";
 import { SegmentHeader } from "@/page-components/segments/components/segment-header/segment-header";
 import { SegmentPanel } from "@/page-components/segments/components/segment-panel/segment-panel";
-import { getImageQueryOptions, useGetImage } from "@/page-components/standards/api/get-image";
+import { useGetImage } from "@/page-components/standards/api/get-image";
 import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
 import { StandardImageDetail } from "@/types/contracts";
 import { BASE_URL } from "@/utils/constants";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { paths } from "../paths";
 
@@ -23,15 +24,23 @@ export function Component() {
   const [selectedContourIndex, setSelectedContourIndex] = useState<number | null>(null);
   const [isDrawMode, setIsDrawMode] = useState(false);
 
+  useEffect(() => {
+    setSelectedSegmentId(null);
+    setSelectedContourIndex(null);
+    setIsDrawMode(false);
+  }, [imageId]);
+
   if (!groupId || !standardId || !imageId) {
-    <QueryState
-      isEmpty
-      size="page"
-      emptyTitle="Некорректный адрес"
-      emptyDescription="Не удалось определить группу, эталон или изображение"
-    >
-      {null}
-    </QueryState>;
+    return (
+      <QueryState
+        isEmpty
+        size="page"
+        emptyTitle="Некорректный адрес"
+        emptyDescription="Не удалось найти группу, эталон или изображение"
+      >
+        {null}
+      </QueryState>
+    );
   }
 
   const groupQuery = useGetGroup(groupId);
@@ -61,7 +70,7 @@ export function Component() {
         errorTitle="Не удалось открыть изображение"
         errorDescription="Проверьте подключение или попробуйте перезагрузить страницу"
         emptyTitle="Изображение не найдено"
-        emptyDescription="Вероятно, данные изображения или эталона больше недоступны"
+        emptyDescription="Данные изображения или эталона не найдены"
       >
         {null}
       </QueryState>
@@ -69,16 +78,24 @@ export function Component() {
   }
 
   const segmentGroups = standard.segment_groups;
-  const segments = standard.segments;
-  const imageSegments = image.segments;
-  const imageUrl = image ? `${BASE_URL}/storage/${image.image_path}` : null;
+  const standardSegments = standard.segments;
+  const annotatedSegments = image.segments;
+  const isCurrentAnnotated = Number(image.annotation_count ?? 0) > 0;
+  const imageUrl = `${BASE_URL}/storage/${image.image_path}`;
+  const selectedImageSegment =
+    annotatedSegments.find((segment) => segment.id === selectedSegmentId) ?? null;
   const currentIndex = standard.images.findIndex((img) => img.id === image.id);
   const safeIndex = Math.max(currentIndex, 0);
   const prevImage = safeIndex > 0 ? standard.images[safeIndex - 1] : null;
   const nextImage =
     currentIndex < standard.images.length - 1 ? standard.images[safeIndex + 1] : null;
   const nextUnannotatedImage =
-    standard.images.find((img, index) => index > safeIndex && img.annotation_count === 0) ?? null;
+    currentIndex < 0
+      ? null
+      : ([
+          ...standard.images.slice(currentIndex + 1),
+          ...standard.images.slice(0, currentIndex),
+        ].find((img) => Number(img.annotation_count ?? 0) === 0) ?? null);
 
   const handleBack = () => navigate(paths.standardDetail(groupId, standardId));
 
@@ -101,88 +118,61 @@ export function Component() {
     goToImage(nextUnannotatedImage.id);
   };
 
-  const handlePointsChange = (segmentId: string, points: number[][][]) => {
-    qc.setQueryData(
-      getImageQueryOptions(imageId).queryKey,
-      (old: StandardImageDetail | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          segments: old.segments.map((segment) =>
-            segment.id === segmentId ? { ...segment, points } : segment
-          ),
-        };
-      }
-    );
+  const saveSegmentContours = (segmentId: string, nextContours: number[][][]) => {
+    qc.setQueryData(queryKeys.standards.image(imageId), (old: StandardImageDetail | undefined) => {
+      if (!old) return old;
+      return {
+        ...old,
+        segments: old.segments.map((segment) =>
+          segment.id === segmentId ? { ...segment, points: nextContours } : segment
+        ),
+      };
+    });
 
-    annotate.mutate({ segmentId, imageId, points });
+    annotate.mutate({ segmentId, imageId, points: nextContours });
   };
 
-  const handleFinishDrawing = (points: number[][]) => {
+  const handleFinishDrawing = (draftContour: number[][]) => {
     if (!selectedSegmentId) return;
 
     setIsDrawMode(false);
 
-    const existing =
-      imageSegments.find((segment) => segment.id === selectedSegmentId)?.points ?? [];
-    setSelectedContourIndex(existing.length);
+    const existingContours = selectedImageSegment?.points ?? [];
+    setSelectedContourIndex(existingContours.length);
 
-    const save = (nextPoints: number[][]) => {
-      annotate.mutate({
-        segmentId: selectedSegmentId,
-        imageId,
-        points: [...existing, nextPoints],
-      });
-    };
-
-    refine.mutate(
-      { imageId, points },
-      {
-        onSuccess: (data) => save(data.points),
-        onError: () => save(points),
-      }
-    );
+    saveSegmentContours(selectedSegmentId, [...existingContours, draftContour]);
   };
 
   const handleRefine = () => {
-    const imageSegment = imageSegments.find((segment) => segment.id === selectedSegmentId);
+    if (!selectedImageSegment?.points.length || selectedContourIndex === null) return;
 
-    if (!imageSegment?.points?.length || selectedContourIndex === null) return;
-
-    const contour = imageSegment.points[selectedContourIndex];
+    const selectedContour = selectedImageSegment.points[selectedContourIndex];
 
     refine.mutate(
-      { imageId, points: contour },
+      { imageId, points: selectedContour },
       {
         onSuccess: (data) => {
-          const newPoints = imageSegment.points.map((pointSet, index) =>
-            index === selectedContourIndex ? data.points : pointSet
+          const nextContours = selectedImageSegment.points.map((points, index) =>
+            index === selectedContourIndex ? data.points : points
           );
 
-          annotate.mutate({
-            segmentId: selectedSegmentId!,
-            imageId,
-            points: newPoints,
-          });
+          saveSegmentContours(selectedSegmentId!, nextContours);
         },
       }
     );
   };
 
   const handleDeleteContour = (contourIndex: number) => {
-    const imageSegment = imageSegments.find((segment) => segment.id === selectedSegmentId);
-    if (!imageSegment) return;
+    if (!selectedImageSegment) return;
 
-    const newPoints = imageSegment.points.filter((_, index) => index !== contourIndex);
+    const nextContours = selectedImageSegment.points.filter((_, index) => index !== contourIndex);
 
-    annotate.mutate({
-      segmentId: selectedSegmentId!,
-      imageId,
-      points: newPoints,
-    });
-
+    saveSegmentContours(selectedSegmentId!, nextContours);
     setSelectedContourIndex(null);
   };
+
+  const handleStartDraw = () => setIsDrawMode(true);
+  const handleCancelDraw = () => setIsDrawMode(false);
 
   return (
     <SplitLayout>
@@ -193,7 +183,7 @@ export function Component() {
             currentIndex={safeIndex}
             totalImages={standard.stats.images_count}
             isReference={image.is_reference}
-            isCurrentAnnotated={image.annotation_count > 0}
+            isCurrentAnnotated={isCurrentAnnotated}
             segmentsCount={standard.stats.segments_count}
             canGoPrev={!!prevImage}
             canGoNext={!!nextImage}
@@ -209,13 +199,13 @@ export function Component() {
           <Canvas
             imageUrl={imageUrl}
             segmentGroups={segmentGroups}
-            segments={imageSegments}
+            segments={annotatedSegments}
             selectedId={selectedSegmentId}
             onSelect={setSelectedSegmentId}
-            onPointsChange={handlePointsChange}
+            onPointsChange={saveSegmentContours}
             onFinishDrawing={handleFinishDrawing}
             isDrawMode={isDrawMode}
-            onCancelDraw={() => setIsDrawMode(false)}
+            onCancelDraw={handleCancelDraw}
             selectedContourIndex={selectedContourIndex}
             onSelectContour={setSelectedContourIndex}
           />
@@ -225,12 +215,12 @@ export function Component() {
       <SplitLayout.Panel>
         <SegmentPanel
           standard={standard}
-          segments={segments}
+          segments={standardSegments}
           segmentGroups={segmentGroups}
-          imageSegments={imageSegments}
+          imageSegments={annotatedSegments}
           selectedSegmentId={selectedSegmentId}
           onSelectSegment={setSelectedSegmentId}
-          onStartDraw={() => setIsDrawMode(true)}
+          onStartDraw={handleStartDraw}
           onRefine={handleRefine}
           isRefining={refine.isPending || annotate.isPending}
           selectedContourIndex={selectedContourIndex}

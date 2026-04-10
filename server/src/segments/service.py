@@ -300,7 +300,10 @@ async def save_annotation(
     )
     annotation = result.scalar_one_or_none()
 
-    if annotation is None:
+    if not data.points:
+        if annotation is not None:
+            await db.delete(annotation)
+    elif annotation is None:
         annotation = SegmentAnnotation(
             segment_id=segment_id,
             image_id=image_id,

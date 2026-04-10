@@ -174,10 +174,16 @@ async def _ensure_name_unique(
 
 async def get_groups(
     db: AsyncSession,
+    search: str | None = None,
 ) -> list[GroupListItemResponse]:
-    rows = (
-        await db.execute(_build_group_stats_query().order_by(Group.created_at.desc()))
-    ).all()
+    query = _build_group_stats_query().order_by(Group.created_at.desc())
+
+    if search:
+        trimmed = search.strip()
+        if trimmed:
+            query = query.where(func.lower(Group.name).contains(trimmed.lower()))
+
+    rows = (await db.execute(query)).all()
 
     return [
         GroupListItemResponse(

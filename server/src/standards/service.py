@@ -40,12 +40,14 @@ def _build_standard_mutation_response(
 def _build_standard_image_response(
     image: StandardImage,
 ) -> StandardImageResponse:
+    annotation_count = sum(1 for annotation in image.annotations if annotation.points)
+
     return StandardImageResponse(
         id=image.id,
         standard_id=image.standard_id,
         image_path=image.image_path,
         is_reference=image.is_reference,
-        annotation_count=len(image.annotations),
+        annotation_count=annotation_count,
         created_at=image.created_at,
     )
 
@@ -79,7 +81,9 @@ def _build_standard_stats_response(
         (image for image in standard.images if image.is_reference), None
     )
     annotated_images_count = sum(
-        1 for image in standard.images if len(image.annotations) > 0
+        1
+        for image in standard.images
+        if any(annotation.points for annotation in image.annotations)
     )
 
     return StandardStatsResponse(
@@ -294,13 +298,14 @@ async def get_image(
     annotation_points_by_segment_id = {
         annotation.segment_id: annotation.points for annotation in image.annotations
     }
+    annotation_count = sum(1 for annotation in image.annotations if annotation.points)
 
     return StandardImageDetailResponse(
         id=image.id,
         standard_id=image.standard_id,
         image_path=image.image_path,
         is_reference=image.is_reference,
-        annotation_count=len(image.annotations),
+        annotation_count=annotation_count,
         created_at=image.created_at,
         segments=[
             StandardSegmentWithPointsResponse(
