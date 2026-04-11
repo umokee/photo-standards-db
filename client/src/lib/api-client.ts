@@ -1,6 +1,7 @@
 import axios from "axios";
-import { BASE_URL } from "../utils/constants";
 import { ApiErrorDetails, getErrorMessage } from "./errors";
+
+export const BASE_URL = "http://localhost:3001";
 
 export class ApiError extends Error {
   code: string;

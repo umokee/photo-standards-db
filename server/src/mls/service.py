@@ -1,12 +1,13 @@
+from pathlib import Path
 from uuid import UUID
 
+from config import STORAGE_PATH
 from exception import NotFoundError, ValidationError
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import MlModel, TrainingTask
-from .schemas import MlModelResponse, TrainingTaskResponse
-from .weights import resolve_weights_path
+from .models import MlModel
+from .schemas import MlModelResponse
 
 
 async def get_models(
@@ -15,22 +16,20 @@ async def get_models(
 ) -> list[MlModelResponse]:
     models = await db.execute(
         select(MlModel)
-        .where(MlModel.group_id == group_id, MlModel.trained_at.is_not(None))
+        .where(MlModel.group_id == group_id)
         .order_by(MlModel.version.desc())
     )
     return models.scalars().all()
 
 
-async def get_tasks(
+async def get_model(
     db: AsyncSession,
-    group_id: UUID,
-) -> list[TrainingTaskResponse]:
-    tasks = await db.execute(
-        select(TrainingTask)
-        .where(TrainingTask.group_id == group_id)
-        .order_by(TrainingTask.created_at.desc())
-    )
-    return tasks.scalars().all()
+    model_id: UUID,
+) -> MlModelResponse:
+    model = await db.get(MlModel, model_id)
+    if not model:
+        raise NotFoundError("Модель", "ml_model", model_id)
+    return model
 
 
 async def activate(
@@ -42,11 +41,11 @@ async def activate(
         raise NotFoundError("Модель", "ml_model", model_id)
 
     if not model.trained_at:
-        raise ValidationError("Активировать можно только успешно обученную модель")
+        raise ValidationError("Активировать можно только обученную модель")
 
-    weights_path = resolve_weights_path(model.weights_path)
+    weights_path = STORAGE_PATH / Path(model.weights_path)
     if not weights_path.is_file():
-        raise ValidationError("Невозможно активировать модель: файл весов не найден")
+        raise ValidationError("Файл весов не найден")
 
     await db.execute(
         update(MlModel)
@@ -58,13 +57,3 @@ async def activate(
     await db.commit()
     await db.refresh(model)
     return model
-
-
-async def get_task_status(
-    db: AsyncSession,
-    task_id: UUID,
-) -> TrainingTaskResponse:
-    task = await db.get(TrainingTask, task_id)
-    if not task:
-        raise NotFoundError("Задача", "training_task", task_id)
-    return task

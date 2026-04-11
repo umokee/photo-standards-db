@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import sqlalchemy
+from _shared.constants import inspections
 from database import Base
 from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -26,12 +27,12 @@ class InspectionResult(Base):
     image_path: Mapped[str] = mapped_column(String(500))
     result_image_path: Mapped[str | None] = mapped_column(String(500), default=None)
     status: Mapped[str] = mapped_column(
-        sqlalchemy.Enum("passed", "failed", name="inspection_status_enum"),
-        default="passed",
+        sqlalchemy.Enum(*inspections.statuses.all, name="inspection_status_enum"),
+        default=inspections.statuses.default,
     )
     mode: Mapped[str] = mapped_column(
-        sqlalchemy.Enum("photo", "snapshot", "realtime", name="inspection_mode_enum"),
-        default="photo",
+        sqlalchemy.Enum(*inspections.modes.all, name="inspection_mode_enum"),
+        default=inspections.modes.default,
     )
     total_segments: Mapped[int] = mapped_column()
     matched_segments: Mapped[int] = mapped_column()

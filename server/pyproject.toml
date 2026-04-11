@@ -9,7 +9,7 @@ dependencies = [
 
   "sqlalchemy",
   "asyncpg",
-  "psycopg2-binary",
+  "psycopg[binary]", 
   "pydantic-settings",
   "pydantic",
 
@@ -22,7 +22,9 @@ dependencies = [
 
   "onnxruntime",
   "ultralytics",
-  "pillow"
+  "pillow",
+
+  "procrastinate"
 ]
 
 [tool.uv]

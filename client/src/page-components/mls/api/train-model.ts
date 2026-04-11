@@ -1,7 +1,7 @@
 import { client } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { notifySuccess, type MutationConfig } from "@/lib/react-query";
-import { Architecture, TrainingTaskItem } from "@/types/contracts";
+import { Architecture, MlModel } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface TrainModelInput {
@@ -14,7 +14,7 @@ export interface TrainModelInput {
   batch_size: number;
 }
 
-export const trainModel = (data: TrainModelInput): Promise<TrainingTaskItem> => {
+export const trainModel = (data: TrainModelInput): Promise<MlModel> => {
   return client.post("/models/train", data);
 };
 
@@ -31,7 +31,6 @@ export const useTrainModel = ({ groupId, mutationConfig }: Options) => {
     mutationFn: trainModel,
     onSuccess: (...args) => {
       qc.invalidateQueries({ queryKey: queryKeys.training.models(groupId) });
-      qc.invalidateQueries({ queryKey: queryKeys.training.tasks(groupId) });
       qc.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
       notifySuccess("Обучение модели запущено");
       onSuccess?.(...args);

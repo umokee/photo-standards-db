@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from _shared.constants import segments
 from _shared.schemas import Name, UpdateNotEmpty
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -7,12 +8,20 @@ from pydantic import BaseModel, ConfigDict, Field
 class SegmentGroupCreate(BaseModel):
     standard_id: UUID
     name: Name
-    hue: int = Field(210, ge=0, le=359)
+    hue: int = Field(
+        segments.hue.default,
+        ge=segments.hue.min,
+        le=segments.hue.max,
+    )
 
 
 class SegmentGroupUpdate(UpdateNotEmpty):
     name: Name | None = None
-    hue: int | None = Field(None, ge=0, le=359)
+    hue: int | None = Field(
+        None,
+        ge=segments.hue.min,
+        le=segments.hue.max,
+    )
 
 
 class SegmentGroupResponse(BaseModel):
@@ -76,7 +85,7 @@ class SegmentDraftItem(BaseModel):
 class SegmentGroupDraftItem(BaseModel):
     id: UUID | None = None
     name: Name
-    hue: int = Field(ge=0, le=359)
+    hue: int = Field(ge=segments.hue.min, le=segments.hue.max)
     segments: list[SegmentDraftItem] = Field(default_factory=list)
 
 

@@ -1,15 +1,14 @@
 import { SectionHeader } from "@/components/layouts/section-header/section-header";
 import Button from "@/components/ui/button/button";
 import ProgressBar from "@/components/ui/progress-bar/progress-bar";
-import { GroupDetail, MlModelListItem, TrainingTaskItem } from "@/types/contracts";
+import { getTrainingPercent, GroupDetail, MlModel } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { AlertCircle, CheckCircle2, Clock3, Cpu, Sparkles } from "lucide-react";
 import s from "./model-details.module.scss";
 
 interface Props {
-  group: GroupDetail;
-  model: MlModelListItem | null;
-  task?: TrainingTaskItem | null;
+  group?: GroupDetail | null;
+  model: MlModel | null;
   pendingLabel?: string;
   onActivate?: () => void;
   isActivating?: boolean;
@@ -30,7 +29,6 @@ const formatMetric = (value: number | null | undefined) => {
 export default function ModelDetails({
   group,
   model,
-  task,
   pendingLabel = "В очереди",
   onActivate,
   isActivating,
@@ -44,12 +42,14 @@ export default function ModelDetails({
     );
   }
 
+  const status = model.training_status;
   const isTrained = !!model.trained_at;
   const isDeployActive = model.is_active && isTrained;
-  const isQueued = task?.status === "pending";
-  const isBusy = task && ["preparing", "training", "saving"].includes(task.status);
-  const isFailed = task?.status === "failed";
+  const isQueued = status === "pending";
+  const isBusy = status !== null && ["preparing", "training", "saving"].includes(status);
+  const isFailed = status === "failed";
   const canActivate = !!onActivate && !isActivating;
+  const progress = getTrainingPercent(model);
 
   return (
     <div className={s.root}>
@@ -94,7 +94,7 @@ export default function ModelDetails({
         <div className={s.metricsPreview}>
           <div>
             <span>Классов</span>
-            <strong>{model.num_classes ?? group.stats.segment_groups_count}</strong>
+            <strong>{model.num_classes ?? group?.stats.segment_groups_count ?? "n/a"}</strong>
           </div>
           <div>
             <span>Эпох</span>
@@ -107,21 +107,23 @@ export default function ModelDetails({
         </div>
       </div>
 
-      <div className={s.standards}>
-        <div className={s.blockTitle}>Покрытие эталонов</div>
-        <div className={s.standardList}>
-          {group.standards.map((standard) => (
-            <div key={standard.id} className={s.standardRow}>
-              <span className={s.standardName}>{standard.name ?? "Без названия"}</span>
-              <ProgressBar
-                value={standard.annotated_images_count}
-                max={standard.images_count}
-                warn={standard.annotated_images_count < standard.images_count}
-              />
-            </div>
-          ))}
+      {group && (
+        <div className={s.standards}>
+          <div className={s.blockTitle}>Покрытие эталонов</div>
+          <div className={s.standardList}>
+            {group.standards.map((standard) => (
+              <div key={standard.id} className={s.standardRow}>
+                <span className={s.standardName}>{standard.name ?? "Без названия"}</span>
+                <ProgressBar
+                  value={standard.annotated_images_count}
+                  max={standard.images_count}
+                  warn={standard.annotated_images_count < standard.images_count}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={s.grid}>
         <div className={s.card}>
@@ -145,6 +147,8 @@ export default function ModelDetails({
                     ? pendingLabel.toLowerCase()
                     : isBusy
                       ? "обучается"
+                      : isTrained
+                        ? "готова"
                       : "неактивная"}
             </strong>
           </div>
@@ -161,10 +165,24 @@ export default function ModelDetails({
         </div>
       </div>
 
-      {isFailed && task?.error && (
+      {(isQueued || isBusy) && (
+        <div className={s.card}>
+          <div className={s.blockTitle}>Состояние обучения</div>
+          <div className={s.kv}>
+            <span>Этап</span>
+            <strong>{isQueued ? pendingLabel : (model.training_stage ?? "В процессе")}</strong>
+          </div>
+          <div className={s.kv}>
+            <span>Прогресс</span>
+            <strong>{model.training_status === "saving" ? "100%" : `${progress}%`}</strong>
+          </div>
+        </div>
+      )}
+
+      {isFailed && model.training_error && (
         <div className={s.card}>
           <div className={s.blockTitle}>Ошибка обучения</div>
-          <div className={s.emptyText}>{task.error}</div>
+          <div className={s.emptyText}>{model.training_error}</div>
         </div>
       )}
 

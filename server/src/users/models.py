@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import sqlalchemy
+from _shared.constants import users
 from database import Base
 from sqlalchemy import String, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -15,8 +16,8 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(
-        sqlalchemy.Enum("operator", "inspector", "admin", name="role_enum"),
-        default="operator",
+        sqlalchemy.Enum(*users.roles.all, name="role_enum"),
+        default=users.roles.default,
     )
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

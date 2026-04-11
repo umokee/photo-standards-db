@@ -1,18 +1,12 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy
+from _shared.constants import training
 from database import Base
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-Architecture = Literal[
-    "yolov26n-seg", "yolov26s-seg", "yolov26m-seg", "yolov26l-seg", "yolov26x-seg"
-]
-Status = Literal["pending", "preparing", "training", "saving", "done", "failed"]
-Imgsz = Literal[320, 416, 512, 640, 768, 1024, 1280]
 
 
 class MlModel(Base):
@@ -24,6 +18,12 @@ class MlModel(Base):
             unique=True,
             postgresql_where=text("is_active = true"),
         ),
+        Index(
+            "uq_group_model_version",
+            "group_id",
+            "version",
+            unique=True,
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
@@ -31,26 +31,19 @@ class MlModel(Base):
         ForeignKey("groups.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(255))
-    architecture: Mapped[Architecture] = mapped_column(
-        sqlalchemy.Enum(
-            "yolov26n-seg",
-            "yolov26s-seg",
-            "yolov26m-seg",
-            "yolov26l-seg",
-            "yolov26x-seg",
-            name="architecture_enum",
-        ),
-        default="yolov26n-seg",
+    version: Mapped[int] = mapped_column(Integer, CheckConstraint("version > 0"))
+    architecture: Mapped[str] = mapped_column(
+        sqlalchemy.Enum(*training.architecture.all, name="architecture_enum"),
+        default=training.architecture.default,
     )
     weights_path: Mapped[str] = mapped_column(String(500))
-    version: Mapped[int] = mapped_column(Integer, CheckConstraint("version > 0"))
     epochs: Mapped[int | None] = mapped_column(
         Integer, CheckConstraint("epochs > 0"), default=None
     )
     imgsz: Mapped[int] = mapped_column(
         Integer,
-        CheckConstraint("imgsz IN (320, 416, 512, 640, 768, 1024, 1280)"),
-        default=640,
+        CheckConstraint(f"imgsz IN ({', '.join(map(str, training.image_size.all))})"),
+        default=training.image_size.default,
     )
     batch_size: Mapped[int | None] = mapped_column(
         Integer, CheckConstraint("batch_size > 0"), default=None
@@ -60,6 +53,35 @@ class MlModel(Base):
     )
     metrics: Mapped[dict | None] = mapped_column(JSONB, default=None)
     class_names: Mapped[list | None] = mapped_column(JSONB, default=None)
+    train_ratio: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("train_ratio BETWEEN 0 AND 100"), default=None
+    )
+    val_ratio: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("val_ratio BETWEEN 0 AND 100"), default=None
+    )
+    test_ratio: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("test_ratio BETWEEN 0 AND 100"), default=None
+    )
+    total_images: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("total_images >= 0"), default=None
+    )
+    train_count: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("train_count >= 0"), default=None
+    )
+    val_count: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("val_count >= 0"), default=None
+    )
+    test_count: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("test_count >= 0"), default=None
+    )
+    training_status: Mapped[str | None] = mapped_column(String(50), default=None)
+    training_progress: Mapped[int | None] = mapped_column(
+        Integer(), CheckConstraint("training_progress >= 0"), default=None
+    )
+    training_stage: Mapped[str | None] = mapped_column(String(255), default=None)
+    training_error: Mapped[str | None] = mapped_column(String(500), default=None)
+    training_started_at: Mapped[datetime | None] = mapped_column(default=None)
+    training_finished_at: Mapped[datetime | None] = mapped_column(default=None)
     is_active: Mapped[bool] = mapped_column(default=False)
     trained_at: Mapped[datetime | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
@@ -68,47 +90,3 @@ class MlModel(Base):
     inspections: Mapped[list["InspectionResult"]] = relationship(
         back_populates="ml_model"
     )
-    training_tasks: Mapped[list["TrainingTask"]] = relationship(
-        back_populates="ml_model"
-    )
-
-
-class TrainingTask(Base):
-    __tablename__ = "training_tasks"
-
-    id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    group_id: Mapped[UUID] = mapped_column(
-        ForeignKey("groups.id", ondelete="CASCADE"), index=True
-    )
-    model_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("ml_models.id", ondelete="SET NULL"), default=None, index=True
-    )
-    status: Mapped[Status] = mapped_column(
-        sqlalchemy.Enum(
-            "pending",
-            "preparing",
-            "training",
-            "saving",
-            "done",
-            "failed",
-            name="training_status_enum",
-        ),
-        default="pending",
-    )
-    train_ratio: Mapped[int | None] = mapped_column(
-        Integer(), CheckConstraint("train_ratio BETWEEN 0 AND 100"), default=None
-    )
-    val_ratio: Mapped[int | None] = mapped_column(
-        Integer(), CheckConstraint("val_ratio BETWEEN 0 AND 100"), default=None
-    )
-    progress: Mapped[int | None] = mapped_column(
-        Integer(), CheckConstraint("progress > 0"), default=None
-    )
-    stage: Mapped[str | None] = mapped_column(String(255), default=None)
-    error: Mapped[str | None] = mapped_column(String(500), default=None)
-    started_at: Mapped[datetime | None] = mapped_column(default=None)
-    finished_at: Mapped[datetime | None] = mapped_column(default=None)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-
-    group: Mapped["Group"] = relationship(back_populates="training_tasks")
-    ml_model: Mapped["MlModel | None"] = relationship(back_populates="training_tasks")

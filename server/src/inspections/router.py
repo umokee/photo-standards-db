@@ -2,6 +2,7 @@ from pathlib import Path
 from random import uniform
 from uuid import UUID, uuid4
 
+from _shared.constants import inspections
 from config import STORAGE_PATH
 from database import get_session
 from exception import NotFoundError, ValidationError
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/inspections", tags=["inspections"])
 async def run_inspection(
     standard_id: UUID = Form(...),
     camera_id: UUID | None = Form(None),
-    mode: str = Form("photo"),
+    mode: str = Form(inspections.modes.default),
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_session),
 ):
@@ -48,7 +49,7 @@ async def run_inspection(
 
     details = []
     for segment in standard.segments:
-        confidence = round(uniform(0.1, 0.99), 2)
+        confidence = round(uniform(0.1, 0.99), 2)  # noqa: S311
         found = confidence >= segment.confidence_threshold
         details.append(
             InspectionSegmentDetail(
@@ -61,7 +62,11 @@ async def run_inspection(
 
     matched = sum(1 for d in details if d.found)
     total = len(details)
-    status = "passed" if matched == total else "failed"
+    status = (
+        inspections.statuses.passed
+        if matched == total
+        else inspections.statuses.failed
+    )
     missing = [d.label for d in details if not d.found]
 
     inspection = InspectionResult(

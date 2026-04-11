@@ -1,12 +1,15 @@
-export type Angle = "front" | "top" | "left" | "right" | "back";
-export type UserRole = "operator" | "inspector" | "admin";
-export type InspectionStatus = "passed" | "failed";
-export type InspectionMode = "photo" | "snapshot" | "realtime";
-export type Architecture =
-  | "yolov26n-seg"
-  | "yolov26s-seg"
-  | "yolov26m-seg"
-  | "yolov26l-seg"
-  | "yolov26x-seg";
+import {
+  ANGLES,
+  APP_CONSTANTS,
+  INSPECTION_MODES,
+  INSPECTION_STATUSES,
+  TRAINING_STATUSES,
+  USER_ROLES,
+} from "@/constants";
 
-export type TrainingStatus = "pending" | "preparing" | "training" | "saving" | "done" | "failed";
+export type Angle = (typeof ANGLES)[number];
+export type UserRole = (typeof USER_ROLES)[number];
+export type InspectionMode = (typeof INSPECTION_MODES)[number];
+export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
+export type TrainingStatus = (typeof TRAINING_STATUSES)[number];
+export type Architecture = (typeof APP_CONSTANTS.training.architectures)[number]["value"];

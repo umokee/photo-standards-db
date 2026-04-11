@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -7,7 +8,7 @@ from cameras.router import router as cameras_router
 from config import STORAGE_PATH
 from database import Base, engine
 from exception import AppError, InternalServerError, ValidationError
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,25 +17,46 @@ from groups.models import Group  # noqa: F401
 from groups.router import router as groups_router
 from inspections.models import InspectionResult, InspectionSegmentResult  # noqa: F401
 from inspections.router import router as inspections_router
-from mls import worker
-from mls.models import MlModel, TrainingTask  # noqa: F401
+from mls.models import MlModel  # noqa: F401
 from mls.router import router as models_router
+from procrastinate.schema import SchemaManager
 from segments.models import Segment, SegmentAnnotation, SegmentGroup  # noqa: F401
 from segments.router import segment_group_router as segment_groups_router
 from segments.router import segment_router as segments_router
 from standards.models import Standard, StandardImage  # noqa: F401
 from standards.router import router as standards_router
+from tasks.app import app as procrastinate_app
 from users.models import User  # noqa: F401
 from users.router import router as users_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    worker.start()
-    yield
-    worker.stop()
+        logger.info("База данных создана")
+
+    async with procrastinate_app.open_async():
+        if not await procrastinate_app.check_connection_async():
+            await SchemaManager(procrastinate_app.connector).apply_schema_async()
+
+        worker = asyncio.create_task(
+            procrastinate_app.run_worker_async(
+                queues=["inspection", "training"],
+                concurrency=2,
+                install_signal_handlers=False,
+            )
+        )
+        logger.info("Worker запущен")
+        yield
+
+        worker.cancel()
+        try:
+            await asyncio.wait_for(worker, timeout=15)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            logger.info("Worker остановлен")
 
 
 app = FastAPI(
@@ -42,7 +64,30 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-logger = logging.getLogger(__name__)
+_PYDANTIC_RU: dict[str, str] = {
+    "missing": "Поле обязательно",
+    "string_too_short": "Слишком короткое значение",
+    "string_too_long": "Слишком длинное значение",
+    "string_pattern_mismatch": "Некорректный формат",
+    "string_type": "Ожидается строка",
+    "int_parsing": "Некорректное число",
+    "int_type": "Ожидается число",
+    "float_parsing": "Некорректное число",
+    "float_type": "Ожидается число",
+    "bool_parsing": "Некорректное булево значение",
+    "bool_type": "Ожидается булево значение",
+    "uuid_parsing": "Некорректный идентификатор",
+    "uuid_type": "Некорректный идентификатор",
+    "literal_error": "Недопустимое значение",
+    "enum": "Недопустимое значение",
+    "greater_than": "Значение слишком маленькое",
+    "greater_than_equal": "Значение слишком маленькое",
+    "less_than": "Значение слишком большое",
+    "less_than_equal": "Значение слишком большое",
+    "list_type": "Ожидается список",
+    "dict_type": "Ожидается объект",
+    "value_error": "Некорректное значение",
+}
 
 
 def _json_error_response(error: AppError) -> JSONResponse:
@@ -58,38 +103,7 @@ def _normalize_error_field(loc: tuple[Any, ...]) -> str:
 
 
 def _translate_validation_message(error_type: str, message: str) -> str:
-    ru_messages = {
-        "missing": "Поле обязательно",
-        "string_too_short": "Слишком короткое значение",
-        "string_too_long": "Слишком длинное значение",
-        "string_pattern_mismatch": "Некорректный формат",
-        "string_type": "Ожидается строка",
-        "int_parsing": "Некорректное число",
-        "int_type": "Ожидается число",
-        "float_parsing": "Некорректное число",
-        "float_type": "Ожидается число",
-        "bool_parsing": "Некорректное булево значение",
-        "bool_type": "Ожидается булево значение",
-        "uuid_parsing": "Некорректный идентификатор",
-        "uuid_type": "Некорректный идентификатор",
-        "literal_error": "Недопустимое значение",
-        "enum": "Недопустимое значение",
-        "greater_than": "Значение слишком маленькое",
-        "greater_than_equal": "Значение слишком маленькое",
-        "less_than": "Значение слишком большое",
-        "less_than_equal": "Значение слишком большое",
-        "list_type": "Ожидается список",
-        "dict_type": "Ожидается объект",
-    }
-
-    if error_type in ru_messages:
-        return ru_messages[error_type]
-
-    lowered = message.lower()
-    if lowered == "field required":
-        return "Поле обязательно"
-
-    return "Некорректное значение"
+    return _PYDANTIC_RU.get(error_type, message)
 
 
 def _build_validation_errors(exc: RequestValidationError) -> list[dict[str, str]]:

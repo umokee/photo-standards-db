@@ -1,10 +1,10 @@
+import { ROLES_OPTIONS } from "@/constants.ts";
 import { useState } from "react";
 import Button from "../../components/ui/button.tsx";
 import Input from "../../components/ui/input.tsx";
 import Modal from "../../components/ui/modal.tsx";
 import Select from "../../components/ui/select.tsx";
 import Toggle from "../../components/ui/toggle.tsx";
-import { ROLES } from "../../utils/constants.ts";
 
 export default function UserUpdateModal({
   isPending,
@@ -52,7 +52,7 @@ export default function UserUpdateModal({
         <Input label="Полное имя" placeholder="Пример" value={fullName} onChange={setFullName} />
         <Select
           label="Роль"
-          options={ROLES}
+          options={ROLES_OPTIONS}
           value={role}
           placeholder="Выберите роль"
           onChange={setRole}

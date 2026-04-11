@@ -1,13 +1,11 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID, uuid4
 
 import sqlalchemy
+from _shared.constants import standards
 from database import Base
 from sqlalchemy import ForeignKey, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-Angle = Literal["front", "top", "left", "right", "back"]
 
 
 class Standard(Base):
@@ -18,8 +16,8 @@ class Standard(Base):
         ForeignKey("groups.id", ondelete="CASCADE"), index=True
     )
     name: Mapped[str] = mapped_column(String(255))
-    angle: Mapped[Angle | None] = mapped_column(
-        sqlalchemy.Enum("front", "top", "left", "right", "back", name="angle_enum"),
+    angle: Mapped[str | None] = mapped_column(
+        sqlalchemy.Enum(*standards.angles.all, name="angle_enum"),
         default=None,
     )
     is_active: Mapped[bool] = mapped_column(default=True)

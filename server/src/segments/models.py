@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 
+from _shared.constants import segments
 from database import Base
 from sqlalchemy import (
     JSON,
@@ -22,7 +23,9 @@ class SegmentGroup(Base):
     )
     name: Mapped[str] = mapped_column(String(255))
     hue: Mapped[int] = mapped_column(
-        Integer, CheckConstraint("hue BETWEEN 0 AND 359"), default=210
+        Integer,
+        CheckConstraint(f"hue BETWEEN {segments.hue.min} AND {segments.hue.max}"),
+        default=segments.hue.default,
     )
 
     standard: Mapped["Standard"] = relationship(back_populates="segment_groups")

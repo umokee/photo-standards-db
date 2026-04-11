@@ -6,7 +6,7 @@ import { UpdateGroup } from "@/page-components/groups/components/update-group";
 import { CreateStandard } from "@/page-components/standards/components/create-standard";
 import { GroupDetail } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
-import { Outlet, useLoaderData, useNavigate, useOutletContext } from "react-router-dom";
+import { Outlet, useLoaderData, useOutletContext } from "react-router-dom";
 
 type GroupDetailOutletContext = {
   group: GroupDetail;
@@ -17,7 +17,6 @@ export const useGroupDetailOutletContext = () => {
 };
 
 export function Component() {
-  const navigate = useNavigate();
   const { groupId } = useLoaderData() as { groupId: string };
   const groupQuery = useGetGroup(groupId);
 

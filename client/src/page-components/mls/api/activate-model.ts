@@ -1,10 +1,10 @@
 import { client } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { notifySuccess, type MutationConfig } from "@/lib/react-query";
-import { MlModelListItem } from "@/types/contracts";
+import { MlModel } from "@/types/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export const activateModel = (modelId: string): Promise<MlModelListItem> => {
+export const activateModel = (modelId: string): Promise<MlModel> => {
   return client.put(`/models/${modelId}/activate`);
 };
 

@@ -26,6 +26,52 @@ export default function Input({
   step,
   onChange,
 }: Props) {
+  const handleChange = (nextValue: string) => {
+    if (type !== "number") {
+      onChange(nextValue);
+      return;
+    }
+
+    if (nextValue === "") {
+      onChange(nextValue);
+      return;
+    }
+
+    const nextNumber = Number(nextValue);
+    if (Number.isNaN(nextNumber)) return;
+
+    if (max !== undefined && nextNumber > max) {
+      onChange(String(max));
+      return;
+    }
+
+    onChange(nextValue);
+  };
+
+  const handleBlur = () => {
+    if (type !== "number" || value === "") return;
+
+    const nextNumber = Number(value);
+    if (Number.isNaN(nextNumber)) return;
+
+    if (min !== undefined && nextNumber < min) {
+      onChange(String(min));
+      return;
+    }
+
+    if (max !== undefined && nextNumber > max) {
+      onChange(String(max));
+    }
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (type !== "number") return;
+
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className={clsx(s.root, noMargin && s.noMargin)}>
       {label && <label className={s.label}>{label}</label>}
@@ -37,7 +83,9 @@ export default function Input({
         min={min}
         max={max}
         step={step}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
       />
       {error && <span className={s.errorMsg}>{error}</span>}
     </div>

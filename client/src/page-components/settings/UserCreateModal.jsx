@@ -1,9 +1,9 @@
+import { ROLES_OPTIONS } from "@/constants.ts";
 import { useState } from "react";
 import Button from "../../components/ui/button.tsx";
 import Input from "../../components/ui/input.tsx";
 import Modal from "../../components/ui/modal.tsx";
 import Select from "../../components/ui/select.tsx";
-import { ROLES } from "../../utils/constants.ts";
 
 export default function UserCreateModal({ isPending, onClose, onSubmit }) {
   const [username, setUsername] = useState("");
@@ -42,7 +42,7 @@ export default function UserCreateModal({ isPending, onClose, onSubmit }) {
         />
         <Select
           label="Роль"
-          options={ROLES}
+          options={ROLES_OPTIONS}
           value={role}
           placeholder="Выберите роль"
           onChange={setRole}

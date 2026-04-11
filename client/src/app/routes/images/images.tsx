@@ -10,15 +10,15 @@ import { SegmentPanel } from "@/page-components/segments/components/segment-pane
 import { useGetImage } from "@/page-components/standards/api/get-image";
 import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
 import { StandardImageDetail } from "@/types/contracts";
-import { BASE_URL } from "@/utils/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { paths } from "../paths";
+import { useLoaderData, useNavigate } from "react-router-dom";
+import { paths } from "../../paths";
+import { BASE_URL } from "@/lib/api-client";
 
 export function Component() {
   const navigate = useNavigate();
-  const { groupId, standardId, imageId } = useParams();
+  const { groupId, standardId, imageId } = useLoaderData();
 
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [selectedContourIndex, setSelectedContourIndex] = useState<number | null>(null);
@@ -29,19 +29,6 @@ export function Component() {
     setSelectedContourIndex(null);
     setIsDrawMode(false);
   }, [imageId]);
-
-  if (!groupId || !standardId || !imageId) {
-    return (
-      <QueryState
-        isEmpty
-        size="page"
-        emptyTitle="Некорректный адрес"
-        emptyDescription="Не удалось найти группу, эталон или изображение"
-      >
-        {null}
-      </QueryState>
-    );
-  }
 
   const groupQuery = useGetGroup(groupId);
   const standardQuery = useGetStandardDetail(standardId);
@@ -54,23 +41,18 @@ export function Component() {
   const group = groupQuery.data;
   const standard = standardQuery.data;
   const image = imageQuery.data;
+  const isError = groupQuery.isError || standardQuery.isError || imageQuery.isError;
 
-  const isLoading = groupQuery.isPending || standardQuery.isPending || imageQuery.isPending;
-  const isError = !!groupQuery.error || !!standardQuery.error || !!imageQuery.error;
-  const isEmpty = !isLoading && !isError && (!group || !standard || !image);
-
-  if (isLoading || isError || isEmpty) {
+  if (isError || !group || !standard || !image) {
     return (
       <QueryState
-        isLoading={isLoading}
         isError={isError}
-        isEmpty={isEmpty}
+        isEmpty={!isError}
         size="page"
-        loadingText="Загрузка изображения"
         errorTitle="Не удалось открыть изображение"
         errorDescription="Проверьте подключение или попробуйте перезагрузить страницу"
         emptyTitle="Изображение не найдено"
-        emptyDescription="Данные изображения или эталона не найдены"
+        emptyDescription="Данные изображения, эталона или группы недоступны"
       >
         {null}
       </QueryState>

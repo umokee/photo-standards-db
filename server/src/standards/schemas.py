@@ -1,17 +1,9 @@
 from datetime import datetime
-from enum import StrEnum
 from uuid import UUID
 
+from _shared.constants import standards
 from _shared.schemas import Name, UpdateNotEmpty
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class Angle(StrEnum):
-    front = "front"
-    top = "top"
-    left = "left"
-    right = "right"
-    back = "back"
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StandardSegmentResponse(BaseModel):
@@ -70,7 +62,7 @@ class StandardDetailResponse(BaseModel):
     id: UUID
     group_id: UUID
     name: str
-    angle: Angle | None
+    angle: str | None
     is_active: bool
     created_at: datetime
     stats: StandardStatsResponse
@@ -84,20 +76,38 @@ class StandardDetailResponse(BaseModel):
 class StandardCreate(BaseModel):
     group_id: UUID
     name: Name
-    angle: Angle | None = None
+    angle: str | None = None
+
+    @field_validator("angle")
+    @classmethod
+    def validate_angle(cls, val: str) -> str:
+        if val not in standards.angles.all:
+            raise ValueError(
+                f"Ракурс должен быть один из {', '.join(standards.angles.all)}"
+            )
+        return val
 
 
 class StandardUpdate(UpdateNotEmpty):
     name: Name | None = None
-    angle: Angle | None = None
+    angle: str | None = None
     is_active: bool | None = None
+
+    @field_validator("angle")
+    @classmethod
+    def validate_angle(cls, val: str | None) -> str | None:
+        if val is not None and val not in standards.angles.all:
+            raise ValueError(
+                f"Ракурс должен быть один из {', '.join(standards.angles.all)}"
+            )
+        return val
 
 
 class StandardMutationResponse(BaseModel):
     id: UUID
     group_id: UUID
     name: str
-    angle: Angle | None
+    angle: str | None
     is_active: bool
     created_at: datetime
 

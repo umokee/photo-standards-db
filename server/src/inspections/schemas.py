@@ -1,11 +1,7 @@
 from datetime import datetime
-from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-
-Status = Literal["passed", "failed"]
-Mode = Literal["photo", "snapshot", "realtime"]
 
 
 class InspectionSegmentDetail(BaseModel):
@@ -17,12 +13,12 @@ class InspectionSegmentDetail(BaseModel):
 
 class InspectionRunResponse(BaseModel):
     inspection_id: UUID
-    status: Status
+    status: str
     matched: int = Field(ge=0)
     total: int = Field(ge=0)
     missing: list[str]
     details: list[InspectionSegmentDetail]
-    mode: Mode
+    mode: str
     model_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -34,8 +30,8 @@ class InspectionResponse(BaseModel):
     model_id: UUID | None
     image_path: str
     result_image_path: str | None
-    status: Status
-    mode: Mode
+    status: str
+    mode: str
     total_segments: int
     matched_segments: int
     serial_number: str | None

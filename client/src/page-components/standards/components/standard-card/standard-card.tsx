@@ -2,7 +2,6 @@ import ImageWithFallback from "@/components/ui/image-with-fallback/image-with-fa
 import QueryState from "@/components/ui/query-state/query-state";
 import { ManageSegmentGroups } from "@/page-components/segments/components/manage-segment-groups/manage-segment-groups";
 import { GroupStandard, StandardDetail } from "@/types/contracts";
-import { BASE_URL } from "@/utils/constants";
 import clsx from "clsx";
 import { ChevronRight, Star, Trash2 } from "lucide-react";
 import { MouseEvent } from "react";
@@ -12,6 +11,7 @@ import { DeleteStandard } from "../delete-standard";
 import { UpdateStandard } from "../update-standard";
 import { UploadImages } from "../upload-images";
 import s from "./standard-card.module.scss";
+import { BASE_URL } from "@/lib/api-client";
 
 type Props = {
   standard: GroupStandard;

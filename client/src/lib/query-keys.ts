@@ -15,8 +15,7 @@ export const queryKeys = {
 
   training: {
     models: (groupId: string) => ["training", groupId, "models"] as const,
-    tasks: (groupId: string) => ["training", groupId, "tasks"] as const,
-    task: (taskId: string) => ["training", "tasks", taskId] as const,
+    model: (modelId: string) => ["training", "model", modelId] as const,
   },
 
   cameras: {

@@ -2,7 +2,7 @@ import Button from "@/components/ui/button/button";
 import Input from "@/components/ui/input/input";
 import { Modal, useModalClose } from "@/components/ui/modal/modal";
 import Select from "@/components/ui/select/select";
-import { ANGLES } from "@/utils/constants";
+import { ANGLE_OPTIONS } from "@/constants";
 import { getFieldError } from "@/utils/form";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -47,7 +47,7 @@ const CreateStandardModal = ({ groupId }: { groupId: string }) => {
         />
         <Select
           label="Ракурс"
-          options={ANGLES}
+          options={ANGLE_OPTIONS}
           value={angle ?? ""}
           placeholder="Выберите ракурс"
           onChange={(val) => setAngle(val ? (val as Angle) : null)}

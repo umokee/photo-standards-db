@@ -37,8 +37,7 @@ export function Component() {
               isLoading={camerasLoading}
               isError={camerasError}
               isEmpty={!filtered.length}
-              emptyText="Нет камер"
-              loader="skeleton"
+              emptyTitle="Нет камер"
             >
               {filtered.map((camera) => (
                 <Sidebar.Item

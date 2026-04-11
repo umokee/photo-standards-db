@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import service, train_service
-from .schemas import MlModelResponse, MlModelTrainRequest, TrainingTaskResponse
+from .schemas import MlModelResponse, MlModelTrainRequest
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -18,19 +18,19 @@ async def get_models(
     return await service.get_models(db, group_id)
 
 
-@router.get("/tasks", response_model=list[TrainingTaskResponse])
-async def get_tasks(
-    group_id: UUID,
+@router.get("/{model_id}", response_model=MlModelResponse)
+async def get_model(
+    model_id: UUID,
     db: AsyncSession = Depends(get_session),
-) -> list[TrainingTaskResponse]:
-    return await service.get_tasks(db, group_id)
+) -> MlModelResponse:
+    return await service.get_model(db, model_id)
 
 
-@router.post("/train", response_model=TrainingTaskResponse, status_code=201)
+@router.post("/train", response_model=MlModelResponse, status_code=201)
 async def train(
     data: MlModelTrainRequest,
     db: AsyncSession = Depends(get_session),
-) -> TrainingTaskResponse:
+) -> MlModelResponse:
     return await train_service.run_train(db, data)
 
 
@@ -40,11 +40,3 @@ async def activate(
     db: AsyncSession = Depends(get_session),
 ) -> MlModelResponse:
     return await service.activate(db, model_id)
-
-
-@router.get("/tasks/{task_id}", response_model=TrainingTaskResponse)
-async def get_task_status(
-    task_id: UUID,
-    db: AsyncSession = Depends(get_session),
-) -> TrainingTaskResponse:
-    return await service.get_task_status(db, task_id)

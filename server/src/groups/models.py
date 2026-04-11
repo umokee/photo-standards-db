@@ -20,4 +20,3 @@ class Group(Base):
     ml_models: Mapped[list["MlModel"]] = relationship(
         back_populates="group", cascade="all, delete-orphan"
     )
-    training_tasks: Mapped[list["TrainingTask"]] = relationship(back_populates="group")

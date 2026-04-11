@@ -1,11 +1,9 @@
 from pathlib import Path
 
+from _shared.constants import uploads
 from config import STORAGE_PATH
 from exception import ValidationError
 from fastapi import UploadFile
-
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/jpg"}
-MAX_SIZE = 20 * 1024 * 1024
 
 
 async def save_upload(
@@ -15,9 +13,9 @@ async def save_upload(
 ) -> str:
     contents = await upload.read()
 
-    if upload.content_type not in ALLOWED_TYPES:
+    if upload.content_type not in uploads.allowed_types:
         raise ValidationError("Только JPG и PNG файлы")
-    if len(contents) > MAX_SIZE:
+    if len(contents) > uploads.max_size_bytes:
         raise ValidationError("Файл слишком большой. Максимум 20 Мб")
 
     suffix = Path(upload.filename).suffix if upload.filename else ".jpg"
