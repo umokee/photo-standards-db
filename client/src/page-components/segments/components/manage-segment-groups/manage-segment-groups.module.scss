@@ -26,7 +26,7 @@
   flex-shrink: 0;
   border: 1px solid $line-soft;
   border-left: 3px solid hsl(var(--group-hue, 210) 65% 55%);
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: $surface;
 }
 
@@ -73,7 +73,7 @@
   flex-shrink: 0;
   padding: 0;
   border: 0;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: none;
 }
 
@@ -127,7 +127,7 @@
   height: 20px;
   flex-shrink: 0;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: none;
   color: $text-hint;
 

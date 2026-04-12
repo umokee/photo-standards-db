@@ -37,34 +37,6 @@
   white-space: nowrap;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 $space-2;
-  border-radius: 999px;
-  font-size: $text-small;
-  font-weight: $fw-medium;
-  line-height: 1;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.badgeReference {
-  background: $surface2;
-  color: $text-sub;
-}
-
-.badgeAnnotated {
-  background: $primary-bg;
-  color: $primary-text;
-}
-
-.badgePending {
-  background: $warning-bg;
-  color: $warning-text;
-}
-
 .actions {
   display: flex;
   align-items: center;

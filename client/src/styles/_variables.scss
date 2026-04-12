@@ -23,9 +23,7 @@ $space-6: clamp(16px, 2.5vw, 24px);
 $space-7: clamp(22px, 3vw, 32px);
 $space-8: clamp(30px, 3.5vw, 40px);
 
-$radius-sm: 5px;
-$radius-md: 5px;
-$radius-lg: 5px;
+$radius: 5px;
 
 $nav-height: clamp(44px, 6vh, 48px);
 $sidebar-width: 240px;
@@ -72,10 +70,6 @@ $text-sub: hsl(102, 8%, 32%);
 $text-hint: hsl(102, 7%, 54%);
 $text-off: hsl(100, 6%, 72%);
 $text-white: hsl(0, 0%, 100%);
-
-$shadow-sm: none;
-$shadow-card: none;
-$shadow-float: none;
 
 $nav-bg: hsl(100, 13%, 11%);
 $nav-border: hsl(105, 13%, 16%);

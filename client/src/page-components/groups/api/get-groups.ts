@@ -1,19 +1,19 @@
 import { client } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { GroupListItem } from "@/types/contracts";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
-export const getGroups = (search?: string): Promise<GroupListItem[]> => {
-  return client.get("/groups", { params: search ? { search } : undefined });
+export const getGroups = (): Promise<GroupListItem[]> => {
+  return client.get("/groups");
 };
 
-export const getGroupsQueryOptions = (search?: string) => {
+export const getGroupsQueryOptions = () => {
   return queryOptions({
-    queryKey: [...queryKeys.groups.all(), { search: search ?? "" }],
-    queryFn: () => getGroups(search),
+    queryKey: queryKeys.groups.all(),
+    queryFn: getGroups,
   });
 };
 
-export const useGetGroups = (search?: string) => {
-  return useQuery(getGroupsQueryOptions(search));
+export const useGetGroups = () => {
+  return useSuspenseQuery(getGroupsQueryOptions());
 };

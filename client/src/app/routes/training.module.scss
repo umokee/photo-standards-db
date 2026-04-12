@@ -18,7 +18,7 @@
 .panel,
 .trainCard {
   border: 1px solid $line;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   background: $surface;
 }
 
@@ -98,7 +98,7 @@
   flex-direction: column;
   gap: 4px;
   padding: $space-3;
-  border-radius: $radius-md;
+  border-radius: $radius;
   border: 1px solid $line;
   background: $surface;
 
@@ -129,7 +129,7 @@
 
 .warningBox {
   padding: $space-3;
-  border-radius: $radius-md;
+  border-radius: $radius;
   background: $warning-bg;
   border: 1px solid $warning-bd;
   color: $warning-text;
@@ -195,7 +195,7 @@
 .modelItem {
   text-align: left;
   border: 1px solid $line;
-  border-radius: $radius-md;
+  border-radius: $radius;
   background: $surface;
   padding: $space-3;
   cursor: pointer;
@@ -235,7 +235,7 @@
 
 .taskItem {
   border: 1px solid $line;
-  border-radius: $radius-md;
+  border-radius: $radius;
   background: $surface;
   padding: $space-3;
 }
@@ -285,7 +285,7 @@
 .taskError {
   margin-top: $space-2;
   padding: $space-2;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: hsl(6, 72%, 95%);
   color: hsl(6, 62%, 38%);
   font-size: $text-small;

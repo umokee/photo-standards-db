@@ -7,8 +7,6 @@ export function Component() {
       size="page"
       emptyTitle="Выберите группу"
       emptyDescription="Выберите группу из списка или создайте новую"
-    >
-      {null}
-    </QueryState>
+    />
   );
 }

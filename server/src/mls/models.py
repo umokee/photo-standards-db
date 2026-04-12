@@ -24,6 +24,14 @@ class MlModel(Base):
             "version",
             unique=True,
         ),
+        Index(
+            "uq_group_active_training",
+            "group_id",
+            unique=True,
+            postgresql_where=text(
+                f"training_status IN f({', '.join(map(str, training.statuses.active))})"
+            ),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)

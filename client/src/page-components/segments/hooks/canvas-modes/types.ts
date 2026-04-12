@@ -84,6 +84,7 @@ export type CanvasEditHandlers = {
   handleDrawingVertexDragStart: (e: CanvasPointerEvent) => void;
   handleDrawingVertexDragMove: (vi: number, e: CanvasPointerEvent) => void;
   handleDrawingVertexDragEnd: (vi: number, e: CanvasPointerEvent) => void;
+  handleDrawingVertexClick: (vi: number, e: CanvasPointerEvent) => void;
   handleDrawingVertexDblClick: (vi: number, e: CanvasPointerEvent) => void;
 };
 
@@ -161,6 +162,7 @@ export type DrawPolygonModeContext = {
   setDraftPreviewPoint: (value: [number, number] | null) => void;
   setDraftPoints: React.Dispatch<React.SetStateAction<number[][]>>;
   addDraftPoint: (cx: number, cy: number) => void;
+  finishDraftPolygon: () => void;
   tryFinishDraftPolygon: (cx: number, cy: number) => boolean;
   updateLine: (
     lineNodes: Array<CanvasLineNode | null | undefined>,

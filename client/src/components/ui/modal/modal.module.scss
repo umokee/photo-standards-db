@@ -13,14 +13,13 @@
 .root {
   background: $surface;
   border: 1px solid $line;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   width: 420px;
   max-width: 95vw;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: $shadow-float;
 }
 
 .wide {
@@ -48,7 +47,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   color: $text-hint;
   svg {
     width: 16px;

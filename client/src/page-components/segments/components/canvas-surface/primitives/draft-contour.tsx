@@ -16,6 +16,7 @@ type Props = {
   onVertexDragStart: (e: CanvasPointerEvent) => void;
   onVertexDragMove: (index: number, e: CanvasPointerEvent) => void;
   onVertexDragEnd: (index: number, e: CanvasPointerEvent) => void;
+  onVertexClick: (index: number, e: CanvasPointerEvent) => void;
   onVertexDblClick: (index: number, e: CanvasPointerEvent) => void;
   onVertexMouseEnter: (e: CanvasPointerEvent) => void;
   onVertexMouseLeave: (e: CanvasPointerEvent) => void;
@@ -32,6 +33,7 @@ export function DraftContour({
   onVertexDragStart,
   onVertexDragMove,
   onVertexDragEnd,
+  onVertexClick,
   onVertexDblClick,
   onVertexMouseEnter,
   onVertexMouseLeave,
@@ -83,6 +85,7 @@ export function DraftContour({
             onDragStart={onVertexDragStart}
             onDragMove={(e) => onVertexDragMove(index, e)}
             onDragEnd={(e) => onVertexDragEnd(index, e)}
+            onClick={(e) => onVertexClick(index, e)}
             onDblClick={(e) => onVertexDblClick(index, e)}
             onMouseEnter={onVertexMouseEnter}
             onMouseLeave={onVertexMouseLeave}

@@ -1,6 +1,6 @@
+import { Badge } from "@/components/ui/badge/badge";
 import Button from "@/components/ui/button/button";
-import clsx from "clsx";
-import { ArrowLeft, ArrowRight, SkipForward } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import s from "./segment-header.module.scss";
 
 type Props = {
@@ -40,10 +40,10 @@ export const SegmentHeader = ({
           К эталону
         </Button>
         <div className={s.title}>{standardName}</div>
-        {isReference && <span className={clsx(s.badge, s.badgeReference)}>Эталон</span>}
-        <span className={clsx(s.badge, isCurrentAnnotated ? s.badgeAnnotated : s.badgePending)}>
+        {isReference && <Badge>Эталон</Badge>}
+        <Badge type={isCurrentAnnotated ? "success" : "warning"}>
           {isCurrentAnnotated ? "Размечено" : "Не размечено"}
-        </span>
+        </Badge>
       </div>
 
       <div className={s.actions}>
@@ -53,14 +53,13 @@ export const SegmentHeader = ({
         <span className={s.metaItem}>
           {currentIndex + 1} / {totalImages}
         </span>
-        <Button variant="ghost" size="sm" icon={ArrowRight} onClick={onNext} disabled={!canGoNext}>
+        <Button variant="ghost" size="sm" onClick={onNext} disabled={!canGoNext}>
           След.
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          icon={SkipForward}
           onClick={onNextUnannotated}
           disabled={!hasNextUnannotated}
         >

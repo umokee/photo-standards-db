@@ -38,5 +38,11 @@ export const ru = {
     architectures: {
       "yolov26n-seg": "YOLO v26 Nano",
     },
+    metrics: {
+      mAP50: "mAP50",
+      mAP50_95: "mAP50-95",
+      precision: "Precision",
+      recall: "Recall",
+    },
   },
 };

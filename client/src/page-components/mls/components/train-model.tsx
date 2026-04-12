@@ -36,7 +36,7 @@ interface Props {
   hasTrainData: boolean;
 }
 
-export const TrainModelGroup = ({ groupId, hasTrainData }: Props) => (
+export const TrainModel = ({ groupId, hasTrainData }: Props) => (
   <Modal>
     <Modal.Trigger>
       <Button>Запустить обучение</Button>

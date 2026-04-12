@@ -1,4 +1,3 @@
-import { ACTIVE_TRAINING_STATUSES } from "@/constants";
 import { Architecture, TrainingStatus } from "./shared";
 
 export interface MlModel {
@@ -31,16 +30,3 @@ export interface MlModel {
   trained_at: string | null;
   created_at: string;
 }
-
-export const isTraining = (model: MlModel): boolean =>
-  model.training_status !== null && ACTIVE_TRAINING_STATUSES.includes(model.training_status);
-
-export const isTrained = (model: MlModel): boolean => model.trained_at !== null;
-
-export const isTrainingFailed = (model: MlModel): boolean => model.training_status === "failed";
-
-export const getTrainingPercent = (model: MlModel): number => {
-  if (model.training_status === "saving") return 100;
-  if (model.training_progress === null || !model.epochs) return 0;
-  return Math.min(100, Math.round((model.training_progress / model.epochs) * 100));
-};

@@ -3,6 +3,7 @@ import type {
   Architecture,
   InspectionMode,
   InspectionStatus,
+  Metric,
   TrainingStatus,
   UserRole,
 } from "@/types/contracts";
@@ -20,3 +21,5 @@ export const trainingStatusLabel = (status: TrainingStatus) => ru.training.statu
 
 export const architectureLabel = (architecture: Architecture) =>
   ru.training.architectures[architecture];
+
+export const metricLabel = (metric: Metric) => ru.training.metrics[metric];

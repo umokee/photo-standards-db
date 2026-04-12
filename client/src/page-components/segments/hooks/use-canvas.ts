@@ -13,6 +13,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 export type CanvasMode = { type: "view" } | { type: "draw-polygon" };
 
+const isEditable = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+};
+
 type Params = {
   segmentGroups: SegmentGroup[];
   segments: SegmentWithPoints[];
@@ -93,6 +100,8 @@ export function useCanvas({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return;
+
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         isSpaceDown.current = true;
@@ -104,6 +113,8 @@ export function useCanvas({
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return;
+
       if (e.code === "Space") {
         isSpaceDown.current = false;
 
@@ -284,15 +295,21 @@ export function useCanvas({
     );
   };
 
+  const finishDraftPolygon = () => {
+    if (draftPoints.length < 3) return;
+
+    onFinishDrawing([...draftPoints]);
+    setDraftPoints([]);
+    setMode({ type: "view" });
+  };
+
   const tryFinishDraftPolygon = (cx: number, cy: number) => {
     if (draftPoints.length < 3) return false;
 
     const [fx, fy] = toCanvas(draftPoints[0][0], draftPoints[0][1]);
     if (Math.hypot(cx - fx, cy - fy) >= SNAP_RADIUS) return false;
 
-    onFinishDrawing([...draftPoints]);
-    setDraftPoints([]);
-    setMode({ type: "view" });
+    finishDraftPolygon();
     return true;
   };
 
@@ -391,19 +408,15 @@ export function useCanvas({
     setDraftPreviewPoint,
     setDraftPoints,
     addDraftPoint,
+    finishDraftPolygon,
     tryFinishDraftPolygon,
     updateLine,
     toCanvas,
     toImage,
   });
 
-
   const activeMode =
-    mode.type === "view"
-      ? viewMode
-      : mode.type === "draw-polygon"
-        ? drawPolygonMode
-        : null;
+    mode.type === "view" ? viewMode : mode.type === "draw-polygon" ? drawPolygonMode : null;
 
   const modeLabel = activeMode.label;
   const hintText = activeMode.hint;
@@ -513,6 +526,7 @@ export function useCanvas({
     handleDrawingVertexDragStart: activeEditing.handleDrawingVertexDragStart,
     handleDrawingVertexDragMove: activeEditing.handleDrawingVertexDragMove,
     handleDrawingVertexDragEnd: activeEditing.handleDrawingVertexDragEnd,
+    handleDrawingVertexClick: activeEditing.handleDrawingVertexClick,
     handleDrawingVertexDblClick: activeEditing.handleDrawingVertexDblClick,
     handleLineClick: activeEditing.handleLineClick,
     handleGroupDragStart: activeEditing.handleGroupDragStart,

@@ -21,9 +21,8 @@
   padding: $space-3;
   padding-right: 30px;
   background: $surface;
-  border-radius: $radius-md;
+  border-radius: $radius;
   border: 1px solid $line-soft;
-  box-shadow: $shadow-float;
   overflow: hidden;
   pointer-events: all;
 }
@@ -91,7 +90,7 @@
   height: 20px;
   background: none;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   color: $text-hint;
   padding: 0;

@@ -173,6 +173,7 @@ export default function Canvas({
             onVertexDragStart={canvas.handleDrawingVertexDragStart}
             onVertexDragMove={canvas.handleDrawingVertexDragMove}
             onVertexDragEnd={canvas.handleDrawingVertexDragEnd}
+            onVertexClick={canvas.handleDrawingVertexClick}
             onVertexDblClick={canvas.handleDrawingVertexDblClick}
             onVertexMouseEnter={(e) => canvas.setCursor(e, "grab")}
             onVertexMouseLeave={(e) => canvas.setCursor(e, "crosshair")}

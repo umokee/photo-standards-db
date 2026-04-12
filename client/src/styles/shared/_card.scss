@@ -3,9 +3,8 @@
 .card {
   background: $surface;
   border: 1px solid $line;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   overflow: hidden;
-  box-shadow: $shadow-card;
   margin-bottom: $space-3;
   &--fill {
     display: flex;

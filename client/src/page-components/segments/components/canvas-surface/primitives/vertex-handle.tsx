@@ -16,6 +16,7 @@ type Props = {
   onDragStart?: (e: CanvasPointerEvent) => void;
   onDragMove?: (e: CanvasPointerEvent) => void;
   onDragEnd?: (e: CanvasPointerEvent) => void;
+  onClick?: (e: CanvasPointerEvent) => void;
   onDblClick?: (e: CanvasPointerEvent) => void;
   onMouseEnter?: (e: CanvasPointerEvent) => void;
   onMouseLeave?: (e: CanvasPointerEvent) => void;
@@ -36,6 +37,7 @@ export function VertexHandle({
   onDragStart,
   onDragMove,
   onDragEnd,
+  onClick,
   onDblClick,
   onMouseEnter,
   onMouseLeave,
@@ -57,6 +59,7 @@ export function VertexHandle({
       onDragStart={onDragStart}
       onDragMove={onDragMove}
       onDragEnd={onDragEnd}
+      onClick={onClick}
       onDblClick={onDblClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

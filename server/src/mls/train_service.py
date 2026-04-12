@@ -377,7 +377,7 @@ async def run_train(db: AsyncSession, data: MlModelTrainRequest) -> MlModel:
 
     from tasks.training import execute_training
 
-    await execute_training.defer_async(
+    await execute_training.configure(lock="training").defer_async(
         model_id=str(model.id),
         group_id=str(data.group_id),
         train_ratio=data.train_ratio,
@@ -387,7 +387,6 @@ async def run_train(db: AsyncSession, data: MlModelTrainRequest) -> MlModel:
         batch_size=data.batch_size,
         weights_path=model.weights_path,
         version=version,
-        lock=f"training:{data.group_id}",
     )
 
     return model

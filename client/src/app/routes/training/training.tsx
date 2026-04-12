@@ -70,20 +70,13 @@ const sortByCreatedAtDesc = <T extends { created_at: string }>(items: T[]) =>
   [...items].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
 export function Component() {
-  const { close: closeSidebar } = useSidebar();
   const navigate = useNavigate();
-  const { groupId = null, modelId = null } = useParams();
-  const [search, setSearch] = useState("");
 
   const { data: groups = [], isLoading: groupsLoading, isError: groupsError } = useGetGroups();
   const { data: group, isLoading: groupLoading, isError: groupError } = useGetGroup(groupId);
 
   const { data: models = [], isLoading: modelsLoading, isError: modelsError } = useGetMls(groupId);
 
-  const filtered = useMemo(
-    () => groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase())),
-    [groups, search]
-  );
 
   const selectedModel = useMemo(() => {
     if (!models.length) return null;
@@ -136,53 +129,10 @@ export function Component() {
 
   const activateMutation = useActivateModel({ groupId: groupId ?? "" });
 
-  const hasTrainData =
-    group?.stats.standards_count > 0 &&
-    group?.stats.images_count > 0 &&
-    group?.stats.polygons_count > 0 &&
-    group?.stats.segment_groups_count > 0;
 
-  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
 
   return (
     <SplitLayout>
-      <SplitLayout.Sidebar>
-        <Sidebar>
-          <Sidebar.Header>
-            <Sidebar.HeaderTop>
-              <Sidebar.Title>Группы</Sidebar.Title>
-            </Sidebar.HeaderTop>
-            <Input placeholder="Поиск..." noMargin value={search} onChange={setSearch} />
-          </Sidebar.Header>
-          <Sidebar.List>
-            <QueryState
-              isLoading={groupsLoading}
-              isError={groupsError}
-              isEmpty={!filtered.length}
-              emptyTitle="Нет групп"
-            >
-              {filtered.map((group) => (
-                <Sidebar.Item
-                  key={group?.id}
-                  active={groupId === group?.id}
-                  onClick={() => {
-                    navigate(paths.trainingGroup(group?.id));
-                    closeSidebar();
-                  }}
-                >
-                  <Sidebar.ItemDot />
-                  <Sidebar.ItemBody>
-                    <Sidebar.ItemName>{group?.name}</Sidebar.ItemName>
-                    <Sidebar.ItemMeta>{group?.stats.models_count} моделей</Sidebar.ItemMeta>
-                  </Sidebar.ItemBody>
-                  <Sidebar.ItemSide>{group?.stats.standards_count}</Sidebar.ItemSide>
-                </Sidebar.Item>
-              ))}
-            </QueryState>
-          </Sidebar.List>
-        </Sidebar>
-      </SplitLayout.Sidebar>
-
       <SplitLayout.Content>
         <SplitLayout.Body>
           <QueryState
@@ -191,37 +141,6 @@ export function Component() {
             isEmpty={!group?.id}
             emptyTitle="Выберите группу"
           >
-            <ContentHeader>
-              <ContentHeader.Top
-                title={group?.name}
-                subtitles={[
-                  ...(group?.description ? [group?.description] : []),
-                  `Создана ${formatDate(group?.created_at)}`,
-                ]}
-                meta={[
-                  `${group?.stats.standards_count} эталонов`,
-                  `${group?.stats.images_count} изображений`,
-                  `${group?.stats.annotated_count} размечено`,
-                  `${group?.stats.polygons_count} полигонов`,
-                ]}
-              >
-                <ContentHeader.Actions>
-                  {runningTask ? (
-                    <span className={s.liveBadge}>
-                      <Brain size={14} />
-                      Обучение активно
-                    </span>
-                  ) : queuedTask ? (
-                    <span className={s.queueHeaderBadge}>
-                      <Clock3 size={14} />
-                      {isStartingSoon(queuedTask) ? "Задача скоро стартует" : "Задача в очереди"}
-                    </span>
-                  ) : (
-                    <span className={s.liveBadgeIdle}>Ожидание</span>
-                  )}
-                </ContentHeader.Actions>
-              </ContentHeader.Top>
-            </ContentHeader>
 
             <div className={s.layout}>
               <section className={s.main}>

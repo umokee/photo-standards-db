@@ -110,6 +110,8 @@ export function createViewMode({
         );
       },
 
+      handleDrawingVertexClick() {},
+
       handleVertexDragEnd(seg, ci, vi, e) {
         e.cancelBubble = true;
         isDragging.current = false;

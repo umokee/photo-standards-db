@@ -26,7 +26,7 @@
   padding: $space-7;
   font-size: $text-body;
   border: 3px solid $line;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: $card-hover;
   cursor: pointer;
 
@@ -58,7 +58,7 @@
 .previewImg {
   flex: 1;
   object-fit: contain;
-  border-radius: $radius-sm;
+  border-radius: $radius;
 }
 
 .previewName {
@@ -78,7 +78,7 @@
   top: $space-2;
   right: $space-2;
   pointer-events: all;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   height: 28px;
   width: 28px;
   padding: $space-1;
@@ -124,5 +124,5 @@
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: $radius-sm;
+  border-radius: $radius;
 }

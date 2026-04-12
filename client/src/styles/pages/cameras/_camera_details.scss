@@ -4,7 +4,7 @@
   flex-shrink: 0;
   aspect-ratio: 16 / 9;
   background: hsl(220, 15%, 10%);
-  border-radius: $radius-md;
+  border-radius: $radius;
   margin-bottom: $space-3;
 }
 
@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   background: $surface;
-  border-radius: $radius-md;
+  border-radius: $radius;
   padding: $space-3 $space-4;
   overflow: hidden;
   gap: $space-2;

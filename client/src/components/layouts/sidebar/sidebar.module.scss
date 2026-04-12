@@ -38,7 +38,7 @@
   align-items: center;
   gap: $space-2;
   padding: 7px $space-2;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   flex-shrink: 0;
   transition: background $t;
@@ -87,7 +87,7 @@
   font-weight: $fw-bold;
   background: $surface2;
   padding: 1px 5px;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   flex-shrink: 0;
 }
 

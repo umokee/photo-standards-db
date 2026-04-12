@@ -13,6 +13,7 @@ export function createDrawPolygonMode({
   setDraftPreviewPoint,
   setDraftPoints,
   addDraftPoint,
+  finishDraftPolygon,
   tryFinishDraftPolygon,
   updateLine,
   toCanvas,
@@ -82,9 +83,19 @@ export function createDrawPolygonMode({
         setDraftPoints((prev) => prev.map((p, i) => (i === vi ? point : p)));
       },
 
+      handleDrawingVertexClick(vi, e) {
+        if (e.evt.button !== 0) return;
+        e.cancelBubble = true;
+        if (isDragging.current) return;
+        if (draftPoints.length <= 3) return;
+        if (vi !== 0) return;
+        finishDraftPolygon();
+      },
+
       handleDrawingVertexDblClick(vi, e) {
         if (e.evt.button !== 0) return;
         e.cancelBubble = true;
+        if (vi === 0) return;
         if (draftPoints.length <= 1) return;
         setDraftPoints((prev) => prev.filter((_, i) => i !== vi));
       },

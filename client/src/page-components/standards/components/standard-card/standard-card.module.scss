@@ -4,23 +4,23 @@
   display: flex;
   flex-direction: column;
   background: $surface;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   border: 1px solid $line;
-  box-shadow: $shadow-card;
   margin-bottom: $space-2;
   overflow: hidden;
-}
 
-.expanded {
-  border-color: $primary;
+  &.expanded {
+    border-color: $primary;
+  }
 }
 
 .header {
+  width: 100%;
   display: flex;
   align-items: center;
   padding: 11px 14px;
   gap: $space-3;
-  cursor: pointer;
+  text-align: left;
 
   &:hover {
     background: $card-hover;
@@ -30,7 +30,7 @@
 .reference {
   width: 54px;
   height: 40px;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: $surface2;
   border: 1px solid $line;
   flex-shrink: 0;
@@ -127,9 +127,9 @@
   position: relative;
   aspect-ratio: 4 / 3;
   background: $surface;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   border: 1px solid $line;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   overflow: hidden;
   cursor: pointer;
   display: flex;
@@ -177,7 +177,7 @@
   position: absolute;
   top: $space-1;
   left: $space-1;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   padding: 1px $space-1;
   font-weight: $fw-extrabold;
   font-size: $text-micro;
@@ -199,7 +199,7 @@
     justify-content: center;
     width: 22px;
     height: 22px;
-    border-radius: $radius-sm;
+    border-radius: $radius;
     background: hsl(0, 0%, 25%);
     color: $text-white;
     border: none;
@@ -243,25 +243,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-}
-
-.classChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: $radius-sm;
-  font-size: $text-small;
-  background: $surface;
-  border: 1px solid $line;
-  color: $text-sub;
-}
-
-.classChipDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  flex-shrink: 0;
 }
 
 .bodyPlaceholder {

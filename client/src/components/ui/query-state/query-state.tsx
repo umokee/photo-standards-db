@@ -15,7 +15,7 @@ interface Props {
   emptyTitle?: string;
   emptyDescription?: string;
   action?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const StateContainer = ({ size, children }: { size: Size; children: React.ReactNode }) => {
@@ -108,5 +108,5 @@ export default function QueryState({
     );
   }
 
-  return children;
+  return children ?? null;
 }

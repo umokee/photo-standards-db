@@ -13,3 +13,5 @@ export type InspectionMode = (typeof INSPECTION_MODES)[number];
 export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
 export type TrainingStatus = (typeof TRAINING_STATUSES)[number];
 export type Architecture = (typeof APP_CONSTANTS.training.architectures)[number]["value"];
+export type Metric = "mAP50" | "mAP50_95" | "precision" | "recall";
+

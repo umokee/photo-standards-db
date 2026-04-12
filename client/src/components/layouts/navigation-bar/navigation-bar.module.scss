@@ -38,7 +38,7 @@
   padding: 5px 13px;
   font-size: $text-small;
   color: $nav-text;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   transition:
     color $t,
     background $t;
@@ -67,7 +67,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   color: $nav-text;
   margin-right: $space-3;
   flex-shrink: 0;
