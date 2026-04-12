@@ -1,7 +1,7 @@
 import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
-import QueryState from "@/components/ui/query-state/query-state";
+import { QueryBoundary } from "@/components/ui/query-boundary/query-boundary";
+import { BASE_URL } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
-import { useGetGroup } from "@/page-components/groups/api/get-group";
 import { useAnnotateSegment } from "@/page-components/segments/api/annotate-segment";
 import { useRefineContour } from "@/page-components/segments/api/refine-contour";
 import Canvas from "@/page-components/segments/components/canvas-surface/canvas-surface";
@@ -14,9 +14,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { paths } from "../../paths";
-import { BASE_URL } from "@/lib/api-client";
 
 export function Component() {
+  return (
+    <QueryBoundary
+      size="page"
+      loadingText="Загрузка изображения..."
+      errorTitle="Не удалось открыть изображение"
+      errorDescription="Проверьте подключение или попробуйте перезагрузить страницу"
+    >
+      <ImagesContent />
+    </QueryBoundary>
+  );
+}
+
+const ImagesContent = () => {
   const navigate = useNavigate();
   const { groupId, standardId, imageId } = useLoaderData();
 
@@ -30,34 +42,12 @@ export function Component() {
     setIsDrawMode(false);
   }, [imageId]);
 
-  const groupQuery = useGetGroup(groupId);
-  const standardQuery = useGetStandardDetail(standardId);
-  const imageQuery = useGetImage(imageId);
+  const { data: standard } = useGetStandardDetail(standardId);
+  const { data: image } = useGetImage(imageId);
 
   const qc = useQueryClient();
-  const annotate = useAnnotateSegment({ standardId });
+  const annotate = useAnnotateSegment({ groupId, standardId });
   const refine = useRefineContour();
-
-  const group = groupQuery.data;
-  const standard = standardQuery.data;
-  const image = imageQuery.data;
-  const isError = groupQuery.isError || standardQuery.isError || imageQuery.isError;
-
-  if (isError || !group || !standard || !image) {
-    return (
-      <QueryState
-        isError={isError}
-        isEmpty={!isError}
-        size="page"
-        errorTitle="Не удалось открыть изображение"
-        errorDescription="Проверьте подключение или попробуйте перезагрузить страницу"
-        emptyTitle="Изображение не найдено"
-        emptyDescription="Данные изображения, эталона или группы недоступны"
-      >
-        {null}
-      </QueryState>
-    );
-  }
 
   const segmentGroups = standard.segment_groups;
   const standardSegments = standard.segments;
@@ -212,4 +202,4 @@ export function Component() {
       </SplitLayout.Panel>
     </SplitLayout>
   );
-}
+};

@@ -1,11 +1,11 @@
-import { SectionHeader } from "@/components/layouts/section-header/section-header";
+import { SectionHeader } from "@/components/layouts/section/section";
 
 import QueryState from "@/components/ui/query-state/query-state";
-import s from "./models-section.module.scss";
-import clsx from "clsx";
 import { formatDate } from "@/utils/formatDate";
-import ModelDetails from "../ModelDetails";
+import clsx from "clsx";
 import { ChevronRight } from "lucide-react";
+import ModelDetails from "../ModelDetails";
+import s from "./models-section.module.scss";
 
 export const ModelsSection = ({
   group,
@@ -20,9 +20,6 @@ export const ModelsSection = ({
   onResetSelection,
   onActivateModel,
 }) => {
-
-
-
   return (
     <div>
       <SectionHeader bordered>

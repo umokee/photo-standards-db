@@ -36,7 +36,7 @@ def _update_model(model_id: UUID, **fields) -> None:
         db.commit()
 
 
-@app.task(queue="training", retry=3)
+@app.task(queue="training")
 def execute_training(
     *,
     model_id: str,
@@ -54,7 +54,13 @@ def execute_training(
     temp = STORAGE_PATH / "models" / group_id / "temp"
 
     try:
-        _update_model(mid, training_status=PREPARING)
+        _update_model(
+            mid,
+            training_status=PREPARING,
+            training_stage=None,
+            training_progress=None,
+            training_error=None,
+        )
 
         with get_sync_session() as db:
             data = load_training_data_sync(db, gid)
@@ -79,7 +85,11 @@ def execute_training(
             len(split.test),
         )
 
-        _update_model(mid, training_status=TRAINING, training_started_at=datetime.now())
+        _update_model(
+            mid,
+            training_status=TRAINING,
+            training_started_at=datetime.now(),
+        )
 
         yolo = YOLO(str(STORAGE_PATH / Path(weights_path)))
         yolo.add_callback(
@@ -101,7 +111,11 @@ def execute_training(
             exist_ok=True,
         )
 
-        _update_model(mid, training_status=SAVING)
+        _update_model(
+            mid,
+            training_status=SAVING,
+            training_stage="Сохранение весов",
+        )
 
         src = temp / "run" / "weights" / "best.pt"
         if not src.exists():
@@ -126,30 +140,25 @@ def execute_training(
             training_progress=None,
             training_stage=None,
             training_error=None,
-            training_started_at=None,
-            training_finished_at=None,
+            training_finished_at=datetime.now(),
+            training_job_id=None,
         )
         logger.info("Модель %s обучена", mid)
 
     except Exception as e:
         logger.exception("Модель %s: ошибка", mid)
 
+        failed_weights = STORAGE_PATH / "models" / group_id / f"v{version}.pt"
+        if failed_weights.exists():
+            failed_weights.unlink()
+
         _update_model(
             mid,
             training_status=FAILED,
             training_error=str(e)[:500],
             training_finished_at=datetime.now(),
+            training_job_id=None,
         )
-        with get_sync_session() as db:
-            from mls.models import MlModel
-
-            model = db.get(MlModel, mid)
-            if model and model.trained_at is None:
-                wf = STORAGE_PATH / "models" / group_id / f"v{model.version}.pt"
-                if wf.exists():
-                    wf.unlink()
-                db.delete(model)
-                db.commit()
         raise
     finally:
         shutil.rmtree(str(temp), ignore_errors=True)

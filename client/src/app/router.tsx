@@ -21,7 +21,7 @@ const ImagesRoute = () => import("./routes/images/images");
 const TrainingLayoutRoute = () => import("./routes/training/training-layout");
 const TrainingIndexRoute = () => import("./routes/training/training-index");
 const TrainingDetailRoute = () => import("./routes/training/training-detail");
-const MlDetailRoute = () => import("./routes/training/model-detail");
+const ModelDetailRoute = () => import("./routes/training/model-detail");
 
 const CamerasRoute = () => import("./routes/cameras");
 
@@ -158,17 +158,17 @@ export const router = createBrowserRouter([
             children: [
               {
                 index: true,
-                lazy: MlDetailRoute,
+                lazy: ModelDetailRoute,
                 loader: async () => {
-                  return { mlId: null };
+                  return { modelId: null };
                 },
               },
               {
-                path: "mls/:mlId",
-                lazy: MlDetailRoute,
+                path: "models/:modelId",
+                lazy: ModelDetailRoute,
                 loader: async ({ params }) => {
                   const groupId = params.groupId?.trim();
-                  const modelId = params.mlId?.trim();
+                  const modelId = params.modelId?.trim();
 
                   if (!groupId) {
                     throw redirect(paths.training());

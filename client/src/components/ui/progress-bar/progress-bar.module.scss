@@ -3,21 +3,27 @@
 .root {
   display: flex;
   align-items: center;
-  gap: $space-3;
+  gap: $space-2;
 }
 
 .track {
+  position: relative;
   flex: 1;
-  height: 4px;
-  background: $line;
-  border-radius: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: $surface2;
+  border: 1px solid $line-soft;
 }
 
 .fill {
   height: 100%;
+  border-radius: inherit;
   background: $primary;
-  border-radius: 2px;
-  transition: width 0.3s ease;
+
+  .warn {
+    background: $warning;
+  }
 }
 
 .label {
@@ -30,5 +36,12 @@
 
 .warn {
   color: $warning;
+  flex-shrink: 0;
+}
+
+.iconSlot {
+  width: 14px;
+  display: flex;
+  justify-content: center;
   flex-shrink: 0;
 }

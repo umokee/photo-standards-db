@@ -1,0 +1,42 @@
+@use "@/styles/variables" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin: $space-4 0;
+
+  &.bordered {
+    padding-bottom: $space-4;
+    border-bottom: 1px solid $line-soft;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+
+  .title {
+    color: $text-hint;
+    font-size: $text-small;
+    font-weight: $fw-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .side {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+  }
+}
+
+.content {
+  width: 100%;
+
+  &.scrollable {
+    overflow-x: auto;
+  }
+}

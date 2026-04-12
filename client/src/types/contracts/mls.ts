@@ -3,7 +3,6 @@ import { Architecture, TrainingStatus } from "./shared";
 export interface MlModel {
   id: string;
   group_id: string;
-  name: string;
   architecture: Architecture | string;
   weights_path: string | null;
   version: number;

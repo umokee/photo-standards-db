@@ -1,7 +1,8 @@
 import { client } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
-import { isTraining, MlModel } from "@/types/contracts";
+import { MlModel } from "@/types/contracts";
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import { isTrainingModel } from "../lib/training";
 
 export const getMls = (groupId: string): Promise<MlModel[]> => {
   return client.get("/models", {
@@ -21,7 +22,7 @@ export const useGetMls = (groupId: string | null) => {
   return useQuery({
     ...getMlsQueryOptions(groupId!),
     refetchInterval: (query) => {
-      const hasActive = query.state.data?.some(isTraining) ?? false;
+      const hasActive = query.state.data?.some(isTrainingModel) ?? false;
       return hasActive ? 3000 : false;
     },
   });

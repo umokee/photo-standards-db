@@ -30,7 +30,7 @@ export const StandardCard = ({ standard, expanded, onToggle, onToImageEditor }: 
 
   return (
     <div className={clsx(s.root, expanded && s.expanded)}>
-      <button type="button" className={s.header} onClick={onToggle} aria-expanded={expanded}>
+      <div className={s.header} onClick={onToggle}>
         <div className={s.reference}>
           <ImageWithFallback src={src} iconSize={20} />
         </div>
@@ -48,7 +48,7 @@ export const StandardCard = ({ standard, expanded, onToggle, onToImageEditor }: 
           <DeleteStandard id={standard.id} name={standard.name} />
         </div>
         <ChevronRight className={s.chevron} size={14} />
-      </button>
+      </div>
       {expanded && (
         <div className={s.body}>
           <QueryBoundary

@@ -40,7 +40,6 @@ const Root = ({ children }: { children: ReactNode }) => {
           <button className={s.menuButton} onClick={toggle}>
             <Menu />
           </button>
-          <span className={s.name}>Photo Standards</span>
           <nav className={s.links}>{children}</nav>
         </div>
       </header>

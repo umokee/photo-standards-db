@@ -4,9 +4,20 @@ from uuid import UUID, uuid4
 import sqlalchemy
 from _shared.constants import training
 from database import Base
-from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, func, text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+_ACTIVE_TRAINING_SQL = ", ".join(f"'{status}'" for status in training.statuses.active)
 
 
 class MlModel(Base):
@@ -28,9 +39,7 @@ class MlModel(Base):
             "uq_group_active_training",
             "group_id",
             unique=True,
-            postgresql_where=text(
-                f"training_status IN f({', '.join(map(str, training.statuses.active))})"
-            ),
+            postgresql_where=text(f"training_status IN ({_ACTIVE_TRAINING_SQL})"),
         ),
     )
 
@@ -38,7 +47,6 @@ class MlModel(Base):
     group_id: Mapped[UUID] = mapped_column(
         ForeignKey("groups.id", ondelete="CASCADE"), index=True
     )
-    name: Mapped[str] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, CheckConstraint("version > 0"))
     architecture: Mapped[str] = mapped_column(
         sqlalchemy.Enum(*training.architecture.all, name="architecture_enum"),
@@ -81,6 +89,9 @@ class MlModel(Base):
     )
     test_count: Mapped[int | None] = mapped_column(
         Integer(), CheckConstraint("test_count >= 0"), default=None
+    )
+    training_job_id: Mapped[int | None] = mapped_column(
+        BigInteger, default=None, index=True
     )
     training_status: Mapped[str | None] = mapped_column(String(50), default=None)
     training_progress: Mapped[int | None] = mapped_column(

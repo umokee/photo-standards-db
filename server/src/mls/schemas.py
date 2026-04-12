@@ -55,7 +55,6 @@ class MlModelTrainRequest(BaseModel):
 class MlModelResponse(BaseModel):
     id: UUID
     group_id: UUID
-    name: str
     version: int
     group_name: str | None = None
     weights_path: str

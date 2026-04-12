@@ -221,8 +221,8 @@ function reducer(state: EditorState, action: Action): EditorState {
 }
 
 export const useManageSegmentGroups = (standard: StandardDetail) => {
-  const { imageId } = useParams();
-  const saveSegmentsMutation = useSaveSegments({ imageId });
+  const { imageId, groupId } = useParams();
+  const saveSegmentsMutation = useSaveSegments({ imageId, groupId });
 
   const [state, dispatch] = useReducer(reducer, standard, createInitialState);
   const [activeColorKey, setActiveColorKey] = useState<string | null>(null);

@@ -19,11 +19,12 @@ export const annotateSegment = ({
 };
 
 type Options = {
+  groupId: string;
   standardId: string;
   mutationConfig?: MutationConfig<typeof annotateSegment>;
 };
 
-export const useAnnotateSegment = ({ standardId, mutationConfig }: Options) => {
+export const useAnnotateSegment = ({ groupId, standardId, mutationConfig }: Options) => {
   const qc = useQueryClient();
   const { onSuccess, ...rest } = mutationConfig || {};
 
@@ -32,6 +33,8 @@ export const useAnnotateSegment = ({ standardId, mutationConfig }: Options) => {
     onSuccess: (data, vars, ctx, mutation) => {
       qc.invalidateQueries({ queryKey: queryKeys.standards.image(vars.imageId) });
       qc.invalidateQueries({ queryKey: queryKeys.standards.detail(standardId) });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
       onSuccess?.(data, vars, ctx, mutation);
     },
     ...rest,

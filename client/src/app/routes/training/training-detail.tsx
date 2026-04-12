@@ -1,23 +1,22 @@
 import { ContentHeader } from "@/components/layouts/content-header/content-header";
-import { ACTIVE_TRAINING_STATUSES } from "@/constants";
+import { Section } from "@/components/layouts/section/section";
+import { Badge } from "@/components/ui/badge/badge";
 import { useGetGroup } from "@/page-components/groups/api/get-group";
+import { CoverageItem } from "@/page-components/groups/components/coverage-item/coverage-item";
 import { useGetMls } from "@/page-components/mls/api/get-mls";
 import { TrainModel } from "@/page-components/mls/components/train-model";
-import { GroupListItem, MlModel, TrainingStatus } from "@/types/contracts";
+import { GroupDetail, MlModel } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { Outlet, useLoaderData, useOutletContext } from "react-router-dom";
 
 type TrainingModelOutletContext = {
-  group: GroupListItem;
+  group: GroupDetail;
   models: MlModel[];
 };
 
 export const useTrainingModelOutletContext = () => {
   return useOutletContext<TrainingModelOutletContext>();
 };
-
-const getModelStatus = (model: MlModel): TrainingStatus =>
-  model.training_status ?? (model.trained_at ? "done" : "pending");
 
 export function Component() {
   const { groupId } = useLoaderData() as { groupId: string };
@@ -29,20 +28,6 @@ export function Component() {
     group?.stats.images_count > 0 &&
     group?.stats.polygons_count > 0 &&
     group?.stats.segment_groups_count > 0;
-
-  const runningTraining = models.find((model) =>
-    ACTIVE_TRAINING_STATUSES.includes(getModelStatus(model))
-  );
-
-  const pendingTraining = models.find((model) => model.training_status === "pending");
-
-  const headerStatus = runningTraining ? (
-    <span>Обучение активно</span>
-  ) : pendingTraining ? (
-    <span>Ожидает запуска</span>
-  ) : (
-    <span>Нет активного обучения</span>
-  );
 
   return (
     <>
@@ -61,11 +46,25 @@ export function Component() {
           ]}
         >
           <ContentHeader.Actions>
-            {headerStatus}
             <TrainModel groupId={group.id} hasTrainData={hasTrainData} />
           </ContentHeader.Actions>
         </ContentHeader.Top>
       </ContentHeader>
+      <Section
+        title="Покрытие эталонов"
+        side={
+          <Badge>
+            {group.stats.annotated_count} / {group.stats.images_count}
+          </Badge>
+        }
+        bordered
+        scrollable
+        maxContentHeight={280}
+      >
+        {group.standards.map((std) => (
+          <CoverageItem key={std.id} standard={std} />
+        ))}
+      </Section>
 
       <Outlet context={{ group, models }} />
     </>

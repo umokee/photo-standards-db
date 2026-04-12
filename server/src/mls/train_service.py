@@ -2,6 +2,7 @@ import logging
 import random
 import shutil
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 import yaml
@@ -353,7 +354,6 @@ async def run_train(db: AsyncSession, data: MlModelTrainRequest) -> MlModel:
 
     model = MlModel(
         group_id=data.group_id,
-        name=f"{data.architecture}_v{version}",
         architecture=data.architecture,
         weights_path=f"models/_basic/{base_weights}",
         version=version,
@@ -377,16 +377,31 @@ async def run_train(db: AsyncSession, data: MlModelTrainRequest) -> MlModel:
 
     from tasks.training import execute_training
 
-    await execute_training.configure(lock="training").defer_async(
-        model_id=str(model.id),
-        group_id=str(data.group_id),
-        train_ratio=data.train_ratio,
-        val_ratio=data.val_ratio,
-        epochs=data.epochs,
-        imgsz=data.imgsz,
-        batch_size=data.batch_size,
-        weights_path=model.weights_path,
-        version=version,
-    )
+    try:
+        job_id = await execute_training.configure(
+            lock="training",
+            queueing_lock=f"training: {data.group_id}",
+        ).defer_async(
+            model_id=str(model.id),
+            group_id=str(data.group_id),
+            train_ratio=data.train_ratio,
+            val_ratio=data.val_ratio,
+            epochs=data.epochs,
+            imgsz=data.imgsz,
+            batch_size=data.batch_size,
+            weights_path=model.weights_path,
+            version=version,
+        )
+    except Exception as e:
+        logger.exception("Не удалось поставить модель %s в очередь", model.id)
+        model.training_status = training.statuses.failed
+        model.training_error = f"Не удалось поставить задачу в очередь: {e}"[:500]
+        model.training_finished_at = datetime.now()
+        await db.commit()
+        await db.refresh(model)
+        raise
 
+    model.training_job_id = job_id
+    await db.commit()
+    await db.refresh(model)
     return model

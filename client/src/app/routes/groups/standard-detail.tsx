@@ -1,10 +1,9 @@
 import { paths } from "@/app/paths";
-import { SectionHeader } from "@/components/layouts/section-header/section-header";
+import { Section } from "@/components/layouts/section/section";
 import QueryState from "@/components/ui/query-state/query-state";
 import { StandardCard } from "@/page-components/standards/components/standard-card/standard-card";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { useGroupDetailOutletContext } from "./group-detail";
-import s from "./groups.module.scss";
 
 export function Component() {
   const navigate = useNavigate();
@@ -30,29 +29,21 @@ export function Component() {
       emptyTitle="Нет эталонов"
       emptyDescription="Создайте эталоны для этой группы"
     >
-      <section className={s.section}>
-        <SectionHeader>
-          <SectionHeader.Title>Эталоны</SectionHeader.Title>
-          <SectionHeader.Side>
-            <span className={s.countBadge}>{group.standards.length}</span>
-          </SectionHeader.Side>
-        </SectionHeader>
-        <div className={s.cards}>
-          {group.standards.map((standard) => {
-            const isExpanded = standardId === standard.id;
+      <Section title={`Эталоны · ${group.stats.standards_count}`}>
+        {group.standards.map((standard) => {
+          const isExpanded = standardId === standard.id;
 
-            return (
-              <StandardCard
-                key={standard.id}
-                standard={standard}
-                expanded={isExpanded}
-                onToggle={() => toggleStandard(standard.id)}
-                onToImageEditor={(imageId) => handleToImageEditor(imageId)}
-              />
-            );
-          })}
-        </div>
-      </section>
+          return (
+            <StandardCard
+              key={standard.id}
+              standard={standard}
+              expanded={isExpanded}
+              onToggle={() => toggleStandard(standard.id)}
+              onToImageEditor={(imageId) => handleToImageEditor(imageId)}
+            />
+          );
+        })}
+      </Section>
     </QueryState>
   );
 }
