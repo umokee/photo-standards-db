@@ -1,4 +1,17 @@
-import type { CanvasModeDefinition, ViewModeContext } from "./types";
+import { SegmentWithPoints } from "@/types/contracts";
+import { RefObject } from "react";
+import type {
+  CanvasLineNode,
+  CanvasModeDefinition,
+  CanvasPointer,
+  CanvasPointerEvent,
+  CanvasTargetNode,
+} from "./types";
+
+export type ContourInsertTarget = {
+  index: number;
+  point: number[];
+};
 
 export function createViewMode({
   selectedId,
@@ -22,7 +35,48 @@ export function createViewMode({
   updateLine,
   toCanvas,
   toImage,
-}: ViewModeContext): CanvasModeDefinition {
+}: {
+  selectedId: string | null;
+  hasSelectedContour: boolean;
+  isSpaceDown: RefObject<boolean>;
+  isDragging: RefObject<boolean>;
+  contourFillRefs: RefObject<Record<string, CanvasLineNode>>;
+  contourLineRefs: RefObject<Record<string, CanvasLineNode>>;
+  contourOutlineRefs: RefObject<Record<string, CanvasLineNode>>;
+  pendingResetNode: RefObject<CanvasTargetNode | null>;
+  readCanvasPointer: (e: CanvasPointerEvent) => CanvasPointer;
+  clearPreviewState: () => void;
+  onSelect: (id: string | null) => void;
+  onSelectContour: (index: number | null) => void;
+  selectContour: (segment: SegmentWithPoints, contourIndex: number) => void;
+  insertVertexIntoContour: (
+    segment: SegmentWithPoints,
+    contourIndex: number,
+    insertion: ContourInsertTarget
+  ) => void;
+  getContourInsertTarget: (
+    contour: number[][],
+    px: number,
+    py: number
+  ) => ContourInsertTarget | null;
+  moveContour: (segment: SegmentWithPoints, contourIndex: number, dx: number, dy: number) => void;
+  moveVertex: (
+    segment: SegmentWithPoints,
+    contourIndex: number,
+    vertexIndex: number,
+    nextPoint: number[]
+  ) => void;
+  removeVertex: (segment: SegmentWithPoints, contourIndex: number, vertexIndex: number) => void;
+  updateLine: (
+    lineNodes: Array<CanvasLineNode | null | undefined>,
+    canvasPts: number[][],
+    vertexIndex: number,
+    nextX: number,
+    nextY: number
+  ) => void;
+  toCanvas: (ix: number, iy: number) => [number, number];
+  toImage: (cx: number, cy: number) => [number, number];
+}): CanvasModeDefinition {
   return {
     label: "Режим просмотра",
     hint: !selectedId

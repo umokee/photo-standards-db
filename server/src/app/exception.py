@@ -1,0 +1,91 @@
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass(slots=True)
+class AppError(Exception):
+    code: str
+    message: str
+    status_code: int
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def __str__(self) -> str:
+        return self.message
+
+
+class ValidationError(AppError):
+    def __init__(
+        self,
+        message: str = "Проверьте введенные данные",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            code="VALIDATION_ERROR",
+            message=message,
+            status_code=422,
+            details=details or {},
+        )
+
+
+class NotFoundError(AppError):
+    def __init__(
+        self,
+        entity: str,
+        entity_id: Any,
+        verb: str = "не найден",
+    ):
+        super().__init__(
+            code="not_found",
+            message=f"{entity} ({entity_id}) {verb}",
+            status_code=404,
+        )
+
+
+class ConflictError(AppError):
+    def __init__(
+        self,
+        message: str = "Возник конфликт данных",
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            code="conflict",
+            message=message,
+            status_code=409,
+            details=details or {},
+        )
+
+
+class UnauthorizedError(AppError):
+    def __init__(
+        self,
+        message: str = "Требуется авторизация",
+    ):
+        super().__init__(
+            code="unauthorized",
+            message=message,
+            status_code=401,
+        )
+
+
+class ForbiddenError(AppError):
+    def __init__(
+        self,
+        message: str = "Доступ запрещён",
+    ):
+        super().__init__(
+            code="forbidden",
+            message=message,
+            status_code=403,
+        )
+
+
+class InternalServerError(AppError):
+    def __init__(
+        self,
+        message: str = "Внутренняя ошибка сервера",
+    ):
+        super().__init__(
+            code="internal_error",
+            message=message,
+            status_code=500,
+        )

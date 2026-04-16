@@ -1,5 +1,4 @@
 import type { SegmentWithPoints } from "@/types/contracts";
-import type { RefObject } from "react";
 
 export type CanvasLayerNode = {
   batchDraw: () => void;
@@ -101,76 +100,3 @@ export type CanvasPointer = {
   py: number;
 };
 
-export type ContourInsertTarget = {
-  index: number;
-  point: number[];
-};
-
-export type ViewModeContext = {
-  selectedId: string | null;
-  hasSelectedContour: boolean;
-  isSpaceDown: RefObject<boolean>;
-  isDragging: RefObject<boolean>;
-  contourFillRefs: RefObject<Record<string, CanvasLineNode>>;
-  contourLineRefs: RefObject<Record<string, CanvasLineNode>>;
-  contourOutlineRefs: RefObject<Record<string, CanvasLineNode>>;
-  pendingResetNode: RefObject<CanvasTargetNode | null>;
-  readCanvasPointer: (e: CanvasPointerEvent) => CanvasPointer;
-  clearPreviewState: () => void;
-  onSelect: (id: string | null) => void;
-  onSelectContour: (index: number | null) => void;
-  selectContour: (segment: SegmentWithPoints, contourIndex: number) => void;
-  insertVertexIntoContour: (
-    segment: SegmentWithPoints,
-    contourIndex: number,
-    insertion: ContourInsertTarget
-  ) => void;
-  getContourInsertTarget: (
-    contour: number[][],
-    px: number,
-    py: number
-  ) => ContourInsertTarget | null;
-  moveContour: (segment: SegmentWithPoints, contourIndex: number, dx: number, dy: number) => void;
-  moveVertex: (
-    segment: SegmentWithPoints,
-    contourIndex: number,
-    vertexIndex: number,
-    nextPoint: number[]
-  ) => void;
-  removeVertex: (segment: SegmentWithPoints, contourIndex: number, vertexIndex: number) => void;
-  updateLine: (
-    lineNodes: Array<CanvasLineNode | null | undefined>,
-    canvasPts: number[][],
-    vertexIndex: number,
-    nextX: number,
-    nextY: number
-  ) => void;
-  toCanvas: (ix: number, iy: number) => [number, number];
-  toImage: (cx: number, cy: number) => [number, number];
-};
-
-export type DrawPolygonModeContext = {
-  image: HTMLImageElement | null;
-  selectedId: string | null;
-  isDragging: RefObject<boolean>;
-  draftLineRef: RefObject<CanvasLineNode | null>;
-  draftOutlineRef: RefObject<CanvasLineNode | null>;
-  draftPoints: number[][];
-  readCanvasPointer: (e: CanvasPointerEvent) => CanvasPointer;
-  clampToImage: (cx: number, cy: number) => [number, number];
-  clearPreviewState: () => void;
-  setDraftPreviewPoint: (value: [number, number] | null) => void;
-  setDraftPoints: React.Dispatch<React.SetStateAction<number[][]>>;
-  addDraftPoint: (cx: number, cy: number) => void;
-  finishDraftPolygon: () => void;
-  tryFinishDraftPolygon: (cx: number, cy: number) => boolean;
-  updateLine: (
-    lineNodes: Array<CanvasLineNode | null | undefined>,
-    canvasPts: number[][],
-    vertexIndex: number,
-    nextX: number,
-    nextY: number
-  ) => void;
-  toCanvas: (ix: number, iy: number) => [number, number];
-  toImage: (cx: number, cy: number) => [number, number];
-};

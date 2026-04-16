@@ -1,4 +1,6 @@
 {
+  "include": ["src"],
+  "exclude": [".venv", "**/__pycache__"],
   "pythonVersion": "3.13",
   "venvPath": ".",
   "venv": ".venv",
@@ -6,5 +8,11 @@
   "typeCheckingMode": "basic",
   "autoImportCompletions": true,
   "indexing": true,
-  "extraPaths": [".venv/lib/python3.13/site-packages"]
+  "extraPaths": ["src"],
+  "executionEnvironments": [
+    {
+      "root": "src",
+      "extraPaths": ["src"]
+    }
+  ]
 }

@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server:install": "cd ../server && python -m venv .venv && .venv/bin/pip install -r requirements.txt",
     "server": "cd ../server && .venv/bin/uvicorn main:app --app-dir src --reload --port 3001",
-    "project": "bash -lc 'trap \"pkill -P $$; exit\" EXIT; npm run server & npm run dev; wait'",
-    "server-nix": "cd ../server && nix develop --command uv run uvicorn main:app --app-dir src --reload --port 3001",
-    "project-nix": "bash -lc 'trap \"kill 0\" EXIT INT TERM; npm run server-nix & npm run dev'",
+    "project": "npm run server & npm run dev",
+    "docker": "cd .. && docker compose -f docker-compose.dev.yml up --build --force-recreate",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

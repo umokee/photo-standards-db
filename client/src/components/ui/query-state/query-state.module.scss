@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $surface2;
+  // background: $surface2;
   color: $text-hint;
   flex-shrink: 0;
 
@@ -44,12 +44,12 @@
 }
 
 .iconLoading {
-  background: $surface2;
+  // background: $surface2;
   color: $primary;
 }
 
 .iconError {
-  background: $danger-bg;
+  // background: $danger-bg;
   color: $danger-text;
 }
 

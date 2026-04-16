@@ -1,4 +1,10 @@
-import type { CanvasModeDefinition, DrawPolygonModeContext } from "./types";
+import { RefObject } from "react";
+import type {
+  CanvasLineNode,
+  CanvasModeDefinition,
+  CanvasPointer,
+  CanvasPointerEvent,
+} from "./types";
 
 export function createDrawPolygonMode({
   image,
@@ -18,7 +24,31 @@ export function createDrawPolygonMode({
   updateLine,
   toCanvas,
   toImage,
-}: DrawPolygonModeContext): CanvasModeDefinition {
+}: {
+  image: HTMLImageElement | null;
+  selectedId: string | null;
+  isDragging: RefObject<boolean>;
+  draftLineRef: RefObject<CanvasLineNode | null>;
+  draftOutlineRef: RefObject<CanvasLineNode | null>;
+  draftPoints: number[][];
+  readCanvasPointer: (e: CanvasPointerEvent) => CanvasPointer;
+  clampToImage: (cx: number, cy: number) => [number, number];
+  clearPreviewState: () => void;
+  setDraftPreviewPoint: (value: [number, number] | null) => void;
+  setDraftPoints: React.Dispatch<React.SetStateAction<number[][]>>;
+  addDraftPoint: (cx: number, cy: number) => void;
+  finishDraftPolygon: () => void;
+  tryFinishDraftPolygon: (cx: number, cy: number) => boolean;
+  updateLine: (
+    lineNodes: Array<CanvasLineNode | null | undefined>,
+    canvasPts: number[][],
+    vertexIndex: number,
+    nextX: number,
+    nextY: number
+  ) => void;
+  toCanvas: (ix: number, iy: number) => [number, number];
+  toImage: (cx: number, cy: number) => [number, number];
+}): CanvasModeDefinition {
   return {
     label: "Режим полигона",
     hint: "ЛКМ: добавить/передвинуть(зажать)/удалить(дважды) вершину | ПКМ: сбросить | Колесо: масштаб",

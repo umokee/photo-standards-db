@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: photo-standards
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./server/src:/app/src
+      - ./server/alembic:/app/alembic
+      - ./server/alembic.ini:/app/alembic.ini
+      - ./storage:/storage
+    command: ["python", "-m", "init_db"]
+    restart: "no"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/src:/app/src
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:3001/api/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    volumes:
+      - ./server/src:/app/src
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker"]
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - client-node-modules:/app/node_modules
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  client-node-modules:

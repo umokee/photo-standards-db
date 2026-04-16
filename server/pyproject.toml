@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "server"
 version = "0.1.0"
@@ -6,35 +10,28 @@ dependencies = [
   "fastapi",
   "uvicorn[standard]",
   "python-multipart",
-
   "sqlalchemy",
   "asyncpg",
   "psycopg[binary]", 
   "pydantic-settings",
   "pydantic",
-
+  "alembic",
   "bcrypt",
   "numpy",
-
   "opencv-python-headless",
   "scikit-image", 
   "scipy",
-
   "onnxruntime",
   "ultralytics",
   "pillow",
-
   "procrastinate"
 ]
 
-[tool.uv]
-override-dependencies = [
-  "opencv-python; sys_platform == 'never'",
-  "opencv-python-headless",
-]
+[tool.setuptools]
+package-dir = {"" = "src"}
 
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project.scripts]
 server = "src.main:main"
-
-

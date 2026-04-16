@@ -1,17 +1,7 @@
-import {
-  ANGLES,
-  APP_CONSTANTS,
-  INSPECTION_MODES,
-  INSPECTION_STATUSES,
-  TRAINING_STATUSES,
-  USER_ROLES,
-} from "@/constants";
-
-export type Angle = (typeof ANGLES)[number];
-export type UserRole = (typeof USER_ROLES)[number];
-export type InspectionMode = (typeof INSPECTION_MODES)[number];
-export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
-export type TrainingStatus = (typeof TRAINING_STATUSES)[number];
-export type Architecture = (typeof APP_CONSTANTS.training.architectures)[number]["value"];
+export type Angle = string;
+export type UserRole = string;
+export type InspectionMode = string;
+export type InspectionStatus = string;
+export type TrainingStatus = string;
+export type Architecture = string;
 export type Metric = "mAP50" | "mAP50_95" | "precision" | "recall";
-

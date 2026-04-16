@@ -15,7 +15,7 @@ export default function ProgressBar({ value, max, warn, showLabel }: Props) {
   return (
     <div className={s.root}>
       <div className={s.track}>
-        <div className={clsx(s.fill, warn && s.fillWarn)} style={{ width: `${pct}%` }} />
+        <div className={clsx(s.fill, warn && s.warn)} style={{ width: `${pct}%` }} />
       </div>
 
       {showLabel && (

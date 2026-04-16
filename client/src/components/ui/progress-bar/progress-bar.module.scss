@@ -21,7 +21,7 @@
   border-radius: inherit;
   background: $primary;
 
-  .warn {
+  &.warn {
     background: $warning;
   }
 }

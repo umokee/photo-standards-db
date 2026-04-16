@@ -99,26 +99,3 @@
     color: $text-sub;
   }
 }
-
-// Прогресс-бар снизу
-.progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  transform-origin: left;
-
-  .success & {
-    background: $primary;
-  }
-  .error & {
-    background: $danger;
-  }
-  .warning & {
-    background: $warning;
-  }
-  .info & {
-    background: $ml;
-  }
-}

@@ -31,6 +31,20 @@ services:
       timeout: 5s
       retries: 5
 
+  worker:
+    build: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+    volumes:
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker"]
+
+
   client:
     profiles: [prod]
     build: ./client

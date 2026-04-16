@@ -1,12 +1,14 @@
 import { queryClient } from "@/lib/query-client";
 import { getGroupQueryOptions } from "@/page-components/groups/api/get-group";
 import { getGroupsQueryOptions } from "@/page-components/groups/api/get-groups";
-import { getMlsQueryOptions } from "@/page-components/mls/api/get-mls";
+import { getConstantsQueryOptions } from "@/page-components/meta/get-constants";
+import { getModelQueryOptions } from "@/page-components/models/api/get-ml";
+import { getModelsQueryOptions } from "@/page-components/models/api/get-models";
 import { getImageQueryOptions } from "@/page-components/standards/api/get-image";
 import { getStandardQueryOptions } from "@/page-components/standards/api/get-standard";
+import { getTasksQueryOptions } from "@/page-components/tasks/api/get-tasks";
 import { createBrowserRouter, Navigate, redirect } from "react-router-dom";
 import { paths } from "./paths";
-import { routePaths } from "./route-paths";
 import RootLayout from "./routes/root";
 import RouteError from "./routes/route-error";
 import RouteLoadingFallback from "./routes/route-loading-fallback";
@@ -15,7 +17,6 @@ const GroupsLayoutRoute = () => import("./routes/groups/groups-layout");
 const GroupsIndexRoute = () => import("./routes/groups/groups-index");
 const GroupDetailRoute = () => import("./routes/groups/group-detail");
 const StandardDetailRoute = () => import("./routes/groups/standard-detail");
-
 const ImagesRoute = () => import("./routes/images/images");
 
 const TrainingLayoutRoute = () => import("./routes/training/training-layout");
@@ -23,13 +24,19 @@ const TrainingIndexRoute = () => import("./routes/training/training-index");
 const TrainingDetailRoute = () => import("./routes/training/training-detail");
 const ModelDetailRoute = () => import("./routes/training/model-detail");
 
-const CamerasRoute = () => import("./routes/cameras");
+const InspectionLayoutRoute = () => import("./routes/inspection/inspection-layout");
+const InspectionIndexRoute = () => import("./routes/inspection/inspection-index");
+const InspectionGroupRoute = () => import("./routes/inspection/inspection-group");
+const InspectionStandardRoute = () => import("./routes/inspection/inspection-standard");
 
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     errorElement: <RouteError />,
     hydrateFallbackElement: <RouteLoadingFallback />,
+    loader: async () => {
+      await queryClient.ensureQueryData(getConstantsQueryOptions());
+    },
     children: [
       {
         path: paths.home(),
@@ -151,7 +158,10 @@ export const router = createBrowserRouter([
                 throw redirect(paths.training());
               }
 
-              await queryClient.ensureQueryData(getMlsQueryOptions(groupId));
+              await Promise.all([
+                queryClient.ensureQueryData(getModelsQueryOptions(groupId)),
+                queryClient.ensureQueryData(getTasksQueryOptions(groupId)),
+              ]);
 
               return { groupId };
             },
@@ -178,10 +188,7 @@ export const router = createBrowserRouter([
                     throw redirect(paths.trainingGroup(groupId));
                   }
 
-                  await Promise.all([
-                    queryClient.ensureQueryData(getMlsQueryOptions(groupId)),
-                    // queryClient.ensureQueryData(getStandardQueryOptions(standardId)),
-                  ]);
+                  await queryClient.ensureQueryData(getModelQueryOptions(modelId));
 
                   return { modelId };
                 },
@@ -190,9 +197,75 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      {
+        path: paths.inspection(),
+        loader: async () => {
+          throw redirect(paths.inspectionMode("photo"));
+        },
+      },
+      {
+        path: "/inspection/:mode",
+        lazy: InspectionLayoutRoute,
+        errorElement: <RouteError />,
+        hydrateFallbackElement: <RouteLoadingFallback />,
+        loader: async () => {
+          await queryClient.ensureQueryData(getGroupsQueryOptions());
+        },
+        children: [
+          {
+            index: true,
+            lazy: InspectionIndexRoute,
+          },
+          {
+            path: "groups/:groupId",
+            lazy: InspectionGroupRoute,
+            loader: async ({ params }) => {
+              const mode = params.mode?.trim();
+              const groupId = params.groupId?.trim();
 
-      { path: routePaths.cameras, lazy: CamerasRoute },
-      { path: routePaths.camera, lazy: CamerasRoute },
+              if (!mode) {
+                throw redirect(paths.inspection());
+              }
+
+              if (!groupId) {
+                throw redirect(paths.inspectionMode(mode));
+              }
+
+              await queryClient.ensureQueryData(getGroupQueryOptions(groupId));
+
+              return { groupId };
+            },
+          },
+          {
+            path: "groups/:groupId/standards/:standardId",
+            lazy: InspectionStandardRoute,
+            loader: async ({ params }) => {
+              const mode = params.mode?.trim();
+              const groupId = params.groupId?.trim();
+              const standardId = params.standardId?.trim();
+
+              if (!mode) {
+                throw redirect(paths.inspection());
+              }
+
+              if (!groupId) {
+                throw redirect(paths.inspectionMode(mode));
+              }
+
+              if (!standardId) {
+                throw redirect(paths.inspectionGroup(mode, groupId));
+              }
+
+              await Promise.all([
+                queryClient.ensureQueryData(getGroupQueryOptions(groupId)),
+                queryClient.ensureQueryData(getStandardQueryOptions(standardId)),
+              ]);
+
+              return { groupId, standardId };
+            },
+          },
+        ],
+      },
     ],
   },
 ]);

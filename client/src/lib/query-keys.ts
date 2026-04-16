@@ -1,4 +1,8 @@
 export const queryKeys = {
+  meta: {
+    constants: () => ["meta", "constants"] as const,
+  },
+
   groups: {
     all: () => ["groups"] as const,
     detail: (groupId: string) => ["groups", groupId] as const,
@@ -16,6 +20,8 @@ export const queryKeys = {
   training: {
     models: (groupId: string) => ["training", groupId, "models"] as const,
     model: (modelId: string) => ["training", "model", modelId] as const,
+    tasks: (groupId: string) => ["training", groupId, "tasks"] as const,
+    task: (taskId: string) => ["training", "task", taskId] as const,
   },
 
   cameras: {

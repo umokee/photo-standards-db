@@ -11,4 +11,10 @@ export default defineConfig({
   base: `./`,
   plugins: [react(), viteTsconfigPaths()],
   optimizeDeps: { exclude: ["fsevents"] },
+  server: {
+    proxy: {
+      "/api": "http://localhost:3001",
+      "/storage": "http://localhost:3001",
+    },
+  },
 });

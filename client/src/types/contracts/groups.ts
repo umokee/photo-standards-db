@@ -1,3 +1,5 @@
+import { Architecture } from "./shared";
+
 export interface GroupStats {
   standards_count: number;
   images_count: number;
@@ -23,14 +25,13 @@ export interface GroupStandard {
 export interface GroupModel {
   id: string;
   group_id: string;
-  name: string;
-  architecture: string;
+  architecture: Architecture;
   version: number;
   epochs: number | null;
   imgsz: number;
   batch_size: number | null;
   num_classes: number | null;
-  metrics: Record<string, unknown> | null;
+  metrics: Record<string, number | null> | null;
   class_names: string[] | null;
   is_active: boolean;
   trained_at: string | null;

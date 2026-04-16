@@ -1,177 +1,73 @@
-import asyncio
-import logging
 from contextlib import asynccontextmanager
-from typing import Any
 
-from cameras.models import Camera  # noqa: F401
-from cameras.router import router as cameras_router
-from config import STORAGE_PATH
-from database import Base, engine
-from exception import AppError, InternalServerError, ValidationError
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+from app.config import settings
+from app.db import AsyncSessionLocal, dispose_engines
+from app.exception_handlers import register_exception_handlers
+from app.import_models import import_models
+from app.logging import configure_logging
+from app.router import api_router
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from groups.models import Group  # noqa: F401
-from groups.router import router as groups_router
-from inspections.models import InspectionResult, InspectionSegmentResult  # noqa: F401
-from inspections.router import router as inspections_router
-from mls.models import MlModel  # noqa: F401
-from mls.router import router as models_router
-from procrastinate.schema import SchemaManager
-from segments.models import Segment, SegmentAnnotation, SegmentGroup  # noqa: F401
-from segments.router import segment_group_router as segment_groups_router
-from segments.router import segment_router as segments_router
-from standards.models import Standard, StandardImage  # noqa: F401
-from standards.router import router as standards_router
-from tasks.app import app as procrastinate_app
-from users.models import User  # noqa: F401
-from users.router import router as users_router
+from infra.queue.procrastinate import procrastinate_app
+from modules.tasks.service import fail_stale_running_tasks
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 
-logger = logging.getLogger(__name__)
+
+def ensure_storage_dirs() -> None:
+    settings.STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
+    settings.standards_storage_path.mkdir(parents=True, exist_ok=True)
+    settings.inspections_storage_path.mkdir(parents=True, exist_ok=True)
+    settings.models_storage_path.mkdir(parents=True, exist_ok=True)
+
+
+async def recover_stale_tasks() -> int:
+    async with AsyncSessionLocal() as db:
+        try:
+            await db.execute(text("SELECT 1 FROM tasks LIMIT 1"))
+            await db.execute(text("SELECT 1 FROM procrastinate_jobs LIMIT 1"))
+        except ProgrammingError:
+            await db.rollback()
+            return 0
+        return await fail_stale_running_tasks(db, queue="training")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        logger.info("База данных создана")
-
+    ensure_storage_dirs()
+    import_models()
     async with procrastinate_app.open_async():
-        if not await procrastinate_app.check_connection_async():
-            await SchemaManager(procrastinate_app.connector).apply_schema_async()
-
-        worker = asyncio.create_task(
-            procrastinate_app.run_worker_async(
-                queues=["inspection", "training"],
-                concurrency=2,
-                install_signal_handlers=False,
-            )
-        )
-        logger.info("Worker запущен")
-        yield
-
-        worker.cancel()
+        await recover_stale_tasks()
         try:
-            await asyncio.wait_for(worker, timeout=15)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            logger.info("Worker остановлен")
+            yield
+        finally:
+            await dispose_engines()
 
 
-app = FastAPI(
-    title="База данных фотоэталонов API",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    configure_logging(debug=settings.DEBUG)
 
-_PYDANTIC_RU: dict[str, str] = {
-    "missing": "Поле обязательно",
-    "string_too_short": "Слишком короткое значение",
-    "string_too_long": "Слишком длинное значение",
-    "string_pattern_mismatch": "Некорректный формат",
-    "string_type": "Ожидается строка",
-    "int_parsing": "Некорректное число",
-    "int_type": "Ожидается число",
-    "float_parsing": "Некорректное число",
-    "float_type": "Ожидается число",
-    "bool_parsing": "Некорректное булево значение",
-    "bool_type": "Ожидается булево значение",
-    "uuid_parsing": "Некорректный идентификатор",
-    "uuid_type": "Некорректный идентификатор",
-    "literal_error": "Недопустимое значение",
-    "enum": "Недопустимое значение",
-    "greater_than": "Значение слишком маленькое",
-    "greater_than_equal": "Значение слишком маленькое",
-    "less_than": "Значение слишком большое",
-    "less_than_equal": "Значение слишком большое",
-    "list_type": "Ожидается список",
-    "dict_type": "Ожидается объект",
-    "value_error": "Некорректное значение",
-}
-
-
-def _json_error_response(error: AppError) -> JSONResponse:
-    return JSONResponse(
-        status_code=error.status_code,
-        content=error.to_response(),
+    app = FastAPI(
+        title=settings.APP_NAME,
+        debug=settings.DEBUG,
+        lifespan=lifespan,
     )
 
-
-def _normalize_error_field(loc: tuple[Any, ...]) -> str:
-    parts = [str(part) for part in loc if part not in {"body", "query", "path"}]
-    return ".".join(parts)
-
-
-def _translate_validation_message(error_type: str, message: str) -> str:
-    return _PYDANTIC_RU.get(error_type, message)
-
-
-def _build_validation_errors(exc: RequestValidationError) -> list[dict[str, str]]:
-    errors: list[dict[str, str]] = []
-
-    for error in exc.errors():
-        error_type = error["type"]
-        field = _normalize_error_field(error["loc"])
-        errors.append(
-            {
-                "field": field,
-                "message": _translate_validation_message(error_type, error["msg"]),
-                "type": error_type,
-            }
-        )
-
-    return errors
-
-
-@app.exception_handler(AppError)
-async def app_error_handler(request: Request, exc: AppError):
-    return _json_error_response(exc)
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_error_handler(request: Request, exc: RequestValidationError):
-    error = ValidationError(
-        message="Проверьте введенные данные",
-        details={"errors": _build_validation_errors(exc)},
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
-    return _json_error_response(error)
+
+    register_exception_handlers(app)
+    app.include_router(api_router)
+    app.mount("/storage", StaticFiles(directory=settings.STORAGE_ROOT), name="storage")
+
+    app.state.settings = settings
+    return app
 
 
-@app.exception_handler(Exception)
-async def unhandled_error_handler(request: Request, exc: Exception):
-    logger.exception(
-        "Unhandled error on %s %s",
-        request.method,
-        request.url.path,
-        exc_info=exc,
-    )
-    return _json_error_response(InternalServerError())
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(users_router)
-app.include_router(groups_router)
-app.include_router(standards_router)
-app.include_router(segments_router)
-app.include_router(segment_groups_router)
-app.include_router(cameras_router)
-app.include_router(inspections_router)
-app.include_router(models_router)
-
-STORAGE_PATH.mkdir(exist_ok=True)
-(STORAGE_PATH / "standards").mkdir(exist_ok=True)
-(STORAGE_PATH / "inspections").mkdir(exist_ok=True)
-(STORAGE_PATH / "models").mkdir(exist_ok=True)
-
-app.mount("/storage", StaticFiles(directory=STORAGE_PATH), name="storage")
-
-
-@app.get("/api/health")
-def health_check() -> dict:
-    return {"status": "OK"}
+app = create_app()

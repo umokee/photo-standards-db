@@ -1,17 +1,20 @@
 import { ContentHeader } from "@/components/layouts/content-header/content-header";
 import { Section } from "@/components/layouts/section/section";
 import { Badge } from "@/components/ui/badge/badge";
+import QueryState from "@/components/ui/query-state/query-state";
 import { useGetGroup } from "@/page-components/groups/api/get-group";
 import { CoverageItem } from "@/page-components/groups/components/coverage-item/coverage-item";
-import { useGetMls } from "@/page-components/mls/api/get-mls";
-import { TrainModel } from "@/page-components/mls/components/train-model";
-import { GroupDetail, MlModel } from "@/types/contracts";
+import { useGetModels } from "@/page-components/models/api/get-models";
+import { TrainModel } from "@/page-components/models/components/train-model";
+import { useGetTasks } from "@/page-components/tasks/api/get-tasks";
+import { GroupDetail, MlModel, TaskResponse } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { Outlet, useLoaderData, useOutletContext } from "react-router-dom";
 
 type TrainingModelOutletContext = {
   group: GroupDetail;
   models: MlModel[];
+  tasks: TaskResponse[];
 };
 
 export const useTrainingModelOutletContext = () => {
@@ -21,13 +24,18 @@ export const useTrainingModelOutletContext = () => {
 export function Component() {
   const { groupId } = useLoaderData() as { groupId: string };
   const { data: group } = useGetGroup(groupId);
-  const { data: models } = useGetMls(groupId);
+  const { data: models } = useGetModels(groupId);
+  const { data: tasks } = useGetTasks(groupId);
 
-  const hasTrainData =
-    group?.stats.standards_count > 0 &&
-    group?.stats.images_count > 0 &&
-    group?.stats.polygons_count > 0 &&
-    group?.stats.segment_groups_count > 0;
+  const hasMinimumTrainingData =
+    group.stats.standards_count > 0 &&
+    group.stats.images_count > 0 &&
+    group.stats.annotated_count > 0 &&
+    group.stats.segments_count > 0;
+
+  const hasActiveTrainingTask = tasks.some((task) =>
+    ["pending", "queued", "running"].includes(task.status)
+  );
 
   return (
     <>
@@ -46,7 +54,11 @@ export function Component() {
           ]}
         >
           <ContentHeader.Actions>
-            <TrainModel groupId={group.id} hasTrainData={hasTrainData} />
+            <TrainModel
+              groupId={group.id}
+              canTrain={hasMinimumTrainingData}
+              isTrainingLocked={hasActiveTrainingTask}
+            />
           </ContentHeader.Actions>
         </ContentHeader.Top>
       </ContentHeader>
@@ -61,12 +73,19 @@ export function Component() {
         scrollable
         maxContentHeight={280}
       >
-        {group.standards.map((std) => (
-          <CoverageItem key={std.id} standard={std} />
-        ))}
+        <QueryState
+          size="block"
+          isEmpty={group.standards.length === 0}
+          emptyTitle="Нет эталонов"
+          emptyDescription="Создайте эталоны для этой группы"
+        >
+          {group.standards.map((std) => (
+            <CoverageItem key={std.id} standard={std} />
+          ))}
+        </QueryState>
       </Section>
 
-      <Outlet context={{ group, models }} />
+      <Outlet context={{ group, models, tasks }} />
     </>
   );
 }

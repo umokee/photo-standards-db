@@ -23,7 +23,6 @@ export function Notification({ notification }: Props) {
       <button className={s.close} onClick={() => dismiss(notification.id)}>
         <X size={13} strokeWidth={1.75} />
       </button>
-      {duration > 0 && <div className={s.progress} />}
     </div>
   );
 }
