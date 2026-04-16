@@ -22,30 +22,31 @@ Name = Annotated[
 ]
 
 
-class StandardSegmentResponse(BaseModel):
+class StandardSegmentClassResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    segment_group_id: UUID
-    name: str
-
-
-class StandardSegmentGroupResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    standard_id: UUID
+    group_id: UUID
+    class_group_id: UUID | None
     name: str
     hue: int
-    segment_count: int = 0
+
+
+class StandardSegmentClassCategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    group_id: UUID
+    name: str
+    segment_classes: list[StandardSegmentClassResponse] = Field(default_factory=list)
 
 
 class StandardStatsResponse(BaseModel):
     images_count: int = 0
     annotated_images_count: int = 0
     unannotated_images_count: int = 0
-    segments_count: int = 0
-    segment_groups_count: int = 0
+    segment_classes_count: int = 0
+    segment_class_categories_count: int = 0
     reference_image_id: UUID | None = None
     reference_path: str | None = None
 
@@ -61,17 +62,21 @@ class StandardImageResponse(BaseModel):
     created_at: datetime
 
 
-class StandardSegmentWithPointsResponse(BaseModel):
+class StandardSegmentClassWithPointsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    segment_group_id: UUID
+    group_id: UUID
+    class_group_id: UUID | None
     name: str
+    hue: int
     points: list[list[list[float]]]
 
 
 class StandardImageDetailResponse(StandardImageResponse):
-    segments: list[StandardSegmentWithPointsResponse] = Field(default_factory=list)
+    segment_classes: list[StandardSegmentClassWithPointsResponse] = Field(
+        default_factory=list
+    )
 
 
 class StandardDetailResponse(BaseModel):
@@ -85,8 +90,12 @@ class StandardDetailResponse(BaseModel):
     created_at: datetime
     stats: StandardStatsResponse
     images: list[StandardImageResponse] = Field(default_factory=list)
-    segments: list[StandardSegmentResponse] = Field(default_factory=list)
-    segment_groups: list[StandardSegmentGroupResponse] = Field(default_factory=list)
+    segment_class_categories: list[StandardSegmentClassCategoryResponse] = Field(
+        default_factory=list
+    )
+    ungrouped_segment_classes: list[StandardSegmentClassResponse] = Field(
+        default_factory=list
+    )
 
 
 class StandardMutationResponse(BaseModel):

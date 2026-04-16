@@ -12,14 +12,15 @@ class MlModelResponse(BaseModel):
 
     architecture: str
     weights_path: str | None = None
-    version: int
+    version: int | None = None
 
     epochs: int | None = None
     imgsz: int
     batch_size: int | None = None
 
     num_classes: int | None = None
-    class_names: list[str] | None = None
+    class_keys: list[str] | None = None
+    class_meta: list[dict] | None = None
     metrics: dict | None = None
 
     train_ratio: int | None = None

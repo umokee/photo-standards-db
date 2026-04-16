@@ -1,24 +1,24 @@
-export interface SegmentGroup {
+export interface SegmentClass {
   id: string;
-  standard_id: string;
+  group_id: string;
+  class_group_id: string | null;
   name: string;
   hue: number;
-  segment_count: number;
 }
 
-export interface Segment {
+export interface SegmentClassCategory {
   id: string;
-  standard_id: string;
-  segment_group_id: string;
+  group_id: string;
   name: string;
+  segment_classes: SegmentClass[];
 }
 
-export interface SegmentWithPoints extends Segment {
+export interface SegmentClassWithPoints extends SegmentClass {
   points: number[][][];
 }
 
-export interface SaveSegmentsResponse {
-  standard_id: string;
-  groups: SegmentGroup[];
-  segments: Segment[];
+export interface SaveSegmentClassesResponse {
+  group_id: string;
+  categories: SegmentClassCategory[];
+  ungrouped_classes: SegmentClass[];
 }

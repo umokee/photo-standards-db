@@ -1,300 +1,212 @@
+from __future__ import annotations
+
 from uuid import UUID
 
 from app.exception import ConflictError, NotFoundError, ValidationError
-from modules.standards.models import Standard, StandardImage
+from modules.groups.models import Group
+from modules.standards.models import StandardImage
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .models import Segment, SegmentAnnotation, SegmentGroup
-from .schemas import (
-    AnnotationSave,
-    SaveSegmentsRequest,
-    SaveSegmentsResponse,
-    SegmentCreate,
-    SegmentGroupCreate,
-    SegmentGroupResponse,
-    SegmentGroupUpdate,
-    SegmentResponse,
-    SegmentUpdate,
-    SegmentWithPointsResponse,
-)
+from .models import SegmentAnnotation, SegmentClass, SegmentClassGroup
+from .schemas import AnnotationSave, SaveSegmentClassesRequest
 
 
-def _build_segment_group_response(
-    group: SegmentGroup,
-) -> SegmentGroupResponse:
-    return SegmentGroupResponse(
-        id=group.id,
-        standard_id=group.standard_id,
-        name=group.name,
-        hue=group.hue,
-        segment_count=len(group.segments),
-    )
+def _norm(value: str) -> str:
+    return value.strip().casefold()
 
 
-def _build_segment_response(
-    segment: Segment,
-) -> SegmentResponse:
-    return SegmentResponse(
-        id=segment.id,
-        standard_id=segment.standard_id,
-        segment_group_id=segment.segment_group_id,
-        name=segment.name,
-    )
+def _validate_request_payload(
+    data: SaveSegmentClassesRequest,
+) -> None:
+    seen_category_names: set[str] = set()
+    seen_class_names: set[str] = set()
+
+    for category in data.categories:
+        category_name = _norm(category.name)
+        if category_name in seen_category_names:
+            raise ConflictError("Категории не должны дублироваться")
+        seen_category_names.add(category_name)
+
+        for item in category.segment_classes:
+            class_name = _norm(item.name)
+            if class_name in seen_class_names:
+                raise ConflictError(
+                    "Имена классов должны быть уникальны в пределах группы"
+                )
+            seen_class_names.add(class_name)
+
+    for item in data.ungrouped_classes:
+        class_name = _norm(item.name)
+        if class_name in seen_class_names:
+            raise ConflictError("Имена классов должны быть уникальны в пределах группы")
+        seen_class_names.add(class_name)
 
 
-def _build_segment_with_points_response(
-    segment: Segment,
-    points: list[list[list[float]]],
-) -> SegmentWithPointsResponse:
-    return SegmentWithPointsResponse(
-        id=segment.id,
-        standard_id=segment.standard_id,
-        segment_group_id=segment.segment_group_id,
-        name=segment.name,
-        points=points,
-    )
-
-
-def _build_save_segments_response(
-    standard_id: UUID,
-    groups: list[SegmentGroup],
-) -> SaveSegmentsResponse:
-    sorted_groups = sorted(groups, key=lambda group: group.name.lower())
-    sorted_segments = sorted(
-        [segment for group in sorted_groups for segment in group.segments],
-        key=lambda segment: (segment.segment_group_id, segment.name.lower()),
-    )
-
-    return SaveSegmentsResponse(
-        standard_id=standard_id,
-        groups=[_build_segment_group_response(group) for group in sorted_groups],
-        segments=[_build_segment_response(segment) for segment in sorted_segments],
-    )
-
-
-async def _get_standard(
+async def _get_group(
     db: AsyncSession,
-    standard_id: UUID,
-) -> Standard:
-    standard = await db.get(Standard, standard_id)
-    if not standard:
-        raise NotFoundError("Эталон", "standard", standard_id)
-    return standard
-
-
-async def _get_segment(
-    db: AsyncSession,
-    segment_id: UUID,
-) -> Segment:
-    segment = await db.get(Segment, segment_id)
-    if not segment:
-        raise NotFoundError("Сегмент", "segment", segment_id)
-    return segment
-
-
-async def _get_segment_group(
-    db: AsyncSession,
-    segment_group_id: UUID,
-) -> SegmentGroup:
-    group = await db.get(SegmentGroup, segment_group_id)
+    group_id: UUID,
+) -> Group:
+    group = await db.get(Group, group_id)
     if not group:
-        raise NotFoundError("Группа сегментов", "segment_group", segment_group_id)
+        raise NotFoundError("Группа", group_id)
     return group
 
 
-async def _get_segment_group_with_segments(
+async def _get_segment_class(
     db: AsyncSession,
-    segment_group_id: UUID,
-) -> SegmentGroup:
-    result = await db.execute(
-        select(SegmentGroup)
-        .options(selectinload(SegmentGroup.segments))
-        .where(SegmentGroup.id == segment_group_id)
-    )
-    group = result.scalar_one_or_none()
-    if not group:
-        raise NotFoundError("Группа сегментов", "segment_group", segment_group_id)
-    return group
+    segment_class_id: UUID,
+) -> SegmentClass:
+    segment_class = await db.get(SegmentClass, segment_class_id)
+    if not segment_class:
+        raise NotFoundError("Класс", segment_class_id)
+    return segment_class
 
 
-async def _get_standard_image(
+async def _get_category(
+    db: AsyncSession,
+    category_id: UUID,
+) -> SegmentClassGroup:
+    category = await db.get(SegmentClassGroup, category_id)
+    if not category:
+        raise NotFoundError("Категория", category_id)
+    return category
+
+
+async def _get_standard_image_with_standard(
     db: AsyncSession,
     image_id: UUID,
 ) -> StandardImage:
-    image = await db.get(StandardImage, image_id)
+    result = await db.execute(
+        select(StandardImage)
+        .options(selectinload(StandardImage.standard))
+        .where(StandardImage.id == image_id)
+    )
+    image = result.scalar_one_or_none()
     if not image:
-        raise NotFoundError("Фото", "standard_image", image_id)
+        raise NotFoundError("Фото", image_id)
     return image
 
 
-async def _get_standard_segment_tree(
+async def _get_group_tree(
     db: AsyncSession,
-    standard_id: UUID,
-) -> list[SegmentGroup]:
-    result = await db.execute(
-        select(SegmentGroup)
-        .options(selectinload(SegmentGroup.segments))
-        .where(SegmentGroup.standard_id == standard_id)
+    group_id: UUID,
+) -> tuple[list[SegmentClassGroup], list[SegmentClass]]:
+    category_result = await db.execute(
+        select(SegmentClassGroup)
+        .options(selectinload(SegmentClassGroup.segment_classes))
+        .where(SegmentClassGroup.group_id == group_id)
     )
-    return result.scalars().all()
+    categories = list(category_result.scalars().all())
+
+    ungrouped_result = await db.execute(
+        select(SegmentClass)
+        .where(
+            SegmentClass.group_id == group_id,
+            SegmentClass.class_group_id.is_(None),
+        )
+        .order_by(SegmentClass.name.asc())
+    )
+    ungrouped_classes = list(ungrouped_result.scalars().all())
+
+    return categories, ungrouped_classes
 
 
-async def _ensure_segment_group_belongs_to_standard(
-    group: SegmentGroup,
-    standard_id: UUID,
+async def _ensure_category_belongs_to_group(
+    category: SegmentClassGroup,
+    group_id: UUID,
 ) -> None:
-    if group.standard_id != standard_id:
-        raise ValidationError("Группа сегментов принадлежит другому эталону")
+    if category.group_id != group_id:
+        raise ValidationError("Категория принадлежит другой группе изделия")
 
 
-async def _ensure_segment_belongs_to_standard(
-    segment: Segment,
-    standard_id: UUID,
+async def _ensure_segment_class_belongs_to_group(
+    segment_class: SegmentClass,
+    group_id: UUID,
 ) -> None:
-    if segment.standard_id != standard_id:
-        raise ValidationError("Сегмент принадлежит другому эталону")
+    if segment_class.group_id != group_id:
+        raise ValidationError("Класс принадлежит другой группе изделия")
 
 
-async def _ensure_segment_name_unique(
+async def _ensure_category_name_unique(
     db: AsyncSession,
     *,
-    standard_id: UUID,
-    segment_group_id: UUID,
+    group_id: UUID,
     name: str,
-    exclude_segment_id: UUID | None = None,
+    exclude_category_id: UUID | None = None,
 ) -> None:
-    query = select(Segment).where(
-        Segment.standard_id == standard_id,
-        Segment.segment_group_id == segment_group_id,
-        Segment.name == name,
+    query = select(SegmentClassGroup).where(
+        SegmentClassGroup.group_id == group_id,
+        SegmentClassGroup.name == name,
     )
-    if exclude_segment_id is not None:
-        query = query.where(Segment.id != exclude_segment_id)
+    if exclude_category_id is not None:
+        query = query.where(SegmentClassGroup.id != exclude_category_id)
 
     existing = await db.scalar(query)
     if existing:
         raise ConflictError(
-            "Сегмент уже существует в этой группе",
+            "Категория уже существует",
             details={
-                "entity": "segment",
-                "entity_label": "Сегмент",
+                "entity": "segment_class_group",
                 "field": "name",
                 "value": name,
-                "standard_id": str(standard_id),
-                "segment_group_id": str(segment_group_id),
+                "group_id": str(group_id),
             },
         )
 
 
-async def _ensure_segment_group_name_unique(
+async def _ensure_segment_class_name_unique(
     db: AsyncSession,
     *,
-    standard_id: UUID,
+    group_id: UUID,
     name: str,
-    exclude_group_id: UUID | None = None,
+    exclude_segment_class_id: UUID | None = None,
 ) -> None:
-    query = select(SegmentGroup).where(
-        SegmentGroup.standard_id == standard_id,
-        SegmentGroup.name == name,
+    query = select(SegmentClass).where(
+        SegmentClass.group_id == group_id,
+        SegmentClass.name == name,
     )
-    if exclude_group_id is not None:
-        query = query.where(SegmentGroup.id != exclude_group_id)
+    if exclude_segment_class_id is not None:
+        query = query.where(SegmentClass.id != exclude_segment_class_id)
 
     existing = await db.scalar(query)
     if existing:
         raise ConflictError(
-            "Группа сегментов уже существует",
+            "Класс уже существует в этой группе",
             details={
-                "entity": "segment_group",
-                "entity_label": "Группа сегментов",
+                "entity": "segment_class",
                 "field": "name",
                 "value": name,
-                "standard_id": str(standard_id),
+                "group_id": str(group_id),
             },
         )
 
 
-async def create_segment(
+async def list_segment_classes(
     db: AsyncSession,
-    data: SegmentCreate,
-) -> SegmentResponse:
-    await _get_standard(db, data.standard_id)
-
-    group = await _get_segment_group(db, data.segment_group_id)
-    await _ensure_segment_group_belongs_to_standard(group, data.standard_id)
-
-    await _ensure_segment_name_unique(
-        db,
-        standard_id=data.standard_id,
-        segment_group_id=data.segment_group_id,
-        name=data.name,
-    )
-
-    segment = Segment(**data.model_dump())
-    db.add(segment)
-    await db.commit()
-    await db.refresh(segment)
-    return _build_segment_response(segment)
-
-
-async def update_segment(
-    db: AsyncSession,
-    segment_id: UUID,
-    data: SegmentUpdate,
-) -> SegmentResponse:
-    segment = await _get_segment(db, segment_id)
-
-    next_group_id = data.segment_group_id or segment.segment_group_id
-    next_name = data.name or segment.name
-
-    if data.segment_group_id is not None:
-        group = await _get_segment_group(db, data.segment_group_id)
-        await _ensure_segment_group_belongs_to_standard(group, segment.standard_id)
-
-    if data.name is not None or data.segment_group_id is not None:
-        await _ensure_segment_name_unique(
-            db,
-            standard_id=segment.standard_id,
-            segment_group_id=next_group_id,
-            name=next_name,
-            exclude_segment_id=segment.id,
-        )
-
-    for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(segment, key, value)
-
-    await db.commit()
-    await db.refresh(segment)
-    return _build_segment_response(segment)
-
-
-async def delete_segment(
-    db: AsyncSession,
-    segment_id: UUID,
-) -> None:
-    segment = await _get_segment(db, segment_id)
-    await db.delete(segment)
-    await db.commit()
+    group_id: UUID,
+) -> tuple[list[SegmentClassGroup], list[SegmentClass]]:
+    await _get_group(db, group_id)
+    return await _get_group_tree(db, group_id)
 
 
 async def save_annotation(
     db: AsyncSession,
-    segment_id: UUID,
+    segment_class_id: UUID,
     image_id: UUID,
     data: AnnotationSave,
-) -> SegmentWithPointsResponse:
-    segment = await _get_segment(db, segment_id)
-    image = await _get_standard_image(db, image_id)
+) -> tuple[SegmentClass, list[list[list[float]]]]:
+    segment_class = await _get_segment_class(db, segment_class_id)
+    image = await _get_standard_image_with_standard(db, image_id)
 
-    if image.standard_id != segment.standard_id:
-        raise ValidationError("Сегмент и фото принадлежат разным эталонам")
+    if image.standard.group_id != segment_class.group_id:
+        raise ValidationError("Класс и фото принадлежат разным группам изделия")
 
     result = await db.execute(
         select(SegmentAnnotation).where(
-            SegmentAnnotation.segment_id == segment_id,
+            SegmentAnnotation.segment_class_id == segment_class_id,
             SegmentAnnotation.image_id == image_id,
         )
     )
@@ -305,7 +217,7 @@ async def save_annotation(
             await db.delete(annotation)
     elif annotation is None:
         annotation = SegmentAnnotation(
-            segment_id=segment_id,
+            segment_class_id=segment_class_id,
             image_id=image_id,
             points=data.points,
         )
@@ -314,151 +226,132 @@ async def save_annotation(
         annotation.points = data.points
 
     await db.commit()
-    await db.refresh(segment)
+    await db.refresh(segment_class)
 
-    return _build_segment_with_points_response(segment, data.points)
+    return segment_class, data.points
 
 
-async def create_segment_group(
+async def save_segment_classes(
     db: AsyncSession,
-    data: SegmentGroupCreate,
-) -> SegmentGroupResponse:
-    await _get_standard(db, data.standard_id)
-    await _ensure_segment_group_name_unique(
-        db,
-        standard_id=data.standard_id,
-        name=data.name,
-    )
+    group_id: UUID,
+    data: SaveSegmentClassesRequest,
+) -> tuple[list[SegmentClassGroup], list[SegmentClass]]:
+    await _get_group(db, group_id)
+    _validate_request_payload(data)
 
-    group = SegmentGroup(**data.model_dump())
-    db.add(group)
-    await db.commit()
+    for class_id in data.deleted_class_ids:
+        segment_class = await db.get(SegmentClass, class_id)
+        if segment_class is not None:
+            await _ensure_segment_class_belongs_to_group(segment_class, group_id)
+            await db.delete(segment_class)
 
-    group = await _get_segment_group_with_segments(db, group.id)
-    return _build_segment_group_response(group)
+    for category_id in data.deleted_category_ids:
+        category = await db.get(SegmentClassGroup, category_id)
+        if category is not None:
+            await _ensure_category_belongs_to_group(category, group_id)
 
+            result = await db.execute(
+                select(SegmentClass).where(SegmentClass.class_group_id == category.id)
+            )
+            attached_classes = list(result.scalars().all())
+            for item in attached_classes:
+                item.class_group_id = None
 
-async def update_segment_group(
-    db: AsyncSession,
-    segment_group_id: UUID,
-    data: SegmentGroupUpdate,
-) -> SegmentGroupResponse:
-    group = await _get_segment_group(db, segment_group_id)
+            await db.delete(category)
 
-    if data.name is not None:
-        await _ensure_segment_group_name_unique(
-            db,
-            standard_id=group.standard_id,
-            name=data.name,
-            exclude_group_id=group.id,
-        )
-
-    for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(group, key, value)
-
-    await db.commit()
-    group = await _get_segment_group_with_segments(db, segment_group_id)
-    return _build_segment_group_response(group)
-
-
-async def delete_segment_group(
-    db: AsyncSession,
-    segment_group_id: UUID,
-) -> None:
-    group = await _get_segment_group(db, segment_group_id)
-    await db.delete(group)
-    await db.commit()
-
-
-async def save_segments(
-    db: AsyncSession,
-    standard_id: UUID,
-    data: SaveSegmentsRequest,
-) -> SaveSegmentsResponse:
-    await _get_standard(db, standard_id)
-
-    for segment_id in data.deleted_segment_ids:
-        segment = await db.get(Segment, segment_id)
-        if segment is not None:
-            await _ensure_segment_belongs_to_standard(segment, standard_id)
-            await db.delete(segment)
-
-    for group_id in data.deleted_group_ids:
-        group = await db.get(SegmentGroup, group_id)
-        if group is not None:
-            await _ensure_segment_group_belongs_to_standard(group, standard_id)
-            await db.delete(group)
-
-    for group_item in data.groups:
-        if group_item.id is None:
-            await _ensure_segment_group_name_unique(
+    for category_item in data.categories:
+        if category_item.id is None:
+            await _ensure_category_name_unique(
                 db,
-                standard_id=standard_id,
-                name=group_item.name,
+                group_id=group_id,
+                name=category_item.name,
             )
-            group = SegmentGroup(
-                standard_id=standard_id,
-                name=group_item.name,
-                hue=group_item.hue,
+            category = SegmentClassGroup(
+                group_id=group_id,
+                name=category_item.name,
             )
-            db.add(group)
+            db.add(category)
             await db.flush()
         else:
-            group = await _get_segment_group(db, group_item.id)
-            await _ensure_segment_group_belongs_to_standard(group, standard_id)
+            category = await _get_category(db, category_item.id)
+            await _ensure_category_belongs_to_group(category, group_id)
 
-            if group.name != group_item.name:
-                await _ensure_segment_group_name_unique(
+            if category.name != category_item.name:
+                await _ensure_category_name_unique(
                     db,
-                    standard_id=standard_id,
-                    name=group_item.name,
-                    exclude_group_id=group.id,
+                    group_id=group_id,
+                    name=category_item.name,
+                    exclude_category_id=category.id,
                 )
 
-            group.name = group_item.name
-            group.hue = group_item.hue
+            category.name = category_item.name
 
-        for segment_item in group_item.segments:
-            if segment_item.id is None:
-                await _ensure_segment_name_unique(
+        for class_item in category_item.segment_classes:
+            if class_item.id is None:
+                await _ensure_segment_class_name_unique(
                     db,
-                    standard_id=standard_id,
-                    segment_group_id=group.id,
-                    name=segment_item.name,
+                    group_id=group_id,
+                    name=class_item.name,
                 )
                 db.add(
-                    Segment(
-                        standard_id=standard_id,
-                        segment_group_id=group.id,
-                        name=segment_item.name,
+                    SegmentClass(
+                        group_id=group_id,
+                        class_group_id=category.id,
+                        name=class_item.name,
+                        hue=class_item.hue,
                     )
                 )
             else:
-                segment = await _get_segment(db, segment_item.id)
-                await _ensure_segment_belongs_to_standard(segment, standard_id)
+                segment_class = await _get_segment_class(db, class_item.id)
+                await _ensure_segment_class_belongs_to_group(segment_class, group_id)
 
-                if (
-                    segment.name != segment_item.name
-                    or segment.segment_group_id != group.id
-                ):
-                    await _ensure_segment_name_unique(
+                if segment_class.name != class_item.name:
+                    await _ensure_segment_class_name_unique(
                         db,
-                        standard_id=standard_id,
-                        segment_group_id=group.id,
-                        name=segment_item.name,
-                        exclude_segment_id=segment.id,
+                        group_id=group_id,
+                        name=class_item.name,
+                        exclude_segment_class_id=segment_class.id,
                     )
 
-                segment.segment_group_id = group.id
-                segment.name = segment_item.name
+                segment_class.class_group_id = category.id
+                segment_class.name = class_item.name
+                segment_class.hue = class_item.hue
+
+    for class_item in data.ungrouped_classes:
+        if class_item.id is None:
+            await _ensure_segment_class_name_unique(
+                db,
+                group_id=group_id,
+                name=class_item.name,
+            )
+            db.add(
+                SegmentClass(
+                    group_id=group_id,
+                    class_group_id=None,
+                    name=class_item.name,
+                    hue=class_item.hue,
+                )
+            )
+        else:
+            segment_class = await _get_segment_class(db, class_item.id)
+            await _ensure_segment_class_belongs_to_group(segment_class, group_id)
+
+            if segment_class.name != class_item.name:
+                await _ensure_segment_class_name_unique(
+                    db,
+                    group_id=group_id,
+                    name=class_item.name,
+                    exclude_segment_class_id=segment_class.id,
+                )
+
+            segment_class.class_group_id = None
+            segment_class.name = class_item.name
+            segment_class.hue = class_item.hue
 
     try:
         await db.commit()
     except IntegrityError as error:
         await db.rollback()
-        raise ConflictError(
-            "Конфликт имен в группах сегментов или сегментах"
-        ) from error
+        raise ConflictError("Конфликт имен в категориях или классах") from error
 
-    groups = await _get_standard_segment_tree(db, standard_id)
-    return _build_save_segments_response(standard_id, groups)
+    return await _get_group_tree(db, group_id)

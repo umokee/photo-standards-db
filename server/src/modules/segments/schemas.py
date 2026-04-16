@@ -1,8 +1,8 @@
-from typing import Annotated, Self
+from typing import Annotated
 from uuid import UUID
 
 from constants import segments
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Name = Annotated[
     str,
@@ -14,8 +14,8 @@ Name = Annotated[
 ]
 
 
-class SegmentGroupCreate(BaseModel):
-    standard_id: UUID
+class SegmentClassDraftItem(BaseModel):
+    id: UUID | None = None
     name: Name
     hue: int = Field(
         segments.hue.default,
@@ -24,62 +24,50 @@ class SegmentGroupCreate(BaseModel):
     )
 
 
-class SegmentGroupUpdate(BaseModel):
-    name: Name | None = None
-    hue: int | None = Field(
-        None,
-        ge=segments.hue.min,
-        le=segments.hue.max,
-    )
-
-    @model_validator(mode="after")
-    def validate_not_empty(self) -> Self:
-        if not self.model_dump(exclude_unset=True):
-            raise ValueError("Необходимо передать хотя бы одно поле")
-        return self
+class SegmentClassCategoryDraftItem(BaseModel):
+    id: UUID | None = None
+    name: Name
+    segment_classes: list[SegmentClassDraftItem] = Field(default_factory=list)
 
 
-class SegmentGroupResponse(BaseModel):
+class SaveSegmentClassesRequest(BaseModel):
+    categories: list[SegmentClassCategoryDraftItem] = Field(default_factory=list)
+    ungrouped_classes: list[SegmentClassDraftItem] = Field(default_factory=list)
+    deleted_category_ids: list[UUID] = Field(default_factory=list)
+    deleted_class_ids: list[UUID] = Field(default_factory=list)
+
+
+class SegmentClassResponse(BaseModel):
     id: UUID
-    standard_id: UUID
+    group_id: UUID
+    class_group_id: UUID | None
     name: str
     hue: int
-    segment_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class SegmentCreate(BaseModel):
-    standard_id: UUID
-    segment_group_id: UUID
-    name: Name
-
-
-class SegmentUpdate(BaseModel):
-    segment_group_id: UUID | None = None
-    name: Name | None = None
-
-    @model_validator(mode="after")
-    def validate_not_empty(self) -> Self:
-        if not self.model_dump(exclude_unset=True):
-            raise ValueError("Необходимо передать хотя бы одно поле")
-        return self
-
-
-class SegmentResponse(BaseModel):
+class SegmentClassCategoryResponse(BaseModel):
     id: UUID
-    standard_id: UUID
-    segment_group_id: UUID
+    group_id: UUID
     name: str
+    segment_classes: list[SegmentClassResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class SegmentWithPointsResponse(BaseModel):
+class SaveSegmentClassesResponse(BaseModel):
+    group_id: UUID
+    categories: list[SegmentClassCategoryResponse] = Field(default_factory=list)
+    ungrouped_classes: list[SegmentClassResponse] = Field(default_factory=list)
+
+
+class SegmentClassWithPointsResponse(BaseModel):
     id: UUID
-    standard_id: UUID
-    segment_group_id: UUID
+    group_id: UUID
+    class_group_id: UUID | None
     name: str
+    hue: int
     points: list[list[list[float]]]
 
     model_config = ConfigDict(from_attributes=True)
@@ -96,27 +84,3 @@ class RefineRequest(BaseModel):
 
 class RefineResponse(BaseModel):
     points: list[list[float]]
-
-
-class SegmentDraftItem(BaseModel):
-    id: UUID | None = None
-    name: Name
-
-
-class SegmentGroupDraftItem(BaseModel):
-    id: UUID | None = None
-    name: Name
-    hue: int = Field(ge=segments.hue.min, le=segments.hue.max)
-    segments: list[SegmentDraftItem] = Field(default_factory=list)
-
-
-class SaveSegmentsRequest(BaseModel):
-    groups: list[SegmentGroupDraftItem] = Field(default_factory=list)
-    deleted_group_ids: list[UUID] = Field(default_factory=list)
-    deleted_segment_ids: list[UUID] = Field(default_factory=list)
-
-
-class SaveSegmentsResponse(BaseModel):
-    standard_id: UUID
-    groups: list[SegmentGroupResponse] = Field(default_factory=list)
-    segments: list[SegmentResponse] = Field(default_factory=list)

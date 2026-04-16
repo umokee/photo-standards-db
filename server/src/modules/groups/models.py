@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from modules.ml_models.models import MlModel
+    from modules.segments.models import SegmentClass, SegmentClassGroup
     from modules.standards.models import Standard
 
 
@@ -22,8 +23,18 @@ class Group(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     standards: Mapped[list[Standard]] = relationship(
-        back_populates="group", cascade="all, delete-orphan"
+        back_populates="group",
+        cascade="all, delete-orphan",
     )
     ml_models: Mapped[list[MlModel]] = relationship(
-        back_populates="group", cascade="all, delete-orphan"
+        back_populates="group",
+        cascade="all, delete-orphan",
+    )
+    segment_class_groups: Mapped[list[SegmentClassGroup]] = relationship(
+        back_populates="group",
+        cascade="all, delete-orphan",
+    )
+    segment_classes: Mapped[list[SegmentClass]] = relationship(
+        back_populates="group",
+        cascade="all, delete-orphan",
     )

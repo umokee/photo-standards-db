@@ -4,24 +4,12 @@ from logging.config import fileConfig
 from alembic import context
 from app.config import settings
 from app.db import Base
-from modules.cameras.models import Camera  # noqa: F401
-from modules.groups.models import Group  # noqa: F401
-from modules.inspections.models import (  # noqa: F401
-    InspectionResult,
-    InspectionSegmentResult,
-)
-from modules.ml_models.models import MlModel  # noqa: F401
-from modules.segments.models import (  # noqa: F401
-    Segment,
-    SegmentAnnotation,
-    SegmentGroup,
-)
-from modules.standards.models import Standard, StandardImage  # noqa: F401
-from modules.tasks.models import Task  # noqa: F401
-from modules.users.models import User  # noqa: F401
+from app.import_models import import_models
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+import_models()
 
 config = context.config
 

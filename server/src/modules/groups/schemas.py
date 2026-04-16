@@ -14,13 +14,32 @@ Name = Annotated[
 ]
 
 
+class GroupSegmentClassResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    group_id: UUID
+    class_group_id: UUID | None
+    name: str
+    hue: int
+
+
+class GroupSegmentClassCategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    group_id: UUID
+    name: str
+    segment_classes: list[GroupSegmentClassResponse] = Field(default_factory=list)
+
+
 class GroupStatsResponse(BaseModel):
     standards_count: int = 0
     images_count: int = 0
-    annotated_count: int = 0
+    annotated_images_count: int = 0
     polygons_count: int = 0
-    segment_groups_count: int = 0
-    segments_count: int = 0
+    segment_class_groups_count: int = 0
+    segment_classes_count: int = 0
     models_count: int = 0
 
 
@@ -44,13 +63,14 @@ class GroupActiveModelResponse(BaseModel):
     id: UUID
     group_id: UUID
     architecture: str
-    version: int
+    version: int | None
     epochs: int | None
     imgsz: int
     batch_size: int | None
     num_classes: int | None
     metrics: dict | None
-    class_names: list[str] | None = None
+    class_keys: list[str] | None = None
+    class_meta: list[dict] | None = None
     is_active: bool
     trained_at: datetime | None
     created_at: datetime
@@ -76,6 +96,12 @@ class GroupDetailResponse(BaseModel):
     stats: GroupStatsResponse
     standards: list[GroupStandardResponse] = Field(default_factory=list)
     active_model: GroupActiveModelResponse | None = None
+    segment_class_categories: list[GroupSegmentClassCategoryResponse] = Field(
+        default_factory=list
+    )
+    ungrouped_segment_classes: list[GroupSegmentClassResponse] = Field(
+        default_factory=list
+    )
 
 
 class GroupMutationResponse(BaseModel):

@@ -11,13 +11,23 @@ class InspectionStartResponse(BaseModel):
 
 
 class InspectionCountDetailResponse(BaseModel):
-    segment_id: UUID
-    segment_group_id: UUID | None = None
+    # Для status="extra" класс может отсутствовать в БД, поэтому допускаем строку.
+    segment_class_id: UUID | str | None = None
+    segment_class_group_id: UUID | str | None = None
+    class_key: str
     name: str
+    hue: int | None = None
+
     expected_count: int
     detected_count: int
     delta: int
+    # ok | less | more | extra
+    # - ok:    expected == detected
+    # - less:  detected < expected
+    # - more:  detected > expected (этого класса ждали, но нашли больше)
+    # - extra: класс не ожидался на этом ракурсе, но был найден
     status: str
+
     confidence: float | None = None
     detections: list[dict] = Field(default_factory=list)
 

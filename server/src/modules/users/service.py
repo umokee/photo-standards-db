@@ -45,7 +45,7 @@ async def get_user(
 ) -> User:
     user = await db.get(User, user_id)
     if not user:
-        raise NotFoundError("Пользователь", "user", user_id)
+        raise NotFoundError("Пользователь", user_id)
     return user
 
 

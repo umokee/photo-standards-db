@@ -67,14 +67,15 @@ class MlModel(Base):
         default=training.architectures.default,
     )
     weights_path: Mapped[str | None] = mapped_column(String(500), default=None)
-    version: Mapped[int] = mapped_column(Integer)
+    version: Mapped[int | None] = mapped_column(Integer, default=None)
 
     epochs: Mapped[int | None] = mapped_column(Integer, default=None)
     imgsz: Mapped[int] = mapped_column(Integer, default=training.image_size.default)
     batch_size: Mapped[int | None] = mapped_column(Integer, default=None)
 
     num_classes: Mapped[int | None] = mapped_column(Integer, default=None)
-    class_names: Mapped[list | None] = mapped_column(JSONB, default=None)
+    class_keys: Mapped[list | None] = mapped_column(JSONB, default=None)
+    class_meta: Mapped[list | None] = mapped_column(JSONB, default=None)
     metrics: Mapped[dict | None] = mapped_column(JSONB, default=None)
 
     train_ratio: Mapped[int | None] = mapped_column(Integer(), default=None)

@@ -19,7 +19,7 @@ router = APIRouter(prefix="/inspections", tags=["inspections"])
 async def run_inspection(
     db: DbSession,
     standard_id: UUID = Form(...),
-    selected_segment_ids: list[UUID] = Form(...),
+    selected_segment_class_ids: list[UUID] = Form(...),
     camera_id: UUID | None = Form(None),
     mode: str = Form(inspections.modes.default),
     serial_number: str | None = Form(None),
@@ -29,7 +29,7 @@ async def run_inspection(
     task = await service.start_inspection(
         db=db,
         standard_id=standard_id,
-        selected_segment_ids=selected_segment_ids,
+        selected_segment_class_ids=selected_segment_class_ids,
         camera_id=camera_id,
         mode=mode,
         serial_number=serial_number,
@@ -48,7 +48,8 @@ async def get_inspection(
     inspection_id: UUID,
     db: DbSession,
 ) -> InspectionResultResponse:
-    return await service.get_inspection(db, inspection_id)
+    inspection = await service.get_inspection(db, inspection_id)
+    return InspectionResultResponse.model_validate(inspection)
 
 
 @router.post("/save", response_model=InspectionSaveResponse)

@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 
 export interface RunInspectionInput {
   standard_id: string;
-  selected_segment_ids: string[];
+  selected_segment_class_ids: string[];
   mode: string;
   image: File;
   camera_id?: string | null;
@@ -22,8 +22,8 @@ export const runInspection = async (
   formData.append("mode", input.mode);
   formData.append("image", input.image);
 
-  input.selected_segment_ids.forEach((id) => {
-    formData.append("selected_segment_ids", id);
+  input.selected_segment_class_ids.forEach((id) => {
+    formData.append("selected_segment_class_ids", id);
   });
 
   if (input.camera_id) {

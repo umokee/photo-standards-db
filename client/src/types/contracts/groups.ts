@@ -1,12 +1,14 @@
+import { MlModelClassMeta } from "./models";
+import { SegmentClass, SegmentClassCategory } from "./segments";
 import { Architecture } from "./shared";
 
 export interface GroupStats {
   standards_count: number;
   images_count: number;
-  annotated_count: number;
+  annotated_images_count: number;
   polygons_count: number;
-  segment_groups_count: number;
-  segments_count: number;
+  segment_class_groups_count: number;
+  segment_classes_count: number;
   models_count: number;
 }
 
@@ -26,13 +28,14 @@ export interface GroupModel {
   id: string;
   group_id: string;
   architecture: Architecture;
-  version: number;
+  version: number | null;
   epochs: number | null;
   imgsz: number;
   batch_size: number | null;
   num_classes: number | null;
+  class_keys: string[] | null;
+  class_meta: MlModelClassMeta[] | null;
   metrics: Record<string, number | null> | null;
-  class_names: string[] | null;
   is_active: boolean;
   trained_at: string | null;
   created_at: string;
@@ -54,6 +57,8 @@ export interface GroupDetail {
   stats: GroupStats;
   standards: GroupStandard[];
   active_model: GroupModel | null;
+  segment_class_categories: SegmentClassCategory[];
+  ungrouped_segment_classes: SegmentClass[];
 }
 
 export interface GroupMutationResponse {

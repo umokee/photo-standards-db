@@ -8,51 +8,106 @@ from infra.storage.file_storage import resolve_storage_path
 from modules.standards.models import StandardImage
 
 from . import service
+from .models import SegmentClass, SegmentClassGroup
 from .schemas import (
     AnnotationSave,
     RefineRequest,
     RefineResponse,
-    SaveSegmentsRequest,
-    SaveSegmentsResponse,
-    SegmentCreate,
-    SegmentGroupCreate,
-    SegmentGroupResponse,
-    SegmentGroupUpdate,
-    SegmentResponse,
-    SegmentUpdate,
-    SegmentWithPointsResponse,
+    SaveSegmentClassesRequest,
+    SaveSegmentClassesResponse,
+    SegmentClassCategoryResponse,
+    SegmentClassResponse,
+    SegmentClassWithPointsResponse,
 )
 
-segment_router = APIRouter(prefix="/segments", tags=["segments"])
-segment_group_router = APIRouter(prefix="/segment-groups", tags=["segment-groups"])
+router = APIRouter(prefix="/segment-classes", tags=["segment-classes"])
 
 
-@segment_group_router.post("", response_model=SegmentGroupResponse, status_code=201)
-async def create_segment_group(
-    db: DbSession,
-    data: SegmentGroupCreate,
-) -> SegmentGroupResponse:
-    return await service.create_segment_group(db, data)
+def _build_segment_class_response(
+    segment_class: SegmentClass,
+) -> SegmentClassResponse:
+    return SegmentClassResponse.model_validate(segment_class)
 
 
-@segment_group_router.put("/{group_id}", response_model=SegmentGroupResponse)
-async def update_segment_group(
+def _build_category_response(
+    category: SegmentClassGroup,
+) -> SegmentClassCategoryResponse:
+    items = sorted(category.segment_classes, key=lambda item: item.name.lower())
+    return SegmentClassCategoryResponse(
+        id=category.id,
+        group_id=category.group_id,
+        name=category.name,
+        segment_classes=[_build_segment_class_response(item) for item in items],
+    )
+
+
+def _build_save_response(
+    group_id: UUID,
+    categories: list[SegmentClassGroup],
+    ungrouped_classes: list[SegmentClass],
+) -> SaveSegmentClassesResponse:
+    sorted_categories = sorted(categories, key=lambda item: item.name.lower())
+    sorted_ungrouped = sorted(ungrouped_classes, key=lambda item: item.name.lower())
+
+    return SaveSegmentClassesResponse(
+        group_id=group_id,
+        categories=[_build_category_response(item) for item in sorted_categories],
+        ungrouped_classes=[
+            _build_segment_class_response(item) for item in sorted_ungrouped
+        ],
+    )
+
+
+@router.get("/group/{group_id}", response_model=SaveSegmentClassesResponse)
+async def list_segment_classes(
     db: DbSession,
     group_id: UUID,
-    data: SegmentGroupUpdate,
-) -> SegmentGroupResponse:
-    return await service.update_segment_group(db, group_id, data)
+) -> SaveSegmentClassesResponse:
+    categories, ungrouped_classes = await service.list_segment_classes(db, group_id)
+    return _build_save_response(group_id, categories, ungrouped_classes)
 
 
-@segment_group_router.delete("/{group_id}", status_code=204)
-async def delete_segment_group(
+@router.put("/group/{group_id}", response_model=SaveSegmentClassesResponse)
+async def save_segment_classes(
     db: DbSession,
     group_id: UUID,
-) -> None:
-    await service.delete_segment_group(db, group_id)
+    data: SaveSegmentClassesRequest,
+) -> SaveSegmentClassesResponse:
+    categories, ungrouped_classes = await service.save_segment_classes(
+        db,
+        group_id,
+        data,
+    )
+    return _build_save_response(group_id, categories, ungrouped_classes)
 
 
-@segment_router.post("/refine", response_model=RefineResponse)
+@router.put(
+    "/{segment_class_id}/annotations/{image_id}",
+    response_model=SegmentClassWithPointsResponse,
+)
+async def save_annotation(
+    db: DbSession,
+    segment_class_id: UUID,
+    image_id: UUID,
+    data: AnnotationSave,
+) -> SegmentClassWithPointsResponse:
+    segment_class, points = await service.save_annotation(
+        db,
+        segment_class_id,
+        image_id,
+        data,
+    )
+    return SegmentClassWithPointsResponse(
+        id=segment_class.id,
+        group_id=segment_class.group_id,
+        class_group_id=segment_class.class_group_id,
+        name=segment_class.name,
+        hue=segment_class.hue,
+        points=points,
+    )
+
+
+@router.post("/refine", response_model=RefineResponse)
 async def refine_segment(
     db: DbSession,
     data: RefineRequest,
@@ -63,54 +118,7 @@ async def refine_segment(
 
     image_path = resolve_storage_path(image.image_path)
     refined = refiner_service.refine_contour(
-        image_path=image_path,
+        image_path=str(image_path),
         points=[[point[0], point[1]] for point in data.points],
     )
     return RefineResponse(points=refined)
-
-
-@segment_router.post("", response_model=SegmentResponse, status_code=201)
-async def create_segment(
-    db: DbSession,
-    data: SegmentCreate,
-) -> SegmentResponse:
-    return await service.create_segment(db, data)
-
-
-@segment_router.put("/{segment_id}", response_model=SegmentResponse)
-async def update_segment(
-    db: DbSession,
-    segment_id: UUID,
-    data: SegmentUpdate,
-) -> SegmentResponse:
-    return await service.update_segment(db, segment_id, data)
-
-
-@segment_router.put(
-    "/{segment_id}/annotations/{image_id}",
-    response_model=SegmentWithPointsResponse,
-)
-async def save_annotation(
-    db: DbSession,
-    segment_id: UUID,
-    image_id: UUID,
-    data: AnnotationSave,
-) -> SegmentWithPointsResponse:
-    return await service.save_annotation(db, segment_id, image_id, data)
-
-
-@segment_router.delete("/{segment_id}", status_code=204)
-async def delete_segment(
-    db: DbSession,
-    segment_id: UUID,
-) -> None:
-    await service.delete_segment(db, segment_id)
-
-
-@segment_router.put("/{standard_id}/segments", response_model=SaveSegmentsResponse)
-async def save_segments(
-    db: DbSession,
-    standard_id: UUID,
-    data: SaveSegmentsRequest,
-) -> SaveSegmentsResponse:
-    return await service.save_segments(db, standard_id, data)

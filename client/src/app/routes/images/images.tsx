@@ -2,18 +2,31 @@ import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
 import { QueryBoundary } from "@/components/ui/query-boundary/query-boundary";
 import { BASE_URL } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
-import { useAnnotateSegment } from "@/page-components/segments/api/annotate-segment";
+import { useAnnotateSegmentClass } from "@/page-components/segments/api/annotate-segment";
 import { useRefineContour } from "@/page-components/segments/api/refine-contour";
 import Canvas from "@/page-components/segments/components/canvas-surface/canvas-surface";
 import { SegmentHeader } from "@/page-components/segments/components/segment-header/segment-header";
 import { SegmentPanel } from "@/page-components/segments/components/segment-panel/segment-panel";
 import { useGetImage } from "@/page-components/standards/api/get-image";
 import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
-import { StandardImageDetail } from "@/types/contracts";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { SegmentClass, SegmentClassCategory, StandardImageDetail } from "@/types/contracts";
+import { useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { paths } from "../../paths";
+
+type LoaderData = {
+  groupId: string;
+  standardId: string;
+  imageId: string;
+};
+
+const buildAllClasses = (
+  categories: SegmentClassCategory[],
+  ungrouped: SegmentClass[]
+): SegmentClass[] => {
+  const grouped = categories.flatMap((category) => category.segment_classes);
+  return [...grouped, ...ungrouped].sort((a, b) => a.name.localeCompare(b.name));
+};
 
 export function Component() {
   return (
@@ -30,44 +43,58 @@ export function Component() {
 
 const ImagesContent = () => {
   const navigate = useNavigate();
-  const { groupId, standardId, imageId } = useLoaderData();
+  const { groupId, standardId, imageId } = useLoaderData() as LoaderData;
 
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [selectedSegmentClassId, setSelectedSegmentClassId] = useState<string | null>(null);
   const [selectedContourIndex, setSelectedContourIndex] = useState<number | null>(null);
   const [isDrawMode, setIsDrawMode] = useState(false);
-
-  useEffect(() => {
-    setSelectedSegmentId(null);
-    setSelectedContourIndex(null);
-    setIsDrawMode(false);
-  }, [imageId]);
 
   const { data: standard } = useGetStandardDetail(standardId);
   const { data: image } = useGetImage(imageId);
 
-  const qc = useQueryClient();
-  const annotate = useAnnotateSegment({ groupId, standardId });
+  const annotate = useAnnotateSegmentClass({ groupId, standardId });
   const refine = useRefineContour();
 
-  const segmentGroups = standard.segment_groups;
-  const standardSegments = standard.segments;
-  const annotatedSegments = image.segments;
-  const isCurrentAnnotated = Number(image.annotation_count ?? 0) > 0;
-  const imageUrl = `${BASE_URL}/storage/${image.image_path}`;
+  const categories = standard.segment_class_categories;
+  const ungroupedClasses = standard.ungrouped_segment_classes;
+  buildAllClasses(categories, ungroupedClasses);
+
+  const imageSegmentClasses = image.segment_classes;
   const selectedImageSegment =
-    annotatedSegments.find((segment) => segment.id === selectedSegmentId) ?? null;
-  const currentIndex = standard.images.findIndex((img) => img.id === image.id);
-  const safeIndex = Math.max(currentIndex, 0);
-  const prevImage = safeIndex > 0 ? standard.images[safeIndex - 1] : null;
+    imageSegmentClasses.find((item) => item.id === selectedSegmentClassId) ?? null;
+
+  const imageIds = standard.images.map((img) => img.id);
+  const currentIndex = imageIds.indexOf(imageId);
+  const safeIndex = currentIndex >= 0 ? currentIndex + 1 : 1;
+
+  const prevImage = currentIndex > 0 ? standard.images[currentIndex - 1] : null;
   const nextImage =
-    currentIndex < standard.images.length - 1 ? standard.images[safeIndex + 1] : null;
+    currentIndex >= 0 && currentIndex < standard.images.length - 1
+      ? standard.images[currentIndex + 1]
+      : null;
   const nextUnannotatedImage =
-    currentIndex < 0
-      ? null
-      : ([
-          ...standard.images.slice(currentIndex + 1),
-          ...standard.images.slice(0, currentIndex),
-        ].find((img) => Number(img.annotation_count ?? 0) === 0) ?? null);
+    currentIndex >= 0
+      ? standard.images.slice(currentIndex + 1).find((img) => img.annotation_count === 0)
+      : null;
+
+  const imageUrl = `${BASE_URL}/storage/${image.image_path}`;
+  const isCurrentAnnotated = image.annotation_count > 0;
+
+
+  const handleSaveSegmentContours = (segmentClassId: string, nextContours: number[][][]) => {
+    annotate.mutate
+    qc.setQueryData(queryKeys.standards.image(imageId), (old: StandardImageDetail | undefined) => {
+      if (!old) return old;
+      return {
+        ...old,
+        segments: old.segments.map((segment) =>
+          segment.id === segmentId ? { ...segment, points: nextContours } : segment
+        ),
+      };
+    });
+
+    annotate.mutate({ segmentId, imageId, points: nextContours });
+  };
 
   const handleBack = () => navigate(paths.standardDetail(groupId, standardId));
 
@@ -90,19 +117,6 @@ const ImagesContent = () => {
     goToImage(nextUnannotatedImage.id);
   };
 
-  const saveSegmentContours = (segmentId: string, nextContours: number[][][]) => {
-    qc.setQueryData(queryKeys.standards.image(imageId), (old: StandardImageDetail | undefined) => {
-      if (!old) return old;
-      return {
-        ...old,
-        segments: old.segments.map((segment) =>
-          segment.id === segmentId ? { ...segment, points: nextContours } : segment
-        ),
-      };
-    });
-
-    annotate.mutate({ segmentId, imageId, points: nextContours });
-  };
 
   const handleFinishDrawing = (draftContour: number[][]) => {
     if (!selectedSegmentId) return;

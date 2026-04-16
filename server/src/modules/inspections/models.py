@@ -13,7 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from modules.cameras.models import Camera
     from modules.ml_models.models import MlModel
-    from modules.segments.models import Segment, SegmentGroup
+    from modules.segments.models import SegmentClass, SegmentClassGroup
     from modules.standards.models import Standard
     from modules.users.models import User
 
@@ -66,7 +66,11 @@ class InspectionResult(Base):
 class InspectionSegmentResult(Base):
     __tablename__ = "inspection_segment_results"
     __table_args__ = (
-        UniqueConstraint("inspection_id", "segment_id", name="uq_inspection_segment"),
+        UniqueConstraint(
+            "inspection_id",
+            "segment_class_id",
+            name="uq_inspection_segment_class",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
@@ -74,16 +78,17 @@ class InspectionSegmentResult(Base):
         ForeignKey("inspection_results.id", ondelete="CASCADE"),
         index=True,
     )
-    segment_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("segments.id", ondelete="SET NULL"),
+    segment_class_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("segment_classes.id", ondelete="SET NULL"),
         default=None,
         index=True,
     )
-    segment_group_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("segment_groups.id", ondelete="SET NULL"),
+    segment_class_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("segment_class_groups.id", ondelete="SET NULL"),
         default=None,
         index=True,
     )
+    class_key: Mapped[str] = mapped_column(String(255), index=True)
     name: Mapped[str] = mapped_column(String(255))
     is_found: Mapped[bool] = mapped_column()
     confidence: Mapped[float | None] = mapped_column(default=None)
@@ -92,6 +97,8 @@ class InspectionSegmentResult(Base):
     delta: Mapped[int | None] = mapped_column(default=None)
     status: Mapped[str | None] = mapped_column(String(20), default=None)
 
-    inspection: Mapped[InspectionResult] = relationship(back_populates="segment_results")
-    segment: Mapped[Segment | None] = relationship()
-    segment_group: Mapped[SegmentGroup | None] = relationship()
+    inspection: Mapped[InspectionResult] = relationship(
+        back_populates="segment_results"
+    )
+    segment_class: Mapped[SegmentClass | None] = relationship()
+    segment_class_group: Mapped[SegmentClassGroup | None] = relationship()

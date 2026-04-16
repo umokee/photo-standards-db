@@ -11,7 +11,7 @@ export const refineContour = async ({
   imageId,
   points,
 }: RefineContourInput): Promise<{ points: number[][] }> => {
-  return client.post(`/segments/refine`, {
+  return client.post(`/segment-classes/refine`, {
     image_id: imageId,
     points,
   });

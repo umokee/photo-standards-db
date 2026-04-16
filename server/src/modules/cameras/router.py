@@ -14,7 +14,7 @@ router = APIRouter(prefix="/cameras", tags=["cameras"])
 @router.get("", response_model=list[CameraResponse])
 async def list_cameras(
     db: DbSession,
-) -> CameraResponse:
+) -> list[CameraResponse]:
     result = await db.execute(select(Camera).order_by(Camera.id))
     return result.scalars().all()
 
@@ -39,7 +39,7 @@ async def update_camera(
 ) -> CameraResponse:
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise NotFoundError("Камера", "camera", camera_id)
+        raise NotFoundError("Камера", camera_id)
 
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(camera, key, value)
@@ -56,7 +56,7 @@ async def delete_camera(
 ) -> None:
     camera = await db.get(Camera, camera_id)
     if not camera:
-        raise NotFoundError("Камера", "camera", camera_id)
+        raise NotFoundError("Камера", camera_id)
 
     await db.delete(camera)
     await db.commit()

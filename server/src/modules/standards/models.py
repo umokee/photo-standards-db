@@ -13,7 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from modules.groups.models import Group
     from modules.inspections.models import InspectionResult
-    from modules.segments.models import Segment, SegmentAnnotation, SegmentGroup
+    from modules.segments.models import SegmentAnnotation
 
 
 class Standard(Base):
@@ -34,14 +34,6 @@ class Standard(Base):
 
     group: Mapped[Group] = relationship(back_populates="standards")
     images: Mapped[list[StandardImage]] = relationship(
-        back_populates="standard",
-        cascade="all, delete-orphan",
-    )
-    segments: Mapped[list[Segment]] = relationship(
-        back_populates="standard",
-        cascade="all, delete-orphan",
-    )
-    segment_groups: Mapped[list[SegmentGroup]] = relationship(
         back_populates="standard",
         cascade="all, delete-orphan",
     )

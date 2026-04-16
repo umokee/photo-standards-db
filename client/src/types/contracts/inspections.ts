@@ -20,13 +20,15 @@ export interface InspectionDetection {
 }
 
 export interface InspectionTaskSegmentDetail {
-  segment_id: string;
-  segment_group_id: string | null;
+  segment_class_id: string | null;
+  segment_class_group_id: string | null;
+  class_key: string;
   name: string;
+  hue: number | null;
   expected_count: number;
   detected_count: number;
   delta: number;
-  status: string;
+  status: "ok" | "less" | "more" | "extra";
   confidence: number | null;
   detections: InspectionDetection[];
 }
@@ -41,6 +43,11 @@ export interface InspectionTaskResult {
   details: InspectionTaskSegmentDetail[];
   mode: InspectionMode;
   model_name: string | null;
+  debug?: {
+    model_class_keys?: string[];
+    raw_counts?: Record<string, number>;
+    imgsz?: number;
+  } | null;
 }
 
 export interface InspectionSaveResponse {

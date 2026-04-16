@@ -16,57 +16,58 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from modules.standards.models import Standard, StandardImage
+    from modules.groups.models import Group
+    from modules.standards.models import StandardImage
 
 
-class SegmentGroup(Base):
-    __tablename__ = "segment_groups"
+class SegmentClassGroup(Base):
+    __tablename__ = "segment_class_groups"
     __table_args__ = (
-        UniqueConstraint("standard_id", "name"),
+        UniqueConstraint("group_id", "name", name="uq_group_segment_class_group_name"),
+    )
+
+    id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
+    group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(255))
+
+    group: Mapped[Group] = relationship(back_populates="segment_class_groups")
+    segment_classes: Mapped[list[SegmentClass]] = relationship(
+        back_populates="class_group"
+    )
+
+
+class SegmentClass(Base):
+    __tablename__ = "segment_classes"
+    __table_args__ = (
+        UniqueConstraint("group_id", "name", name="uq_group_segment_class_name"),
         CheckConstraint(
             f"hue BETWEEN {segments.hue.min} AND {segments.hue.max}",
-            name="hue_range",
+            name="segment_class_hue_range",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE"),
+    group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        index=True,
+    )
+    class_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("segment_class_groups.id", ondelete="SET NULL"),
+        default=None,
         index=True,
     )
     name: Mapped[str] = mapped_column(String(255))
     hue: Mapped[int] = mapped_column(Integer, default=segments.hue.default)
 
-    standard: Mapped[Standard] = relationship(back_populates="segment_groups")
-    segments: Mapped[list[Segment]] = relationship(back_populates="segment_group")
-
-
-class Segment(Base):
-    __tablename__ = "segments"
-    __table_args__ = (
-        UniqueConstraint(
-            "standard_id",
-            "segment_group_id",
-            "name",
-            name="uq_standard_group_name",
-        ),
+    group: Mapped[Group] = relationship(back_populates="segment_classes")
+    class_group: Mapped[SegmentClassGroup | None] = relationship(
+        back_populates="segment_classes"
     )
-
-    id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    standard_id: Mapped[UUID] = mapped_column(
-        ForeignKey("standards.id", ondelete="CASCADE"),
-        index=True,
-    )
-    segment_group_id: Mapped[UUID] = mapped_column(
-        ForeignKey("segment_groups.id", ondelete="CASCADE"),
-        index=True,
-    )
-    name: Mapped[str] = mapped_column(String(255))
-
-    standard: Mapped[Standard] = relationship(back_populates="segments")
-    segment_group: Mapped[SegmentGroup | None] = relationship(back_populates="segments")
     annotations: Mapped[list[SegmentAnnotation]] = relationship(
-        back_populates="segment",
+        back_populates="segment_class",
         cascade="all, delete-orphan",
     )
 
@@ -75,22 +76,22 @@ class SegmentAnnotation(Base):
     __tablename__ = "segment_annotations"
     __table_args__ = (
         UniqueConstraint(
-            "segment_id",
             "image_id",
-            name="uq_segment_image",
+            "segment_class_id",
+            name="uq_image_segment_class_annotation",
         ),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
-    segment_id: Mapped[UUID] = mapped_column(
-        ForeignKey("segments.id", ondelete="CASCADE"),
-        index=True,
-    )
     image_id: Mapped[UUID] = mapped_column(
         ForeignKey("standard_images.id", ondelete="CASCADE"),
         index=True,
     )
+    segment_class_id: Mapped[UUID] = mapped_column(
+        ForeignKey("segment_classes.id", ondelete="CASCADE"),
+        index=True,
+    )
     points: Mapped[list] = mapped_column(JSON, default=list)
 
-    segment: Mapped[Segment] = relationship(back_populates="annotations")
     image: Mapped[StandardImage] = relationship(back_populates="annotations")
+    segment_class: Mapped[SegmentClass] = relationship(back_populates="annotations")

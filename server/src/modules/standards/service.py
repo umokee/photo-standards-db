@@ -1,127 +1,19 @@
+from __future__ import annotations
+
 from uuid import UUID
 
 from app.exception import NotFoundError
 from fastapi import UploadFile
 from infra.storage import file_storage
-from modules.segments.models import Segment, SegmentGroup
+from modules.groups.models import Group
+from modules.segments.models import SegmentAnnotation, SegmentClass, SegmentClassGroup
 from sqlalchemy import select
 from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from .models import Standard, StandardImage
-from .schemas import (
-    StandardCreate,
-    StandardDetailResponse,
-    StandardImageDetailResponse,
-    StandardImageResponse,
-    StandardMutationResponse,
-    StandardSegmentGroupResponse,
-    StandardSegmentResponse,
-    StandardSegmentWithPointsResponse,
-    StandardStatsResponse,
-    StandardUpdate,
-)
-
-
-def _build_standard_mutation_response(
-    standard: Standard,
-) -> StandardMutationResponse:
-    return StandardMutationResponse(
-        id=standard.id,
-        group_id=standard.group_id,
-        name=standard.name,
-        angle=standard.angle,
-        is_active=standard.is_active,
-        created_at=standard.created_at,
-    )
-
-
-def _build_standard_image_response(
-    image: StandardImage,
-) -> StandardImageResponse:
-    annotation_count = sum(1 for annotation in image.annotations if annotation.points)
-
-    return StandardImageResponse(
-        id=image.id,
-        standard_id=image.standard_id,
-        image_path=image.image_path,
-        is_reference=image.is_reference,
-        annotation_count=annotation_count,
-        created_at=image.created_at,
-    )
-
-
-def _build_standard_segment_response(
-    segment: Segment,
-) -> StandardSegmentResponse:
-    return StandardSegmentResponse(
-        id=segment.id,
-        segment_group_id=segment.segment_group_id,
-        name=segment.name,
-    )
-
-
-def _build_standard_segment_group_response(
-    group: SegmentGroup,
-) -> StandardSegmentGroupResponse:
-    return StandardSegmentGroupResponse(
-        id=group.id,
-        standard_id=group.standard_id,
-        name=group.name,
-        hue=group.hue,
-        segment_count=len(group.segments),
-    )
-
-
-def _build_standard_stats_response(
-    standard: Standard,
-) -> StandardStatsResponse:
-    reference_image = next(
-        (image for image in standard.images if image.is_reference), None
-    )
-    annotated_images_count = sum(
-        1
-        for image in standard.images
-        if any(annotation.points for annotation in image.annotations)
-    )
-
-    return StandardStatsResponse(
-        images_count=len(standard.images),
-        annotated_images_count=annotated_images_count,
-        unannotated_images_count=len(standard.images) - annotated_images_count,
-        segments_count=len(standard.segments),
-        segment_groups_count=len(standard.segment_groups),
-        reference_image_id=reference_image.id if reference_image else None,
-        reference_path=reference_image.image_path if reference_image else None,
-    )
-
-
-def _build_standard_detail_response(standard: Standard) -> StandardDetailResponse:
-    images = sorted(
-        standard.images,
-        key=lambda image: (not image.is_reference, image.created_at),
-    )
-    segments = sorted(standard.segments, key=lambda segment: segment.name.lower())
-    segment_groups = sorted(
-        standard.segment_groups,
-        key=lambda group: group.name.lower(),
-    )
-
-    return StandardDetailResponse(
-        id=standard.id,
-        group_id=standard.group_id,
-        name=standard.name,
-        angle=standard.angle,
-        is_active=standard.is_active,
-        created_at=standard.created_at,
-        stats=_build_standard_stats_response(standard),
-        images=[_build_standard_image_response(image) for image in images],
-        segments=[_build_standard_segment_response(segment) for segment in segments],
-        segment_groups=[
-            _build_standard_segment_group_response(group) for group in segment_groups
-        ],
-    )
+from .schemas import StandardCreate, StandardUpdate
 
 
 async def _get_standard(
@@ -130,7 +22,7 @@ async def _get_standard(
 ) -> Standard:
     standard = await db.get(Standard, standard_id)
     if not standard:
-        raise NotFoundError("Эталон", "standard", standard_id)
+        raise NotFoundError("Эталон", standard_id)
     return standard
 
 
@@ -142,14 +34,16 @@ async def _get_standard_with_relations(
         select(Standard)
         .options(
             selectinload(Standard.images).selectinload(StandardImage.annotations),
-            selectinload(Standard.segments),
-            selectinload(Standard.segment_groups).selectinload(SegmentGroup.segments),
+            selectinload(Standard.group)
+            .selectinload(Group.segment_class_groups)
+            .selectinload(SegmentClassGroup.segment_classes),
+            selectinload(Standard.group).selectinload(Group.segment_classes),
         )
         .where(Standard.id == standard_id)
     )
     standard = result.scalar_one_or_none()
     if not standard:
-        raise NotFoundError("Эталон", "standard", standard_id)
+        raise NotFoundError("Эталон", standard_id)
     return standard
 
 
@@ -159,7 +53,7 @@ async def _get_image(
 ) -> StandardImage:
     image = await db.get(StandardImage, image_id)
     if not image:
-        raise NotFoundError("Фото", "standard_image", image_id)
+        raise NotFoundError("Фото", image_id)
     return image
 
 
@@ -169,39 +63,43 @@ async def _get_image_with_annotations(
 ) -> StandardImage:
     result = await db.execute(
         select(StandardImage)
-        .options(selectinload(StandardImage.annotations))
+        .options(
+            selectinload(StandardImage.standard),
+            selectinload(StandardImage.annotations).selectinload(
+                SegmentAnnotation.segment_class
+            ),
+        )
         .where(StandardImage.id == image_id)
     )
     image = result.scalar_one_or_none()
     if not image:
-        raise NotFoundError("Фото", "standard_image", image_id)
+        raise NotFoundError("Фото", image_id)
     return image
 
 
 async def get_detail(
     db: AsyncSession,
     standard_id: UUID,
-) -> StandardDetailResponse:
-    standard = await _get_standard_with_relations(db, standard_id)
-    return _build_standard_detail_response(standard)
+) -> Standard:
+    return await _get_standard_with_relations(db, standard_id)
 
 
 async def create(
     db: AsyncSession,
     data: StandardCreate,
-) -> StandardMutationResponse:
+) -> Standard:
     standard = Standard(**data.model_dump())
     db.add(standard)
     await db.commit()
     await db.refresh(standard)
-    return _build_standard_mutation_response(standard)
+    return standard
 
 
 async def update(
     db: AsyncSession,
     standard_id: UUID,
     data: StandardUpdate,
-) -> StandardMutationResponse:
+) -> Standard:
     standard = await _get_standard(db, standard_id)
 
     for key, value in data.model_dump(exclude_unset=True).items():
@@ -209,7 +107,7 @@ async def update(
 
     await db.commit()
     await db.refresh(standard)
-    return _build_standard_mutation_response(standard)
+    return standard
 
 
 async def delete(
@@ -232,7 +130,7 @@ async def upload_images(
     db: AsyncSession,
     standard_id: UUID,
     images: list[UploadFile],
-) -> list[StandardImageResponse]:
+) -> list[StandardImage]:
     standard = await _get_standard(db, standard_id)
 
     created_images: list[StandardImage] = []
@@ -261,14 +159,13 @@ async def upload_images(
         .options(selectinload(StandardImage.annotations))
         .where(StandardImage.id.in_(image_ids))
     )
-    images = result.scalars().all()
-    return [_build_standard_image_response(image) for image in images]
+    return list(result.scalars().all())
 
 
 async def set_reference(
     db: AsyncSession,
     image_id: UUID,
-) -> StandardImageResponse:
+) -> StandardImage:
     image = await _get_image(db, image_id)
 
     await db.execute(
@@ -279,44 +176,29 @@ async def set_reference(
     image.is_reference = True
     await db.commit()
 
-    refreshed_image = await _get_image_with_annotations(db, image_id)
-    return _build_standard_image_response(refreshed_image)
+    return await _get_image_with_annotations(db, image_id)
 
 
 async def get_image(
     db: AsyncSession,
     image_id: UUID,
-) -> StandardImageDetailResponse:
+) -> tuple[StandardImage, list[SegmentClass], dict[UUID, list[list[list[float]]]]]:
     image = await _get_image_with_annotations(db, image_id)
 
     result = await db.execute(
-        select(Segment)
-        .where(Segment.standard_id == image.standard_id)
-        .order_by(Segment.name)
+        select(SegmentClass)
+        .where(SegmentClass.group_id == image.standard.group_id)
+        .order_by(SegmentClass.name.asc())
     )
-    segments = result.scalars().all()
-    annotation_points_by_segment_id = {
-        annotation.segment_id: annotation.points for annotation in image.annotations
-    }
-    annotation_count = sum(1 for annotation in image.annotations if annotation.points)
+    segment_classes = list(result.scalars().all())
 
-    return StandardImageDetailResponse(
-        id=image.id,
-        standard_id=image.standard_id,
-        image_path=image.image_path,
-        is_reference=image.is_reference,
-        annotation_count=annotation_count,
-        created_at=image.created_at,
-        segments=[
-            StandardSegmentWithPointsResponse(
-                id=segment.id,
-                segment_group_id=segment.segment_group_id,
-                name=segment.name,
-                points=annotation_points_by_segment_id.get(segment.id, []),
-            )
-            for segment in segments
-        ],
-    )
+    annotation_points_by_class_id = {
+        annotation.segment_class_id: annotation.points
+        for annotation in image.annotations
+        if annotation.points
+    }
+
+    return image, segment_classes, annotation_points_by_class_id
 
 
 async def delete_image(
