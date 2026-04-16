@@ -1,6 +1,7 @@
 import { paths } from "@/app/paths";
 import { Section } from "@/components/layouts/section/section";
 import QueryState from "@/components/ui/query-state/query-state";
+import { useActivateModel } from "@/page-components/models/api/activate-model";
 import { useGetModel } from "@/page-components/models/api/get-ml";
 import { ModelCard } from "@/page-components/models/components/model-card/model-card";
 import { getModelTask } from "@/page-components/models/lib/training";
@@ -12,6 +13,7 @@ export function Component() {
   const { modelId } = useLoaderData() as { modelId: string };
   const { group, models, tasks } = useTrainingModelOutletContext();
   const { data: liveModel } = useGetModel(modelId);
+  const activateMutation = useActivateModel({ groupId: group.id });
 
   const syncedModels = liveModel
     ? models.map((model) => (model.id === liveModel.id ? liveModel : model))
@@ -45,6 +47,10 @@ export function Component() {
               group={group}
               expanded={isExpanded}
               onToggle={() => toggleModel(model.id)}
+              onActivate={(targetModelId) => activateMutation.mutate(targetModelId)}
+              isActivating={
+                activateMutation.isPending && activateMutation.variables === model.id
+              }
             />
           );
         })}

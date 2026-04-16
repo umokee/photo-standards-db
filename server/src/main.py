@@ -30,7 +30,12 @@ async def recover_stale_tasks() -> int:
         except ProgrammingError:
             await db.rollback()
             return 0
-        return await fail_stale_running_tasks(db, queue="training")
+
+        recovered = 0
+        for queue in ("training", "inspection"):
+            recovered += await fail_stale_running_tasks(db, queue=queue)
+
+        return recovered
 
 
 @asynccontextmanager

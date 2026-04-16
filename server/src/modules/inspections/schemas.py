@@ -23,7 +23,8 @@ class InspectionCountDetailResponse(BaseModel):
 
 
 class InspectionTaskResultResponse(BaseModel):
-    inspection_id: UUID
+    task_id: UUID
+    inspection_id: UUID | None = None
     status: str
     matched: int
     total: int
@@ -31,6 +32,18 @@ class InspectionTaskResultResponse(BaseModel):
     details: list[InspectionCountDetailResponse]
     mode: str
     model_name: str | None = None
+
+
+class InspectionSaveRequest(BaseModel):
+    task_id: UUID
+    serial_number: str | None = None
+    notes: str | None = None
+
+
+class InspectionSaveResponse(BaseModel):
+    inspection_id: UUID
+    status: str
+    message: str
 
 
 class InspectionResultResponse(BaseModel):

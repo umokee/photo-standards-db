@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from app.db import get_sync_session
 from app.import_models import import_models
 from infra.ml.yolo_inspector import run_inference
 from infra.queue.procrastinate import app
 from infra.storage.file_storage import resolve_storage_path
-from modules.inspections.models import InspectionResult, InspectionSegmentResult
 from modules.ml_models.models import MlModel
 from modules.segments.models import Segment, SegmentGroup
 from modules.standards.models import Standard, StandardImage
@@ -143,9 +142,6 @@ def execute_inspection(*, task_id: str) -> None:
         model_id = UUID(payload["model_id"])
         selected_segment_ids = [UUID(item) for item in payload["selected_segment_ids"]]
         mode = payload.get("mode")
-        serial_number = payload.get("serial_number")
-        notes = payload.get("notes")
-        camera_id = UUID(payload["camera_id"]) if payload.get("camera_id") else None
 
         standard = _load_standard(db, standard_id)
         if standard is None:
@@ -250,44 +246,6 @@ def execute_inspection(*, task_id: str) -> None:
             total = len(details)
             overall_status = "passed" if matched == total else "failed"
 
-            inspection = InspectionResult(
-                id=uuid4(),
-                standard_id=standard.id,
-                model_id=model.id,
-                camera_id=camera_id,
-                user_id=task.created_by_id,
-                image_path=payload["image_path"],
-                result_image_path=None,
-                status=overall_status,
-                mode=mode,
-                total_segments=total,
-                matched_segments=matched,
-                serial_number=serial_number,
-                notes=notes,
-            )
-            db.add(inspection)
-            db.flush()
-
-            for item in details:
-                db.add(
-                    InspectionSegmentResult(
-                        inspection_id=inspection.id,
-                        segment_id=UUID(item["segment_id"]),
-                        segment_group_id=UUID(item["segment_group_id"])
-                        if item["segment_group_id"]
-                        else None,
-                        name=item["name"],
-                        is_found=item["status"] == "ok",
-                        confidence=item["confidence"],
-                        expected_count=item["expected_count"],
-                        detected_count=item["detected_count"],
-                        delta=item["delta"],
-                        status=item["status"],
-                    )
-                )
-
-            db.commit()
-
             _set_task_state(
                 db,
                 task,
@@ -295,7 +253,8 @@ def execute_inspection(*, task_id: str) -> None:
                 stage="Готово",
                 message="Проверка завершена",
                 result={
-                    "inspection_id": str(inspection.id),
+                    "task_id": str(task.id),
+                    "inspection_id": None,
                     "status": overall_status,
                     "matched": matched,
                     "total": total,

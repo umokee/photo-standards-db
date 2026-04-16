@@ -18,9 +18,9 @@ export const useDeleteGroup = ({ mutationConfig }: Options = {}) => {
   return useMutation({
     mutationFn: deleteGroup,
     onSuccess: (...args) => {
-      qc.invalidateQueries({ queryKey: queryKeys.groups.all() });
-      notifySuccess("Группа успешно удалена");
       onSuccess?.(...args);
+      qc.invalidateQueries({ queryKey: queryKeys.groups.all(), exact: true });
+      notifySuccess("Группа успешно удалена");
     },
     ...rest,
   });

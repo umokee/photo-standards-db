@@ -6,6 +6,19 @@ export interface InspectionStartResponse {
   message: string;
 }
 
+export interface InspectionDetectionBBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface InspectionDetection {
+  confidence: number;
+  bbox: InspectionDetectionBBox;
+  polygon: number[][] | null;
+}
+
 export interface InspectionTaskSegmentDetail {
   segment_id: string;
   segment_group_id: string | null;
@@ -15,11 +28,12 @@ export interface InspectionTaskSegmentDetail {
   delta: number;
   status: string;
   confidence: number | null;
-  detections: Record<string, unknown>[];
+  detections: InspectionDetection[];
 }
 
 export interface InspectionTaskResult {
-  inspection_id: string;
+  task_id: string;
+  inspection_id: string | null;
   status: InspectionStatus;
   matched: number;
   total: number;
@@ -27,6 +41,12 @@ export interface InspectionTaskResult {
   details: InspectionTaskSegmentDetail[];
   mode: InspectionMode;
   model_name: string | null;
+}
+
+export interface InspectionSaveResponse {
+  inspection_id: string;
+  status: InspectionStatus;
+  message: string;
 }
 
 export interface InspectionResult {

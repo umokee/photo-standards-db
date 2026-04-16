@@ -5,10 +5,10 @@ from pathlib import Path
 from uuid import UUID
 
 from app.config import settings
-from app.exception import NotFoundError, ValidationError
+from app.exception import ConflictError, NotFoundError, ValidationError
 from constants import inspections
 from fastapi import UploadFile
-from modules.inspections.models import InspectionResult
+from modules.inspections.models import InspectionResult, InspectionSegmentResult
 from modules.ml_models.models import MlModel
 from modules.segments.models import Segment, SegmentAnnotation, SegmentGroup
 from modules.standards.models import Standard, StandardImage
@@ -209,3 +209,102 @@ async def start_inspection(
         external_job_id=str(job_id),
     )
     return task
+
+
+async def save_inspection_result(
+    db: AsyncSession,
+    *,
+    task_id: UUID,
+    serial_number: str | None,
+    notes: str | None,
+) -> InspectionResult:
+    task = await db.get(Task, task_id)
+    if not task:
+        raise NotFoundError("Задача", task_id)
+
+    if task.type != "inspection_run":
+        raise ValidationError("Указанная задача не относится к проверке")
+
+    if task.status != "succeeded":
+        raise ConflictError("Сначала дождитесь завершения проверки")
+
+    payload = task.payload or {}
+    result = task.result or {}
+
+    existing_inspection_id = result.get("inspection_id")
+    if existing_inspection_id:
+        inspection = await db.get(InspectionResult, UUID(str(existing_inspection_id)))
+        if inspection:
+            return inspection
+        raise ConflictError("Результат уже был сохранён, но запись не найдена")
+
+    standard_id = payload.get("standard_id")
+    model_id = payload.get("model_id")
+    camera_id = payload.get("camera_id")
+    image_path = payload.get("image_path")
+    mode = result.get("mode") or payload.get("mode")
+    status = result.get("status")
+    total = result.get("total")
+    matched = result.get("matched")
+    details = result.get("details")
+
+    if not standard_id or not image_path or not mode or not status:
+        raise ValidationError("В задаче отсутствуют данные для сохранения результата")
+
+    if not isinstance(total, int) or not isinstance(matched, int):
+        raise ValidationError("В задаче отсутствует итоговая статистика проверки")
+
+    if not isinstance(details, list):
+        raise ValidationError("В задаче отсутствуют детализированные результаты проверки")
+
+    inspection = InspectionResult(
+        standard_id=UUID(str(standard_id)),
+        model_id=UUID(str(model_id)) if model_id else None,
+        camera_id=UUID(str(camera_id)) if camera_id else None,
+        user_id=task.created_by_id,
+        image_path=str(image_path),
+        result_image_path=None,
+        status=str(status),
+        mode=str(mode),
+        total_segments=total,
+        matched_segments=matched,
+        serial_number=serial_number,
+        notes=notes,
+    )
+    db.add(inspection)
+    await db.flush()
+
+    for item in details:
+        if not isinstance(item, dict):
+            continue
+
+        segment_id = item.get("segment_id")
+        segment_group_id = item.get("segment_group_id")
+        confidence = item.get("confidence")
+        expected_count = item.get("expected_count")
+        detected_count = item.get("detected_count")
+        delta = item.get("delta")
+
+        db.add(
+            InspectionSegmentResult(
+                inspection_id=inspection.id,
+                segment_id=UUID(str(segment_id)) if segment_id else None,
+                segment_group_id=UUID(str(segment_group_id)) if segment_group_id else None,
+                name=str(item.get("name") or ""),
+                is_found=item.get("status") == "ok",
+                confidence=float(confidence) if confidence is not None else None,
+                expected_count=int(expected_count) if expected_count is not None else None,
+                detected_count=int(detected_count) if detected_count is not None else None,
+                delta=int(delta) if delta is not None else None,
+                status=str(item.get("status") or ""),
+            )
+        )
+
+    task.result = {
+        **result,
+        "inspection_id": str(inspection.id),
+    }
+
+    await db.commit()
+    await db.refresh(inspection)
+    return inspection

@@ -1,3 +1,4 @@
+import Button from "@/components/ui/button/button";
 import { Badge } from "@/components/ui/badge/badge";
 import { GroupDetail, Metric, MlModel, TaskResponse, TrainingStatus } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
@@ -18,6 +19,8 @@ type Props = {
   group?: GroupDetail | null;
   expanded: boolean;
   onToggle: () => void;
+  onActivate?: (modelId: string) => void;
+  isActivating?: boolean;
 };
 
 const statusBadgeTypeMap: Record<TrainingStatus, "info" | "success" | "warning" | "danger"> = {
@@ -29,7 +32,15 @@ const statusBadgeTypeMap: Record<TrainingStatus, "info" | "success" | "warning" 
   failed: "danger",
 };
 
-export const ModelCard = ({ model, task = null, group, expanded, onToggle }: Props) => {
+export const ModelCard = ({
+  model,
+  task = null,
+  group,
+  expanded,
+  onToggle,
+  onActivate,
+  isActivating = false,
+}: Props) => {
   const status = getTrainingStatus(model, task);
   const progress = getTrainingPercent(model, task);
   const isTraining = isTrainingModel(model, task);
@@ -99,7 +110,13 @@ export const ModelCard = ({ model, task = null, group, expanded, onToggle }: Pro
 
       {expanded && (
         <div className={s.body}>
-          <ModelCardDetail model={model} task={task} group={group} />
+          <ModelCardDetail
+            model={model}
+            task={task}
+            group={group}
+            onActivate={onActivate}
+            isActivating={isActivating}
+          />
         </div>
       )}
     </article>
@@ -110,6 +127,8 @@ interface DetailProps {
   model: MlModel | null;
   task?: TaskResponse | null;
   group?: GroupDetail | null;
+  onActivate?: (modelId: string) => void;
+  isActivating?: boolean;
 }
 
 const metricKeys: Metric[] = ["mAP50", "mAP50_95", "precision", "recall"];
@@ -119,8 +138,10 @@ const formatMetric = (value: number | null | undefined) => {
   return value.toFixed(3);
 };
 
-const ModelCardDetail = ({ model, task }: DetailProps) => {
+const ModelCardDetail = ({ model, task, onActivate, isActivating = false }: DetailProps) => {
   const isFailed = isTrainingFailedModel(model, task ?? null);
+  const isTraining = isTrainingModel(model, task ?? null);
+  const canActivate = !!onActivate && !model.is_active && !!model.trained_at && !isTraining;
 
   const parameterRows = [
     { label: "Архитектура", value: model.architecture },
@@ -205,6 +226,36 @@ const ModelCardDetail = ({ model, task }: DetailProps) => {
           </div>
         </div>
       )}
+
+      <div className={clsx(s.detailSection, s.bordered)}>
+        <div className={s.title}>Управление</div>
+
+        {model.is_active ? (
+          <div className={s.emptyText}>Эта модель уже используется для проверки.</div>
+        ) : canActivate ? (
+          <div className={s.actions}>
+            <Button
+              size="sm"
+              variant="ml"
+              disabled={isActivating}
+              onClick={() => onActivate(model.id)}
+            >
+              {isActivating ? "Активация..." : "Сделать активной"}
+            </Button>
+            <div className={s.emptyText}>
+              После активации именно эта модель будет использоваться в inspection для группы.
+            </div>
+          </div>
+        ) : (
+          <div className={s.emptyText}>
+            {!model.trained_at
+              ? "Активировать можно только после успешного обучения."
+              : isTraining
+                ? "Нельзя активировать модель во время обучения."
+                : "Модель сейчас нельзя активировать."}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

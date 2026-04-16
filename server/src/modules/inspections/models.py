@@ -13,6 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from modules.cameras.models import Camera
     from modules.ml_models.models import MlModel
+    from modules.segments.models import Segment, SegmentGroup
     from modules.standards.models import Standard
     from modules.users.models import User
 
@@ -90,3 +91,7 @@ class InspectionSegmentResult(Base):
     detected_count: Mapped[int | None] = mapped_column(default=None)
     delta: Mapped[int | None] = mapped_column(default=None)
     status: Mapped[str | None] = mapped_column(String(20), default=None)
+
+    inspection: Mapped[InspectionResult] = relationship(back_populates="segment_results")
+    segment: Mapped[Segment | None] = relationship()
+    segment_group: Mapped[SegmentGroup | None] = relationship()

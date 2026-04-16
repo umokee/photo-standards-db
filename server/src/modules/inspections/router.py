@@ -5,7 +5,12 @@ from constants import inspections
 from fastapi import APIRouter, File, Form, UploadFile
 
 from . import service
-from .schemas import InspectionResultResponse, InspectionStartResponse
+from .schemas import (
+    InspectionResultResponse,
+    InspectionSaveRequest,
+    InspectionSaveResponse,
+    InspectionStartResponse,
+)
 
 router = APIRouter(prefix="/inspections", tags=["inspections"])
 
@@ -44,3 +49,21 @@ async def get_inspection(
     db: DbSession,
 ) -> InspectionResultResponse:
     return await service.get_inspection(db, inspection_id)
+
+
+@router.post("/save", response_model=InspectionSaveResponse)
+async def save_inspection(
+    payload: InspectionSaveRequest,
+    db: DbSession,
+) -> InspectionSaveResponse:
+    inspection = await service.save_inspection_result(
+        db,
+        task_id=payload.task_id,
+        serial_number=payload.serial_number,
+        notes=payload.notes,
+    )
+    return InspectionSaveResponse(
+        inspection_id=inspection.id,
+        status=inspection.status,
+        message="Результат проверки сохранён",
+    )
