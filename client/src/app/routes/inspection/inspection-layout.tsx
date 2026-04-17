@@ -40,144 +40,92 @@ const inspectionResultBadgeType = (status: string): "info" | "success" | "warnin
   }
 };
 
-const inspectionResultLabel = (status: string) => {
-  switch (status) {
-    case "passed":
-      return "Пройдено";
-    case "failed":
-      return "Не пройдено";
-    default:
-      return status;
-  }
-};
-
-const detailStatusLabel = (status: string) => {
-  switch (status) {
-    case "ok":
-      return "Совпадает";
-    case "less":
-      return "Меньше нормы";
-    case "more":
-      return "Больше нормы";
-    default:
-      return status;
-  }
-};
-
-const detailStatusBadgeType = (status: string): "info" | "success" | "warning" | "danger" => {
-  switch (status) {
-    case "ok":
-      return "success";
-    case "less":
-    case "more":
-      return "warning";
-    default:
-      return "info";
-  }
-};
+const isActiveTask = (status?: string | null) =>
+  ["pending", "queued", "running"].includes(status ?? "");
 
 export function Component() {
   const navigate = useNavigate();
   const { mode, groupId, standardId } = useParams();
-  const currentMode = mode ?? "photo";
-  const [file, setFileState] = useState<File | null>(null);
+
+  const [file, setFile] = useState<File | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
-  const [result, setResult] = useState<InspectionTaskResult | null>(null);
-  const [selectedSegmentIds, setSelectedSegmentIds] = useState<string[]>([]);
+  const [savedInspectionId, setSavedInspectionId] = useState<string | null>(null);
+  const [selectedSegmentClassIds, setSelectedSegmentClassIds] = useState<string[]>([]);
 
-  const { data: task } = useGetTask(pendingTaskId);
-  const isTaskActive = ["pending", "queued", "running"].includes(task?.status ?? "");
-
-  const mutation = useRunInspection({
+  const runMutation = useRunInspection({
     mutationConfig: {
       onSuccess: (data) => {
         setPendingTaskId(data.task_id);
-        setResult(null);
+        setSavedInspectionId(null);
       },
     },
   });
 
-  const setFile = (nextFile: File | null) => {
-    if (isTaskActive) return;
+  const { data: task } = useGetTask(pendingTaskId);
 
-    setFileState(nextFile);
+  const taskStatus = task?.status ?? null;
+  const taskStage = task?.stage ?? null;
+  const taskError = task?.error ?? null;
+  const taskProgress = task?.progress_percent ?? null;
+
+  const result = useMemo(
+    () => (task?.result as unknown as InspectionTaskResult | null) ?? null,
+    [task?.result]
+  );
+
+  useEffect(() => {
+    if (result?.inspection_id) {
+      setSavedInspectionId(result.inspection_id);
+    }
+  }, [result?.inspection_id]);
+
+  useEffect(() => {
     setPendingTaskId(null);
-    setResult(null);
-  };
+    setSavedInspectionId(null);
+    setFile(null);
+    setSelectedSegmentClassIds([]);
+  }, [mode, groupId, standardId]);
 
-  const isRunDisabled =
-    !standardId || !file || !selectedSegmentIds.length || mutation.isPending || isTaskActive;
+  const currentMode = mode ?? "photo";
+  const locked = isActiveTask(taskStatus) || runMutation.isPending;
+
+  const isRunDisabled = !standardId || !file || !selectedSegmentClassIds.length || locked;
+
+  const runLabel = locked ? taskStage || "Проверка выполняется..." : "Запустить проверку";
 
   const handleRun = () => {
-    if (!standardId || !file || !selectedSegmentIds.length) return;
+    if (!standardId || !file || !selectedSegmentClassIds.length) return;
 
-    mutation.mutate({
+    runMutation.mutate({
       standard_id: standardId,
-      selected_segment_ids: selectedSegmentIds,
-      mode: mode ?? "photo",
+      selected_segment_class_ids: selectedSegmentClassIds,
+      mode: currentMode,
       image: file,
     });
   };
 
-  useEffect(() => {
-    if (!task) return;
-
-    if (task.status === "succeeded" && task.result) {
-      setResult(task.result as unknown as InspectionTaskResult);
-      return;
-    }
-
-    if (task.status === "failed") {
-      setResult(null);
-    }
-  }, [task]);
-
-  useEffect(() => {
-    if (ENABLED_INSPECTION_MODES.has(currentMode)) return;
-
-    if (groupId && standardId) {
-      navigate(paths.inspectionStandard("photo", groupId, standardId), { replace: true });
-      return;
-    }
-
-    if (groupId) {
-      navigate(paths.inspectionGroup("photo", groupId), { replace: true });
-      return;
-    }
-
-    navigate(paths.inspectionMode("photo"), { replace: true });
-  }, [currentMode, groupId, standardId, navigate]);
-
-  useEffect(() => {
-    setPendingTaskId(null);
-    setResult(null);
-    setFileState(null);
-  }, [groupId, standardId]);
+  const handleSaved = (inspectionId: string) => {
+    setSavedInspectionId(inspectionId);
+  };
 
   return (
     <SplitLayout>
       <SplitLayout.Content>
         <SplitLayout.Topbar>
-          <InspectionTopbar
-            onRun={handleRun}
-            runDisabled={isRunDisabled}
-            runLabel={mutation.isPending || isTaskActive ? "Проверяется..." : "Проверить"}
-          />
+          <InspectionTopbar onRun={handleRun} runDisabled={isRunDisabled} runLabel={runLabel} />
         </SplitLayout.Topbar>
 
         <SplitLayout.Body bare>
           <Outlet
-            context={
-              {
-                file,
-                setFile,
-                result,
-                taskStatus: task?.status ?? null,
-                taskStage: task?.stage ?? null,
-                taskProgress: task?.progress_percent ?? null,
-                isLocked: isTaskActive,
-              } satisfies InspectionLayoutContext
-            }
+            context={{
+              file,
+              setFile,
+              result,
+              taskStatus,
+              taskStage,
+              taskProgress,
+              isLocked: locked,
+            }}
           />
         </SplitLayout.Body>
       </SplitLayout.Content>
@@ -186,24 +134,16 @@ export function Component() {
         <InspectionSidePanel
           groupId={groupId ?? null}
           standardId={standardId ?? null}
-          taskStatus={task?.status ?? null}
-          taskStage={task?.stage ?? null}
-          taskError={task?.error ?? null}
-          taskProgress={task?.progress_percent ?? null}
+          taskStatus={taskStatus}
+          taskStage={taskStage}
+          taskError={taskError}
+          taskProgress={taskProgress}
           result={result}
-          selectedSegmentIds={selectedSegmentIds}
-          setSelectedSegmentIds={setSelectedSegmentIds}
-          isTaskActive={isTaskActive}
-          onSaved={(inspectionId) => {
-            setResult((current) =>
-              current
-                ? {
-                    ...current,
-                    inspection_id: inspectionId,
-                  }
-                : current
-            );
-          }}
+          selectedSegmentClassIds={selectedSegmentClassIds}
+          setSelectedSegmentClassIds={setSelectedSegmentClassIds}
+          isTaskActive={locked}
+          savedInspectionId={savedInspectionId}
+          onSaved={handleSaved}
         />
       </SplitLayout.Panel>
     </SplitLayout>
@@ -367,9 +307,10 @@ function InspectionSidePanel({
   taskError,
   taskProgress,
   result,
-  selectedSegmentIds,
-  setSelectedSegmentIds,
+  selectedSegmentClassIds,
+  setSelectedSegmentClassIds,
   isTaskActive,
+  savedInspectionId,
   onSaved,
 }: {
   groupId: string | null;
@@ -379,9 +320,10 @@ function InspectionSidePanel({
   taskError: string | null;
   taskProgress: number | null;
   result: InspectionTaskResult | null;
-  selectedSegmentIds: string[];
-  setSelectedSegmentIds: (value: string[]) => void;
+  selectedSegmentClassIds: string[];
+  setSelectedSegmentClassIds: (value: string[]) => void;
   isTaskActive: boolean;
+  savedInspectionId: string | null;
   onSaved: (inspectionId: string) => void;
 }) {
   if (!groupId) {
@@ -400,7 +342,13 @@ function InspectionSidePanel({
   }
 
   if (result) {
-    return <InspectionResultPanel result={result} onSaved={onSaved} />;
+    return (
+      <InspectionResultPanel
+        result={result}
+        savedInspectionId={savedInspectionId}
+        onSaved={onSaved}
+      />
+    );
   }
 
   return (
@@ -410,8 +358,8 @@ function InspectionSidePanel({
       taskStage={taskStage}
       taskError={taskError}
       taskProgress={taskProgress}
-      selectedSegmentIds={selectedSegmentIds}
-      setSelectedSegmentIds={setSelectedSegmentIds}
+      selectedSegmentClassIds={selectedSegmentClassIds}
+      setSelectedSegmentClassIds={setSelectedSegmentClassIds}
       disabled={isTaskActive}
     />
   );
@@ -441,8 +389,8 @@ function InspectionClassesPanel({
   taskStage,
   taskError,
   taskProgress,
-  selectedSegmentIds,
-  setSelectedSegmentIds,
+  selectedSegmentClassIds,
+  setSelectedSegmentClassIds,
   disabled,
 }: {
   standardId: string;
@@ -450,180 +398,201 @@ function InspectionClassesPanel({
   taskStage: string | null;
   taskError: string | null;
   taskProgress: number | null;
-  selectedSegmentIds: string[];
-  setSelectedSegmentIds: (value: string[]) => void;
+  selectedSegmentClassIds: string[];
+  setSelectedSegmentClassIds: (value: string[]) => void;
   disabled: boolean;
 }) {
   const { data: standard } = useGetStandardDetail(standardId);
   const [initializedStandardId, setInitializedStandardId] = useState<string | null>(null);
 
+  const selectableSegmentClasses = useMemo(() => {
+    const grouped = standard.segment_class_categories.flatMap(
+      (category) => category.segment_classes
+    );
+
+    return [...grouped, ...standard.ungrouped_segment_classes].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [standard]);
+
   useEffect(() => {
     if (initializedStandardId === standard.id) return;
 
-    setSelectedSegmentIds(standard.segments.map((segment) => segment.id));
+    setSelectedSegmentClassIds(selectableSegmentClasses.map((item) => item.id));
     setInitializedStandardId(standard.id);
-  }, [initializedStandardId, standard.id, standard.segments, setSelectedSegmentIds]);
+  }, [initializedStandardId, selectableSegmentClasses, setSelectedSegmentClassIds, standard.id]);
 
-  const selectedSet = useMemo(() => new Set(selectedSegmentIds), [selectedSegmentIds]);
+  const selectedSet = useMemo(() => new Set(selectedSegmentClassIds), [selectedSegmentClassIds]);
 
-  const groupedSegments = standard.segment_groups.map((group) => ({
-    ...group,
-    segments: standard.segments.filter((segment) => segment.segment_group_id === group.id),
-  }));
-
-  const toggleSegment = (segmentId: string) => {
+  const toggleSegmentClass = (segmentClassId: string) => {
     if (disabled) return;
 
-    if (selectedSet.has(segmentId)) {
-      setSelectedSegmentIds(selectedSegmentIds.filter((id) => id !== segmentId));
-      return;
-    }
-
-    setSelectedSegmentIds([...selectedSegmentIds, segmentId]);
+    setSelectedSegmentClassIds(
+      selectedSet.has(segmentClassId)
+        ? selectedSegmentClassIds.filter((id) => id !== segmentClassId)
+        : [...selectedSegmentClassIds, segmentClassId]
+    );
   };
 
-  const toggleGroup = (segmentIds: string[]) => {
+  const allSelected =
+    selectableSegmentClasses.length > 0 &&
+    selectableSegmentClasses.every((item) => selectedSet.has(item.id));
+
+  const handleToggleAll = () => {
     if (disabled) return;
 
-    const allSelected = segmentIds.length > 0 && segmentIds.every((id) => selectedSet.has(id));
-
     if (allSelected) {
-      setSelectedSegmentIds(selectedSegmentIds.filter((id) => !segmentIds.includes(id)));
+      setSelectedSegmentClassIds([]);
       return;
     }
 
-    setSelectedSegmentIds(Array.from(new Set([...selectedSegmentIds, ...segmentIds])));
+    setSelectedSegmentClassIds(selectableSegmentClasses.map((item) => item.id));
   };
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {taskError && (
-        <div
-          style={{
-            padding: 14,
-            borderRadius: 14,
-            border: "1px solid #e0b3ad",
-            background: "#f6e7e2",
-            color: "#8b3d33",
-            display: "grid",
-            gap: 6,
-          }}
-        >
-          <strong>Проверка завершилась ошибкой</strong>
-          <span>{taskError}</span>
-        </div>
-      )}
-
       <Section
-        title="Классы проверки"
-        side={<Badge>{selectedSegmentIds.length}</Badge>}
+        title="Состояние проверки"
+        side={
+          taskStatus ? (
+            <Badge type={inspectionResultBadgeType(taskStatus)}>{taskStatus}</Badge>
+          ) : undefined
+        }
         bordered
       >
-        {disabled && (
-          <div
-            style={{
-              marginBottom: 14,
-              padding: 12,
-              borderRadius: 12,
-              background: "#f3eee2",
-              border: "1px solid #ddd5c7",
-              color: "#8a8f7a",
-              display: "grid",
-              gap: 4,
-            }}
-          >
-            <strong style={{ color: "#545c45" }}>{taskStage ?? "Проверка изображения"}</strong>
-            {taskProgress != null && <span>Прогресс: {taskProgress}%</span>}
-            {taskStatus && <span>Выбор классов временно заблокирован</span>}
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ color: "var(--text-secondary)" }}>{taskStage ?? "Ожидает запуска"}</div>
+
+          {typeof taskProgress === "number" && (
+            <div style={{ color: "var(--text-secondary)" }}>Прогресс: {taskProgress}%</div>
+          )}
+
+          {taskError && <div style={{ color: "var(--danger-text)" }}>{taskError}</div>}
+        </div>
+      </Section>
+
+      <Section
+        title="Классы для проверки"
+        side={
+          <div style={{ display: "flex", gap: 8 }}>
+            <Badge>{selectedSegmentClassIds.length}</Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={disabled || !selectableSegmentClasses.length}
+              onClick={handleToggleAll}
+            >
+              {allSelected ? "Снять все" : "Выбрать все"}
+            </Button>
           </div>
-        )}
-
-        <div
-          style={{
-            display: "grid",
-            borderRadius: 16,
-            opacity: disabled ? 0.72 : 1,
-          }}
+        }
+        bordered
+        scrollable
+        maxContentHeight={420}
+      >
+        <QueryState
+          isEmpty={!selectableSegmentClasses.length}
+          emptyTitle="Нет классов"
+          emptyDescription="Для выбранного эталона не настроены классы сегментации"
         >
-          {groupedSegments.map((group, index) => {
-            const segmentIds = group.segments.map((segment) => segment.id);
-            const allSelected =
-              segmentIds.length > 0 && segmentIds.every((id) => selectedSet.has(id));
-            const selectedCount = segmentIds.filter((id) => selectedSet.has(id)).length;
-
-            return (
-              <div
-                key={group.id}
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  padding: 14,
-                  borderTop: index === 0 ? "none" : "1px solid #efe9dc",
-                }}
-              >
+          <div style={{ display: "grid", gap: 16 }}>
+            {standard.segment_class_categories.map((category) => (
+              <div key={category.id} style={{ display: "grid", gap: 8 }}>
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
                   }}
                 >
-                  <label
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      fontWeight: 700,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      disabled={disabled}
-                      onChange={() => toggleGroup(segmentIds)}
-                    />
-                    <span>{group.name}</span>
-                  </label>
-                  <span style={{ color: "#8a8f7a", fontSize: 13 }}>
-                    {selectedCount} из {segmentIds.length}
-                  </span>
+                  {category.name}
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    marginLeft: 10,
-                    paddingLeft: 18,
-                    borderLeft: "1px solid #d8d0c2",
-                  }}
-                >
-                  {group.segments.map((segment) => (
+                <div style={{ display: "grid", gap: 8 }}>
+                  {category.segment_classes.map((item) => (
                     <label
-                      key={segment.id}
+                      key={item.id}
                       style={{
                         display: "flex",
-                        gap: 10,
                         alignItems: "center",
-                        paddingBottom: 10,
-                        borderBottom: "1px solid #efe9dc",
+                        gap: 10,
+                        cursor: disabled ? "default" : "pointer",
+                        opacity: disabled ? 0.65 : 1,
                       }}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedSet.has(segment.id)}
+                        checked={selectedSet.has(item.id)}
                         disabled={disabled}
-                        onChange={() => toggleSegment(segment.id)}
+                        onChange={() => toggleSegmentClass(item.id)}
                       />
-                      <span>{segment.name}</span>
+
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          background: `hsl(${item.hue}, 70%, 50%)`,
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      <span>{item.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+
+            {!!standard.ungrouped_segment_classes.length && (
+              <div style={{ display: "grid", gap: 8 }}>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Без категории
+                </div>
+
+                <div style={{ display: "grid", gap: 8 }}>
+                  {standard.ungrouped_segment_classes.map((item) => (
+                    <label
+                      key={item.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        cursor: disabled ? "default" : "pointer",
+                        opacity: disabled ? 0.65 : 1,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(item.id)}
+                        disabled={disabled}
+                        onChange={() => toggleSegmentClass(item.id)}
+                      />
+
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          background: `hsl(${item.hue}, 70%, 50%)`,
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      <span>{item.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </QueryState>
       </Section>
     </div>
   );
@@ -631,13 +600,16 @@ function InspectionClassesPanel({
 
 function InspectionResultPanel({
   result,
+  savedInspectionId,
   onSaved,
 }: {
   result: InspectionTaskResult;
+  savedInspectionId: string | null;
   onSaved: (inspectionId: string) => void;
 }) {
   const [serialNumber, setSerialNumber] = useState("");
   const [notes, setNotes] = useState("");
+
   const saveMutation = useSaveInspection({
     mutationConfig: {
       onSuccess: (data) => {
@@ -646,174 +618,75 @@ function InspectionResultPanel({
     },
   });
 
-  useEffect(() => {
-    setSerialNumber("");
-    setNotes("");
-  }, [result.task_id]);
-
-  const isAlreadySaved = !!result.inspection_id;
+  const effectiveInspectionId = savedInspectionId ?? result.inspection_id ?? null;
+  const canSave = !effectiveInspectionId && !saveMutation.isPending;
 
   const handleSave = () => {
-    if (isAlreadySaved) return;
+    if (!canSave) return;
 
     saveMutation.mutate({
       task_id: result.task_id,
-      serial_number: serialNumber.trim() || null,
-      notes: notes.trim() || null,
+      serial_number: serialNumber || null,
+      notes: notes || null,
     });
   };
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div
-        style={{
-          display: "grid",
-          gap: 10,
-          padding: 18,
-          borderRadius: 18,
-          border: `1px solid ${result.status === "passed" ? "#b6d1bd" : "#e0b3ad"}`,
-          background: result.status === "passed" ? "#ecf5ee" : "#f6e7e2",
-        }}
+      <Section
+        title="Результат проверки"
+        side={
+          <Badge type={inspectionResultBadgeType(result.status)}>
+            {result.status === "passed" ? "Пройдено" : "Не пройдено"}
+          </Badge>
+        }
+        bordered
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ display: "grid", gap: 6 }}>
-            <Badge type={inspectionResultBadgeType(result.status)}>
-              {inspectionResultLabel(result.status)}
-            </Badge>
-            <strong style={{ fontSize: 28, lineHeight: 1, color: "#2e3427" }}>
-              {result.matched} / {result.total}
-            </strong>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div>
+            Совпадений: {result.matched} / {result.total}
           </div>
-          <div style={{ textAlign: "right", color: "#8a8f7a" }}>
-            <div>сегментов</div>
-            {result.missing.length > 0 && <div>Не найдено: {result.missing.length}</div>}
-          </div>
-        </div>
 
-        {result.model_name && (
-          <div style={{ color: "#8a8f7a", fontSize: 14 }}>
-            Модель: <strong>{result.model_name}</strong>
-          </div>
-        )}
-      </div>
+          {!!result.model_name && (
+            <div style={{ color: "var(--text-secondary)" }}>Модель: {result.model_name}</div>
+          )}
 
-      <Section title="Сегменты" side={`${result.matched} из ${result.total}`} bordered>
-        <div style={{ display: "grid", gap: 12 }}>
-          {result.details.map((detail) => {
-            const ratio =
-              detail.expected_count > 0
-                ? Math.min(100, Math.round((detail.detected_count / detail.expected_count) * 100))
-                : detail.detected_count > 0
-                  ? 100
-                  : 0;
-
-            return (
-              <div
-                key={detail.segment_id}
-                style={{
-                  display: "grid",
-                  gap: 8,
-                  paddingBottom: 12,
-                  borderBottom: "1px solid #efe9dc",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <Badge type={detailStatusBadgeType(detail.status)}>
-                      {detailStatusLabel(detail.status)}
-                    </Badge>
-                    <strong>{detail.name}</strong>
-                  </div>
-                  <span style={{ color: "#8a8f7a", fontSize: 14 }}>
-                    {detail.detected_count} / {detail.expected_count}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    height: 6,
-                    borderRadius: 999,
-                    background: "#e3ddd0",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${ratio}%`,
-                      height: "100%",
-                      background:
-                        detail.status === "ok"
-                          ? "#4ba26a"
-                          : detail.status === "less"
-                            ? "#d6a23c"
-                            : "#d4574a",
-                    }}
-                  />
-                </div>
-
-                <div style={{ color: "#8a8f7a", fontSize: 13 }}>
-                  Delta: <strong>{detail.delta}</strong>
-                  {detail.confidence != null
-                    ? ` · confidence ${Math.round(detail.confidence * 100)}%`
-                    : ""}
-                </div>
-              </div>
-            );
-          })}
+          {result.missing.length > 0 && (
+            <div style={{ color: "var(--text-secondary)" }}>
+              Проблемные классы: {result.missing.join(", ")}
+            </div>
+          )}
         </div>
       </Section>
 
-      <Section title="Сохранение" bordered>
-        <div style={{ display: "grid", gap: 14 }}>
-          <Input
-            noMargin
-            label="Серийный номер"
-            placeholder="Введите или отсканируйте..."
-            value={serialNumber}
-            onChange={setSerialNumber}
-            disabled={saveMutation.isPending || isAlreadySaved}
-          />
-
-          <div style={{ display: "grid", gap: 6 }}>
-            <label style={{ color: "#8a8f7a", fontSize: 14, fontWeight: 600 }}>Заметки</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Комментарий к результату..."
-              rows={5}
-              disabled={saveMutation.isPending || isAlreadySaved}
-              style={{
-                width: "100%",
-                resize: "vertical",
-                borderRadius: 12,
-                border: "1px solid #d9d2c3",
-                background: "#fffdf7",
-                padding: 12,
-                color: "#2e3427",
-                font: "inherit",
-              }}
+      <Section title="Сохранение результата" bordered>
+        <div style={{ display: "grid", gap: 12 }}>
+          {effectiveInspectionId ? (
+            <QueryState
+              isEmpty
+              size="block"
+              emptyTitle="Результат уже сохранён"
+              emptyDescription={`ID проверки: ${effectiveInspectionId}`}
             />
-          </div>
-
-          <Button disabled={saveMutation.isPending || isAlreadySaved} onClick={handleSave}>
-            {saveMutation.isPending
-              ? "Сохранение..."
-              : isAlreadySaved
-                ? "Результат сохранён"
-                : "Сохранить результат"}
-          </Button>
-          <div style={{ color: "#8a8f7a", fontSize: 13 }}>
-            {isAlreadySaved
-              ? "Эта проверка уже сохранена в истории."
-              : "Сохранение выполняется отдельно, после просмотра результата."}
-          </div>
+          ) : (
+            <>
+              <Input
+                label="Серийный номер"
+                placeholder="Например, SN-001"
+                value={serialNumber}
+                onChange={setSerialNumber}
+              />
+              <Input
+                label="Комментарий"
+                placeholder="Дополнительные заметки"
+                value={notes}
+                onChange={setNotes}
+              />
+              <Button disabled={!canSave} onClick={handleSave}>
+                {saveMutation.isPending ? "Сохранение..." : "Сохранить результат"}
+              </Button>
+            </>
+          )}
         </div>
       </Section>
     </div>

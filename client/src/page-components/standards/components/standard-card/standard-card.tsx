@@ -74,6 +74,10 @@ const StandardCardDetail = ({
   const referenceImage = useSetReference({ standardId: standard.id });
   const deleteImage = useDeleteImage({ standardId: standard.id });
   const annotated = standard.images.filter((image) => image.annotation_count > 0).length ?? 0;
+  const allClasses = [
+    ...standard.segment_class_categories.flatMap((category) => category.segment_classes),
+    ...standard.ungrouped_segment_classes,
+  ];
 
   const handleReferenceImage = ({ e, imageId }: { e: MouseEvent; imageId: string }) => {
     e.stopPropagation();
@@ -92,7 +96,7 @@ const StandardCardDetail = ({
           <div className={s.bodyStat}>
             Размечено: {annotated} / {standard.stats.images_count}
           </div>
-          <div className={s.bodyStat}>Сегментов: {standard.stats.segments_count}</div>
+          <div className={s.bodyStat}>Сегментов: {standard.stats.segment_classes_count}</div>
         </div>
         <ManageSegmentGroups standard={standard} />
       </div>
@@ -144,13 +148,13 @@ const StandardCardDetail = ({
         </div>
       </QueryState>
 
-      {standard.segment_groups.length > 0 && (
+      {allClasses.length > 0 && (
         <div className={s.classes}>
           <span className={s.classTitle}>Классы</span>
           <div className={s.classList}>
-            {standard.segment_groups.map((segmentGroup) => (
-              <Badge key={segmentGroup.id} colorDot={segmentGroup.hue}>
-                {segmentGroup.name}
+            {allClasses.map((segmentClass) => (
+              <Badge key={segmentClass.id} colorDot={segmentClass.hue}>
+                {segmentClass.name}
               </Badge>
             ))}
           </div>

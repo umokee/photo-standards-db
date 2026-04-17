@@ -1,277 +1,346 @@
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 
-import { Segment, SegmentGroup, StandardDetail } from "@/types/contracts";
-import { useParams } from "react-router-dom";
-import { useSaveSegments } from "../api/save-segments";
+import { SegmentClass, SegmentClassCategory, StandardDetail } from "@/types/contracts";
+import { useSaveSegmentClasses } from "../api/save-segment-classes";
 
-interface SegmentState {
-  key: string;
-  id: string | null;
-  name: string;
-}
-
-interface GroupState {
+interface ClassState {
   key: string;
   id: string | null;
   name: string;
   hue: number;
+}
+
+interface CategoryState {
+  key: string;
+  id: string | null;
+  name: string;
   collapsed: boolean;
-  segments: SegmentState[];
+  segmentClasses: ClassState[];
 }
 
 interface EditorState {
-  groups: GroupState[];
-  deletedGroupIds: Set<string>;
-  deletedSegmentIds: Set<string>;
+  categories: CategoryState[];
+  ungroupedClasses: ClassState[];
+  deletedCategoryIds: Set<string>;
+  deletedClassIds: Set<string>;
 }
 
 type Action =
-  | { type: "group/add" }
-  | { type: "group/remove"; key: string }
-  | { type: "group/toggle"; key: string }
-  | { type: "group/update-name"; key: string; value: string }
-  | { type: "group/update-hue"; key: string; value: number }
-  | { type: "segment/add"; groupKey: string }
-  | { type: "segment/remove"; groupKey: string; segKey: string }
-  | { type: "segment/update-name"; groupKey: string; segKey: string; value: string };
+  | { type: "reset"; payload: EditorState }
+  | { type: "category/add" }
+  | { type: "category/remove"; key: string }
+  | { type: "category/toggle"; key: string }
+  | { type: "category/update-name"; key: string; value: string }
+  | { type: "class/add-to-category"; categoryKey: string }
+  | { type: "class/add-ungrouped" }
+  | { type: "class/remove-from-category"; categoryKey: string; classKey: string }
+  | { type: "class/remove-ungrouped"; classKey: string }
+  | {
+      type: "class/update-name";
+      categoryKey: string | null;
+      classKey: string;
+      value: string;
+    }
+  | {
+      type: "class/update-hue";
+      categoryKey: string | null;
+      classKey: string;
+      value: number;
+    };
 
 const uid = () => crypto.randomUUID();
 
-const initGroups = (segmentGroups: SegmentGroup[], segments: Segment[]): GroupState[] =>
-  segmentGroups.map((group) => ({
-    key: group.id,
-    id: group.id,
-    name: group.name,
-    hue: group.hue,
-    collapsed: true,
-    segments: segments
-      .filter((segment) => segment.segment_group_id === group.id)
-      .map((segment) => ({
-        key: segment.id,
-        id: segment.id,
-        name: segment.name,
-      })),
-  }));
-
-const createInitialState = (standard: StandardDetail): EditorState => ({
-  groups: initGroups(standard.segment_groups, standard.segments),
-  deletedGroupIds: new Set<string>(),
-  deletedSegmentIds: new Set<string>(),
-});
-
-const serializeGroupsForSave = (groups: GroupState[]) =>
-  groups.map((group) => ({
-    id: group.id ?? undefined,
-    name: group.name.trim(),
-    hue: group.hue,
-    segments: group.segments
-      .filter((segment) => segment.name.trim())
-      .map((segment) => ({
-        id: segment.id ?? undefined,
-        name: segment.name.trim(),
-      })),
-  }));
-
-const createEmptyGroup = (): GroupState => ({
+const createEmptyClass = (): ClassState => ({
   key: uid(),
   id: null,
   name: "",
   hue: 210,
-  collapsed: false,
-  segments: [],
 });
 
-const createEmptySegment = (): SegmentState => ({
+const createEmptyCategory = (): CategoryState => ({
   key: uid(),
   id: null,
   name: "",
+  collapsed: false,
+  segmentClasses: [],
 });
 
-const updateGroup = (
-  groups: GroupState[],
-  key: string,
-  updater: (group: GroupState) => GroupState
-) => groups.map((group) => (group.key === key ? updater(group) : group));
+const mapClass = (item: SegmentClass): ClassState => ({
+  key: item.id,
+  id: item.id,
+  name: item.name,
+  hue: item.hue,
+});
 
-const updateSegment = (
-  groups: GroupState[],
-  groupKey: string,
-  segmentKey: string,
-  updater: (segment: SegmentState) => SegmentState
-) =>
-  updateGroup(groups, groupKey, (group) => ({
-    ...group,
-    segments: group.segments.map((segment) =>
-      segment.key === segmentKey ? updater(segment) : segment
-    ),
-  }));
+const mapCategory = (item: SegmentClassCategory): CategoryState => ({
+  key: item.id,
+  id: item.id,
+  name: item.name,
+  collapsed: true,
+  segmentClasses: item.segment_classes.map(mapClass),
+});
 
-const removeGroupFromState = (state: EditorState, key: string): EditorState => {
-  const group = state.groups.find((item) => item.key === key);
-  if (!group) return state;
+const createInitialState = (standard: StandardDetail): EditorState => ({
+  categories: standard.segment_class_categories.map(mapCategory),
+  ungroupedClasses: standard.ungrouped_segment_classes.map(mapClass),
+  deletedCategoryIds: new Set<string>(),
+  deletedClassIds: new Set<string>(),
+});
 
-  const deletedGroupIds = new Set(state.deletedGroupIds);
-  const deletedSegmentIds = new Set(state.deletedSegmentIds);
+const serializeClasses = (items: ClassState[]) =>
+  items
+    .filter((item) => item.name.trim())
+    .map((item) => ({
+      id: item.id ?? undefined,
+      name: item.name.trim(),
+      hue: item.hue,
+    }));
 
-  if (group.id) {
-    deletedGroupIds.add(group.id);
-  }
+const serializeCategories = (items: CategoryState[]) =>
+  items
+    .filter((item) => item.name.trim())
+    .map((item) => ({
+      id: item.id ?? undefined,
+      name: item.name.trim(),
+      segment_classes: serializeClasses(item.segmentClasses),
+    }));
 
-  for (const segment of group.segments) {
-    if (segment.id) {
-      deletedSegmentIds.add(segment.id);
-    }
-  }
+const reducer = (state: EditorState, action: Action): EditorState => {
+  switch (action.type) {
+    case "reset":
+      return action.payload;
 
-  return {
-    groups: state.groups.filter((item) => item.key !== key),
-    deletedGroupIds,
-    deletedSegmentIds,
-  };
-};
+    case "category/add":
+      return {
+        ...state,
+        categories: [...state.categories, createEmptyCategory()],
+      };
 
-const removeSegmentFromState = (
-  state: EditorState,
-  groupKey: string,
-  segmentKey: string
-): EditorState => {
-  const deletedSegmentIds = new Set(state.deletedSegmentIds);
+    case "category/remove": {
+      const category = state.categories.find((item) => item.key === action.key);
+      if (!category) return state;
 
-  return {
-    ...state,
-    deletedSegmentIds,
-    groups: state.groups.map((group) => {
-      if (group.key !== groupKey) return group;
-
-      const segment = group.segments.find((item) => item.key === segmentKey);
-      if (segment?.id) {
-        deletedSegmentIds.add(segment.id);
+      const nextDeletedCategoryIds = new Set(state.deletedCategoryIds);
+      if (category.id) {
+        nextDeletedCategoryIds.add(category.id);
       }
 
       return {
-        ...group,
-        segments: group.segments.filter((item) => item.key !== segmentKey),
+        ...state,
+        categories: state.categories.filter((item) => item.key !== action.key),
+        ungroupedClasses: [...state.ungroupedClasses, ...category.segmentClasses],
+        deletedCategoryIds: nextDeletedCategoryIds,
       };
-    }),
-  };
-};
+    }
 
-function reducer(state: EditorState, action: Action): EditorState {
-  switch (action.type) {
-    case "group/add":
+    case "category/toggle":
       return {
         ...state,
-        groups: [...state.groups, createEmptyGroup()],
+        categories: state.categories.map((item) =>
+          item.key === action.key ? { ...item, collapsed: !item.collapsed } : item
+        ),
       };
 
-    case "group/remove":
-      return removeGroupFromState(state, action.key);
-
-    case "group/toggle":
+    case "category/update-name":
       return {
         ...state,
-        groups: updateGroup(state.groups, action.key, (group) => ({
-          ...group,
-          collapsed: !group.collapsed,
-        })),
+        categories: state.categories.map((item) =>
+          item.key === action.key ? { ...item, name: action.value } : item
+        ),
       };
 
-    case "group/update-name":
+    case "class/add-to-category":
       return {
         ...state,
-        groups: updateGroup(state.groups, action.key, (group) => ({
-          ...group,
-          name: action.value,
-        })),
+        categories: state.categories.map((item) =>
+          item.key === action.categoryKey
+            ? {
+                ...item,
+                collapsed: false,
+                segmentClasses: [...item.segmentClasses, createEmptyClass()],
+              }
+            : item
+        ),
       };
 
-    case "group/update-hue":
+    case "class/add-ungrouped":
       return {
         ...state,
-        groups: updateGroup(state.groups, action.key, (group) => ({
-          ...group,
-          hue: action.value,
-        })),
+        ungroupedClasses: [...state.ungroupedClasses, createEmptyClass()],
       };
 
-    case "segment/add":
+    case "class/remove-from-category": {
+      const category = state.categories.find((item) => item.key === action.categoryKey);
+      const target = category?.segmentClasses.find((item) => item.key === action.classKey);
+      if (!target) return state;
+
+      const nextDeletedClassIds = new Set(state.deletedClassIds);
+      if (target.id) {
+        nextDeletedClassIds.add(target.id);
+      }
+
       return {
         ...state,
-        groups: updateGroup(state.groups, action.groupKey, (group) => ({
-          ...group,
-          segments: [...group.segments, createEmptySegment()],
-        })),
+        categories: state.categories.map((item) =>
+          item.key === action.categoryKey
+            ? {
+                ...item,
+                segmentClasses: item.segmentClasses.filter(
+                  (segmentClass) => segmentClass.key !== action.classKey
+                ),
+              }
+            : item
+        ),
+        deletedClassIds: nextDeletedClassIds,
+      };
+    }
+
+    case "class/remove-ungrouped": {
+      const target = state.ungroupedClasses.find((item) => item.key === action.classKey);
+      if (!target) return state;
+
+      const nextDeletedClassIds = new Set(state.deletedClassIds);
+      if (target.id) {
+        nextDeletedClassIds.add(target.id);
+      }
+
+      return {
+        ...state,
+        ungroupedClasses: state.ungroupedClasses.filter((item) => item.key !== action.classKey),
+        deletedClassIds: nextDeletedClassIds,
+      };
+    }
+
+    case "class/update-name":
+      if (action.categoryKey === null) {
+        return {
+          ...state,
+          ungroupedClasses: state.ungroupedClasses.map((item) =>
+            item.key === action.classKey ? { ...item, name: action.value } : item
+          ),
+        };
+      }
+
+      return {
+        ...state,
+        categories: state.categories.map((item) =>
+          item.key === action.categoryKey
+            ? {
+                ...item,
+                segmentClasses: item.segmentClasses.map((segmentClass) =>
+                  segmentClass.key === action.classKey
+                    ? { ...segmentClass, name: action.value }
+                    : segmentClass
+                ),
+              }
+            : item
+        ),
       };
 
-    case "segment/remove":
-      return removeSegmentFromState(state, action.groupKey, action.segKey);
+    case "class/update-hue":
+      if (action.categoryKey === null) {
+        return {
+          ...state,
+          ungroupedClasses: state.ungroupedClasses.map((item) =>
+            item.key === action.classKey ? { ...item, hue: action.value } : item
+          ),
+        };
+      }
 
-    case "segment/update-name":
       return {
         ...state,
-        groups: updateSegment(state.groups, action.groupKey, action.segKey, (segment) => ({
-          ...segment,
-          name: action.value,
-        })),
+        categories: state.categories.map((item) =>
+          item.key === action.categoryKey
+            ? {
+                ...item,
+                segmentClasses: item.segmentClasses.map((segmentClass) =>
+                  segmentClass.key === action.classKey
+                    ? { ...segmentClass, hue: action.value }
+                    : segmentClass
+                ),
+              }
+            : item
+        ),
       };
 
     default:
       return state;
   }
-}
+};
 
 export const useManageSegmentGroups = (standard: StandardDetail) => {
-  const { imageId, groupId } = useParams();
-  const saveSegmentsMutation = useSaveSegments({ imageId, groupId });
-
   const [state, dispatch] = useReducer(reducer, standard, createInitialState);
   const [activeColorKey, setActiveColorKey] = useState<string | null>(null);
 
-  const toggleColorPicker = (key: string) => {
-    setActiveColorKey((prev) => (prev === key ? null : key));
-  };
-
-  const closeColorPicker = () => {
+  useEffect(() => {
+    dispatch({ type: "reset", payload: createInitialState(standard) });
     setActiveColorKey(null);
-  };
+  }, [standard]);
 
-  const groupActions = {
-    add: () => dispatch({ type: "group/add" } as const),
-    remove: (key: string) => dispatch({ type: "group/remove", key } as const),
-    toggle: (key: string) => dispatch({ type: "group/toggle", key } as const),
-    updateName: (key: string, value: string) =>
-      dispatch({ type: "group/update-name", key, value } as const),
-    updateHue: (key: string, value: number) =>
-      dispatch({ type: "group/update-hue", key, value } as const),
-  };
-
-  const segmentActions = {
-    add: (groupKey: string) => dispatch({ type: "segment/add", groupKey } as const),
-    remove: (groupKey: string, segKey: string) =>
-      dispatch({ type: "segment/remove", groupKey, segKey } as const),
-    updateName: (groupKey: string, segKey: string, value: string) =>
-      dispatch({ type: "segment/update-name", groupKey, segKey, value } as const),
-  };
+  const mutation = useSaveSegmentClasses({
+    groupId: standard.group_id,
+    standardId: standard.id,
+  });
 
   const save = async () => {
-    await saveSegmentsMutation.mutateAsync({
-      standardId: standard.id,
-      groups: serializeGroupsForSave(state.groups),
-      deletedGroupIds: [...state.deletedGroupIds],
-      deletedSegmentIds: [...state.deletedSegmentIds],
-    });
+    try {
+      await mutation.mutateAsync({
+        groupId: standard.group_id,
+        categories: serializeCategories(state.categories),
+        ungroupedClasses: serializeClasses(state.ungroupedClasses),
+        deletedCategoryIds: [...state.deletedCategoryIds],
+        deletedClassIds: [...state.deletedClassIds],
+      });
 
-    return true;
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   return {
-    groups: state.groups,
-    saving: saveSegmentsMutation.isPending,
+    categories: state.categories,
+    ungroupedClasses: state.ungroupedClasses,
+    saving: mutation.isPending,
     activeColorKey,
-    toggleColorPicker,
-    closeColorPicker,
-    groupActions,
-    segmentActions,
+    toggleColorPicker: (key: string) => setActiveColorKey((prev) => (prev === key ? null : key)),
+    closeColorPicker: () => setActiveColorKey(null),
+
+    categoryActions: {
+      add: () => dispatch({ type: "category/add" }),
+      remove: (key: string) => dispatch({ type: "category/remove", key }),
+      toggle: (key: string) => dispatch({ type: "category/toggle", key }),
+      updateName: (key: string, value: string) =>
+        dispatch({ type: "category/update-name", key, value }),
+    },
+
+    classActions: {
+      addToCategory: (categoryKey: string) =>
+        dispatch({ type: "class/add-to-category", categoryKey }),
+      addUngrouped: () => dispatch({ type: "class/add-ungrouped" }),
+
+      removeFromCategory: (categoryKey: string, classKey: string) =>
+        dispatch({ type: "class/remove-from-category", categoryKey, classKey }),
+
+      removeUngrouped: (classKey: string) => dispatch({ type: "class/remove-ungrouped", classKey }),
+
+      updateName: (categoryKey: string | null, classKey: string, value: string) =>
+        dispatch({
+          type: "class/update-name",
+          categoryKey,
+          classKey,
+          value,
+        }),
+
+      updateHue: (categoryKey: string | null, classKey: string, value: number) =>
+        dispatch({
+          type: "class/update-hue",
+          categoryKey,
+          classKey,
+          value,
+        }),
+    },
+
     save,
   };
 };

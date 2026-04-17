@@ -1,7 +1,7 @@
 import useImageLayout from "@/page-components/segments/hooks/use-image-layout";
 import { InspectionTaskResult } from "@/types/contracts";
 import { Upload } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Group, Image as KonvaImage, Layer, Line, Rect, Stage, Text } from "react-konva";
 import useImage from "use-image";
 
@@ -19,6 +19,7 @@ type OverlayItem = {
   key: string;
   name: string;
   status: string;
+  hue: number | null;
   confidence: number;
   bbox: {
     x: number;
@@ -37,6 +38,8 @@ const strokeByStatus = (status: string) => {
       return "#e0a100";
     case "more":
       return "#d14b4b";
+    case "extra":
+      return "#7a5af8";
     default:
       return "#5b7fff";
   }
@@ -50,6 +53,8 @@ const fillByStatus = (status: string) => {
       return "rgba(224, 161, 0, 0.12)";
     case "more":
       return "rgba(209, 75, 75, 0.12)";
+    case "extra":
+      return "rgba(122, 90, 248, 0.12)";
     default:
       return "rgba(91, 127, 255, 0.12)";
   }
@@ -72,7 +77,22 @@ const taskStatusLabel = (status: string | null) => {
   }
 };
 
-export function InspectionPreview({
+const detailStatusLabel = (status: string) => {
+  switch (status) {
+    case "ok":
+      return "Совпадает";
+    case "less":
+      return "Меньше нормы";
+    case "more":
+      return "Больше нормы";
+    case "extra":
+      return "Лишний класс";
+    default:
+      return status;
+  }
+};
+
+export const InspectionPreview = ({
   file,
   onFileChange,
   result,
@@ -80,39 +100,30 @@ export function InspectionPreview({
   taskStage,
   taskProgress,
   isLocked,
-}: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  
-
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
+}: Props) => {
+  const objectUrl = useMemo(() => {
+    if (!file) return null;
+    return URL.createObjectURL(file);
   }, [file]);
 
-  const [image] = useImage(previewUrl ?? "");
-  const { containerRef, size, imageRect, toCanvas } = useImageLayout(image);
+  useEffect(() => {
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
+
+  const [image] = useImage(objectUrl ?? "");
+  const { containerRef, size, imageRect } = useImageLayout(image);
 
   const overlays = useMemo<OverlayItem[]>(() => {
     if (!result) return [];
 
-    return result.details.flatMap((detail, detailIndex) =>
-      detail.detections.map((detection, detectionIndex) => ({
-        key: `${detail.segment_id}-${detailIndex}-${detectionIndex}`,
+    return result.details.flatMap((detail) =>
+      detail.detections.map((detection, index) => ({
+        key: `${detail.class_key}-${index}`,
         name: detail.name,
         status: detail.status,
+        hue: detail.hue,
         confidence: detection.confidence,
         bbox: detection.bbox,
         polygon: detection.polygon,
@@ -120,228 +131,198 @@ export function InspectionPreview({
     );
   }, [result]);
 
-  const openPicker = () => {
-    if (isLocked) return;
-    inputRef.current?.click();
-  };
-
-  const handleFile = (nextFile: File | null) => {
-    if (isLocked) return;
-
-    if (!nextFile) {
-      setError(null);
-      onFileChange(null);
-      return;
-    }
-
-    if (!["image/jpeg", "image/png"].includes(nextFile.type)) {
-      setError("Можно загружать только JPG и PNG");
-      return;
-    }
-
-    if (nextFile.size > 20 * 1024 * 1024) {
-      setError("Файл слишком большой");
-      return;
-    }
-
-    setError(null);
+  const handleSelectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
     onFileChange(nextFile);
   };
 
-  if (!previewUrl) {
-    return (
-      <div style={{ height: "100%" }}>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png"
-          style={{ display: "none" }}
-          onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
-        />
-
-        <button
-          type="button"
-          onClick={openPicker}
-          onDragOver={(event) => {
-            if (isLocked) return;
-            event.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(event) => {
-            if (isLocked) return;
-            event.preventDefault();
-            setIsDragging(false);
-            handleFile(event.dataTransfer.files?.[0] ?? null);
-          }}
-          style={{
-            all: "unset",
-            width: "100%",
-            height: "100%",
-            minHeight: 420,
-            display: "grid",
-            placeItems: "center",
-            cursor: isLocked ? "default" : "pointer",
-            background: isDragging ? "#efe6d5" : "#f7f1e5",
-            border: "1px dashed #ccbfa8",
-          }}
-        >
-          <div style={{ display: "grid", gap: 12, textAlign: "center", color: "#8a8f7a" }}>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Upload size={32} />
-            </div>
-            <strong style={{ color: "#545c45" }}>Загрузите изображение для проверки</strong>
-            <span>Перетащите файл сюда или нажмите для выбора</span>
-            <span>JPG, PNG · максимум 20 МБ</span>
-            {error && <span style={{ color: "#d14b4b" }}>{error}</span>}
-          </div>
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div
-      ref={containerRef}
       style={{
-        position: "relative",
         height: "100%",
+        display: "grid",
+        gridTemplateRows: "1fr auto",
+        gap: 16,
         minHeight: 0,
-        background: "#f3eee2",
-        overflow: "hidden",
       }}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png"
-        style={{ display: "none" }}
-        onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
-      />
-
-      <Stage
-        width={size.width}
-        height={size.height}
-        style={{ width: "100%", height: "100%", cursor: isLocked ? "default" : "pointer" }}
-        onClick={openPicker}
+      <div
+        ref={containerRef}
+        style={{
+          border: "1px solid var(--border-color)",
+          borderRadius: 12,
+          overflow: "hidden",
+          background: "var(--surface-secondary)",
+          minHeight: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Layer>
-          {image && (
-            <KonvaImage
-              image={image}
-              x={imageRect.offsetX}
-              y={imageRect.offsetY}
-              width={imageRect.width}
-              height={imageRect.height}
-            />
-          )}
-        </Layer>
-
-        <Layer listening={false}>
-          {overlays.map((item) => {
-            const stroke = strokeByStatus(item.status);
-            const fill = fillByStatus(item.status);
-            const [labelX, labelY] = toCanvas(item.bbox.x, item.bbox.y);
-
-            return (
-              <Group key={item.key}>
-                {item.polygon && item.polygon.length > 1 ? (
-                  <Line
-                    points={item.polygon.flatMap(([x, y]) => {
-                      const [cx, cy] = toCanvas(x, y);
-                      return [cx, cy];
-                    })}
-                    closed
-                    stroke={stroke}
-                    fill={fill}
-                    strokeWidth={2}
-                  />
-                ) : (
-                  <Rect
-                    x={imageRect.offsetX + item.bbox.x * imageRect.scale}
-                    y={imageRect.offsetY + item.bbox.y * imageRect.scale}
-                    width={item.bbox.w * imageRect.scale}
-                    height={item.bbox.h * imageRect.scale}
-                    stroke={stroke}
-                    strokeWidth={2}
-                    fill={fill}
-                    cornerRadius={8}
-                  />
-                )}
-
-                <Text
-                  x={labelX}
-                  y={Math.max(8, labelY - 22)}
-                  text={`${item.name} ${Math.round(item.confidence * 100)}%`}
-                  fontSize={14}
-                  fontStyle="bold"
-                  fill={stroke}
-                />
-              </Group>
-            );
-          })}
-        </Layer>
-      </Stage>
-
-      {!isLocked && (
-        <div
-          style={{
-            position: "absolute",
-            left: 16,
-            bottom: 16,
-            display: "inline-flex",
-            gap: 8,
-            alignItems: "center",
-            padding: "8px 12px",
-            borderRadius: 10,
-            background: "rgba(255, 250, 240, 0.92)",
-            border: "1px solid #d9d2c3",
-            color: "#545c45",
-            fontSize: 14,
-            pointerEvents: "none",
-          }}
-        >
-          {taskStatusLabel(taskStatus)}
-        </div>
-      )}
-
-      {isLocked && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            background: "rgba(18, 18, 18, 0.18)",
-            pointerEvents: "none",
-          }}
-        >
-          <div
+        {!file || !image ? (
+          <label
             style={{
-              minWidth: 280,
-              maxWidth: 360,
-              padding: 20,
-              borderRadius: 18,
-              background: "rgba(255, 250, 240, 0.94)",
-              border: "1px solid #d9d2c3",
-              textAlign: "center",
+              width: "100%",
+              height: "100%",
+              minHeight: 320,
               display: "grid",
-              gap: 8,
+              placeItems: "center",
+              cursor: isLocked ? "default" : "pointer",
+              opacity: isLocked ? 0.7 : 1,
             }}
           >
-            <div style={{ fontSize: 13, color: "#8a8f7a" }}>{taskStatusLabel(taskStatus)}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#2e3427" }}>
-              {taskStage ?? "Проверка изображения"}
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              disabled={isLocked}
+              onChange={handleSelectFile}
+            />
+            <div
+              style={{
+                display: "grid",
+                justifyItems: "center",
+                gap: 10,
+                color: "var(--text-secondary)",
+              }}
+            >
+              <Upload size={22} />
+              <div>{taskStatusLabel(taskStatus)}</div>
             </div>
-            {taskProgress != null && (
-              <div style={{ fontSize: 16, color: "#545c45" }}>{taskProgress}%</div>
-            )}
-            <div style={{ color: "#8a8f7a", fontSize: 13 }}>
-              Во время проверки фото нельзя заменить
-            </div>
+          </label>
+        ) : (
+          <Stage width={size.width} height={size.height}>
+            <Layer>
+              <KonvaImage
+                image={image}
+                x={imageRect.offsetX}
+                y={imageRect.offsetY}
+                width={imageRect.width}
+                height={imageRect.height}
+              />
+
+              {overlays.map((item) => {
+                const hasPolygon = !!item.polygon?.length;
+
+                return (
+                  <Group key={item.key}>
+                    {hasPolygon ? (
+                      <Line
+                        points={item.polygon!.flatMap(([x, y]) => [
+                          imageRect.offsetX + x * imageRect.scale,
+                          imageRect.offsetY + y * imageRect.scale,
+                        ])}
+                        closed
+                        stroke={strokeByStatus(item.status)}
+                        fill={fillByStatus(item.status)}
+                        strokeWidth={2}
+                      />
+                    ) : (
+                      <Rect
+                        x={imageRect.offsetX + item.bbox.x * imageRect.scale}
+                        y={imageRect.offsetY + item.bbox.y * imageRect.scale}
+                        width={item.bbox.w * imageRect.scale}
+                        height={item.bbox.h * imageRect.scale}
+                        stroke={strokeByStatus(item.status)}
+                        fill={fillByStatus(item.status)}
+                        strokeWidth={2}
+                      />
+                    )}
+
+                    <Text
+                      x={imageRect.offsetX + item.bbox.x * imageRect.scale}
+                      y={Math.max(imageRect.offsetY + item.bbox.y * imageRect.scale - 20, 0)}
+                      text={`${item.name} · ${Math.round(item.confidence * 100)}%`}
+                      fontSize={12}
+                      padding={4}
+                      fill="#fff"
+                    />
+                  </Group>
+                );
+              })}
+            </Layer>
+          </Stage>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        {taskStage && (
+          <div style={{ color: "var(--text-secondary)" }}>
+            {taskStage}
+            {typeof taskProgress === "number" ? ` · ${taskProgress}%` : ""}
           </div>
-        </div>
-      )}
+        )}
+
+        {!!result && (
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+              maxHeight: 260,
+              overflow: "auto",
+              paddingRight: 4,
+            }}
+          >
+            {result.details.map((detail) => (
+              <div
+                key={`${detail.class_key}-${detail.name}`}
+                style={{
+                  border: "1px solid var(--border-color)",
+                  borderRadius: 10,
+                  padding: 12,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 999,
+                        background:
+                          detail.hue !== null
+                            ? `hsl(${detail.hue}, 70%, 50%)`
+                            : strokeByStatus(detail.status),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <strong>{detail.name}</strong>
+                  </div>
+
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    {detailStatusLabel(detail.status)}
+                  </span>
+                </div>
+
+                <div style={{ color: "var(--text-secondary)" }}>
+                  Ожидалось: {detail.expected_count} · Найдено: {detail.detected_count} · Δ{" "}
+                  {detail.delta > 0 ? `+${detail.delta}` : detail.delta}
+                </div>
+
+                {detail.confidence !== null && (
+                  <div style={{ color: "var(--text-secondary)" }}>
+                    Средняя уверенность: {Math.round(detail.confidence * 100)}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};

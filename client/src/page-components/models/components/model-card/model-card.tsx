@@ -44,6 +44,7 @@ export const ModelCard = ({
   const status = getTrainingStatus(model, task);
   const progress = getTrainingPercent(model, task);
   const isTraining = isTrainingModel(model, task);
+  const versionLabel = model.version !== null ? `v${model.version}` : "без версии";
 
   const statusBadge = model.is_active
     ? { type: "success" as const, label: "Активна" }
@@ -76,7 +77,7 @@ export const ModelCard = ({
         <div className={s.titleRow}>
           <div className={s.info}>
             <span className={s.title}>
-              {architectureLabel(model.architecture)} &middot; v{model.version}
+              {architectureLabel(model.architecture)} &middot; {versionLabel}
             </span>
             <div className={s.meta}>
               {metaParameters.map(({ label, value }) => (
@@ -138,10 +139,15 @@ const formatMetric = (value: number | null | undefined) => {
   return value.toFixed(3);
 };
 
+const getModelClassLabels = (model: MlModel) => {
+  return model.class_meta?.map((item) => item.name) ?? model.class_keys ?? [];
+};
+
 const ModelCardDetail = ({ model, task, onActivate, isActivating = false }: DetailProps) => {
   const isFailed = isTrainingFailedModel(model, task ?? null);
   const isTraining = isTrainingModel(model, task ?? null);
   const canActivate = !!onActivate && !model.is_active && !!model.trained_at && !isTraining;
+  const modelClassLabels = getModelClassLabels(model);
 
   const parameterRows = [
     { label: "Архитектура", value: model.architecture },
@@ -216,11 +222,11 @@ const ModelCardDetail = ({ model, task, onActivate, isActivating = false }: Deta
         </div>
       )}
 
-      {model.class_names && (
+      {!!modelClassLabels.length && (
         <div className={clsx(s.detailSection, s.bordered)}>
           <div className={s.title}>Классы модели &middot; {model.num_classes}</div>
           <div className={s.classList}>
-            {model.class_names.map((className) => (
+            {modelClassLabels.map((className) => (
               <Badge key={className}>{className}</Badge>
             ))}
           </div>

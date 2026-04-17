@@ -199,6 +199,13 @@ async def start_inspection(
         selected_segment_class_ids=selected_segment_class_ids,
     )
 
+    from modules.tasks.service import request_training_pause_for_inspection
+
+    await request_training_pause_for_inspection(
+        db,
+        message="Обучение приостановлено ради приоритетной проверки",
+    )
+
     suffix = Path(image.filename).suffix.lower() if image.filename else ".jpg"
     if suffix not in ALLOWED_IMAGE_SUFFIXES:
         suffix = ".jpg"
@@ -207,7 +214,8 @@ async def start_inspection(
         db,
         type="inspection_run",
         status="pending",
-        queue="inspection",
+        queue="gpu",
+        priority=100,
         entity_type="standard",
         entity_id=context.standard.id,
         group_id=context.standard.group_id,
@@ -240,27 +248,18 @@ async def start_inspection(
 
     from .jobs import execute_inspection
 
-    try:
-        job_id = await execute_inspection.configure(
-            lock="inspection",
-        ).defer_async(task_id=str(task.id))
-    except Exception as exc:
-        await update_task_status(
-            db,
-            task_id=task.id,
-            status="failed",
-            stage="Ошибка постановки в очередь",
-            error=str(exc),
-        )
-        raise
+    job = await execute_inspection.configure(
+        queue="gpu",
+        priority=100,
+    ).defer_async(task_id=str(task.id))
 
     return await update_task_status(
         db,
         task_id=task.id,
         status="queued",
         stage="В очереди",
-        message="Проверка поставлена в очередь",
-        external_job_id=str(job_id),
+        message="Проверка поставлена в GPU-очередь",
+        external_job_id=str(job.id),
     )
 
 

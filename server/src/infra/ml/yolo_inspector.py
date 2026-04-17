@@ -73,13 +73,8 @@ def run_inference(
 
     result = results[0]
     names = result.names or {}
-    model_class_keys = [str(names(k)) for k in sorted(names)]
+    model_class_keys = [str(names[k]) for k in sorted(names)]
     masks_xy = result.masks.xy if result.masks is not None else []
-
-    detections: list[YoloDetection] = []
-    counts: Counter[str] = Counter()
-    confidence_map: dict[str, list[float]] = defaultdict(list)
-    grouped_detections: dict[str, list[dict]] = defaultdict(list)
 
     if result.boxes is None:
         logger.info(
@@ -93,6 +88,7 @@ def run_inference(
             avg_confidence={},
             grouped_detections={},
             model_class_keys=model_class_keys,
+            raw_counts=Counter(),
         )
 
     detections: list[YoloDetection] = []

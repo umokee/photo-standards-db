@@ -31,15 +31,16 @@ class TaskResponse(BaseModel):
     created_by_id: UUID | None = None
 
     external_job_id: str | None = None
+    abort_requested: bool
+    auto_resume: bool
+    checkpoint_path: str | None = None
+    run_dir: str | None = None
+    heartbeat_at: datetime | None = None
 
     created_at: datetime
     started_at: datetime | None = None
     finished_at: datetime | None = None
     cancelled_at: datetime | None = None
-
-
-class TaskListResponse(BaseModel):
-    items: list[TaskResponse]
 
 
 class TaskCancelResponse(BaseModel):

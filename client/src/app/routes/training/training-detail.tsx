@@ -30,8 +30,8 @@ export function Component() {
   const hasMinimumTrainingData =
     group.stats.standards_count > 0 &&
     group.stats.images_count > 0 &&
-    group.stats.annotated_count > 0 &&
-    group.stats.segments_count > 0;
+    group.stats.annotated_images_count > 0 &&
+    group.stats.segment_classes_count > 0;
 
   const hasActiveTrainingTask = tasks.some((task) =>
     ["pending", "queued", "running"].includes(task.status)
@@ -49,8 +49,9 @@ export function Component() {
           meta={[
             `${group.stats.standards_count} эталонов`,
             `${group.stats.images_count} изображений`,
-            `${group.stats.annotated_count} размечено`,
+            `${group.stats.annotated_images_count} размечено`,
             `${group.stats.polygons_count} аннотаций`,
+            `${group.stats.segment_classes_count} классов`,
           ]}
         >
           <ContentHeader.Actions>
@@ -66,7 +67,7 @@ export function Component() {
         title="Покрытие эталонов"
         side={
           <Badge>
-            {group.stats.annotated_count} / {group.stats.images_count}
+            {group.stats.annotated_images_count} / {group.stats.images_count}
           </Badge>
         }
         bordered

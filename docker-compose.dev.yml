@@ -12,6 +12,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   migrate:
     build:
@@ -63,8 +64,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  worker:
+  worker-gpu:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
@@ -81,7 +83,28 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker"]
+    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker", "gpu"]
+    restart: unless-stopped
+
+  worker-cpu:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    volumes:
+      - ./server/src:/app/src
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker", "cpu"]
+    restart: unless-stopped
 
   client:
     build:

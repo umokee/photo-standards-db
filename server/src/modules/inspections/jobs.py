@@ -59,20 +59,8 @@ def _build_annotation_by_class_id(
     }
 
 
-@app.task(queue="inspection")
+@app.task(queue="gpu")
 def execute_inspection(*, task_id: str) -> None:
-    """
-    Выполняет проверку одного кадра.
-
-    Этапы:
-      1. подготовка эталона и контекста
-      2. инференс YOLO
-      3. сравнение ожидаемых и реально обнаруженных классов
-
-    Все промежуточные ошибки логируются и переводят задачу в failed с понятным
-    текстом. Best-effort отмена: перед каждым тяжёлым шагом проверяем, не отменили
-    ли задачу пока мы работали — если да, тихо выходим.
-    """
     tid = UUID(task_id)
 
     with get_sync_session() as db:
@@ -87,7 +75,6 @@ def execute_inspection(*, task_id: str) -> None:
         except Exception as exc:
             logger.exception("inspection task=%s failed", task.id)
             db.rollback()
-            # Перечитываем задачу чистым запросом после rollback:
             current = get_task_sync(db, tid)
             if current is not None and current.status != "cancelled":
                 set_task_state_sync(
@@ -97,6 +84,19 @@ def execute_inspection(*, task_id: str) -> None:
                     stage="Ошибка",
                     message="Проверка прервана из-за ошибки",
                     error=str(exc),
+                )
+        finally:
+            final_task = get_task_sync(db, tid)
+            if final_task is not None and final_task.status in {
+                "succeeded",
+                "failed",
+                "cancelled",
+            }:
+                from modules.tasks.service_sync import maybe_resume_paused_training_sync
+
+                maybe_resume_paused_training_sync(
+                    db,
+                    exclude_inspection_task_id=final_task.id,
                 )
 
 

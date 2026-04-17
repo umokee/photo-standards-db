@@ -1,4 +1,4 @@
-import type { SegmentWithPoints } from "@/types/contracts";
+import type { SegmentClassWithPoints } from "@/types/contracts";
 
 export type CanvasLayerNode = {
   batchDraw: () => void;
@@ -58,24 +58,24 @@ export type CanvasStageHandlers = {
 };
 
 export type CanvasEditHandlers = {
-  handleLineClick: (seg: SegmentWithPoints, ci: number, e: CanvasPointerEvent) => void;
+  handleLineClick: (seg: SegmentClassWithPoints, ci: number, e: CanvasPointerEvent) => void;
   handleGroupDragStart: (e: CanvasPointerEvent) => void;
-  handleGroupDragEnd: (seg: SegmentWithPoints, ci: number, e: CanvasPointerEvent) => void;
+  handleGroupDragEnd: (seg: SegmentClassWithPoints, ci: number, e: CanvasPointerEvent) => void;
   handleVertexDragStart: (e: CanvasPointerEvent) => void;
   handleVertexDragMove: (
-    seg: SegmentWithPoints,
+    seg: SegmentClassWithPoints,
     ci: number,
     vi: number,
     e: CanvasPointerEvent
   ) => void;
   handleVertexDragEnd: (
-    seg: SegmentWithPoints,
+    seg: SegmentClassWithPoints,
     ci: number,
     vi: number,
     e: CanvasPointerEvent
   ) => void;
   handleVertexDblClick: (
-    seg: SegmentWithPoints,
+    seg: SegmentClassWithPoints,
     ci: number,
     vi: number,
     e: CanvasPointerEvent
@@ -99,4 +99,3 @@ export type CanvasPointer = {
   px: number;
   py: number;
 };
-

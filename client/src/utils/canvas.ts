@@ -1,4 +1,4 @@
-import { SegmentWithPoints } from "@/types/contracts";
+import { SegmentClassWithPoints } from "@/types/contracts";
 
 export const SNAP_RADIUS = 10;
 export const EDGE_HIT_RADIUS = 15;
@@ -7,7 +7,7 @@ export const clamp = (val: number, min: number, max: number) => {
   return Math.min(Math.max(val, min), max);
 };
 
-export const hasPoints = (seg: SegmentWithPoints | undefined | null) => {
+export const hasPoints = (seg: SegmentClassWithPoints | undefined | null) => {
   return Array.isArray(seg?.points) && seg.points.length > 0;
 };
 

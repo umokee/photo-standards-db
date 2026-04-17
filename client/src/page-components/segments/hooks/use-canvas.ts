@@ -6,7 +6,7 @@ import type {
   CanvasTargetNode,
 } from "@/page-components/segments/hooks/canvas-modes/types";
 import { createViewMode } from "@/page-components/segments/hooks/canvas-modes/view-mode";
-import type { SegmentGroup, SegmentWithPoints } from "@/types/contracts";
+import type { SegmentClassWithPoints } from "@/types/contracts";
 import { clamp, EDGE_HIT_RADIUS, projectOnEdge, SNAP_RADIUS } from "@/utils/canvas";
 import type { Stage as KonvaStage } from "konva/lib/Stage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -21,8 +21,7 @@ const isEditable = (target: EventTarget | null) => {
 };
 
 type Params = {
-  segmentGroups: SegmentGroup[];
-  segments: SegmentWithPoints[];
+  segments: SegmentClassWithPoints[];
   selectedId: string | null;
   selectedContourIndex: number | null;
   isDrawMode: boolean;
@@ -44,7 +43,6 @@ type Params = {
 };
 
 export function useCanvas({
-  segmentGroups,
   segments,
   selectedId,
   selectedContourIndex,
@@ -143,13 +141,7 @@ export function useCanvas({
     node.getLayer()?.batchDraw();
   });
 
-  const hueMap = useMemo(
-    () => new Map(segmentGroups.map((group) => [group.id, group.hue])),
-    [segmentGroups]
-  );
-
-  const hueOf = (segment: SegmentWithPoints | undefined) =>
-    hueMap.get(segment?.segment_group_id ?? "") ?? 0;
+  const hueOf = (segment: SegmentClassWithPoints | undefined) => segment?.hue ?? 0;
 
   const selectedSeg = useMemo(
     () => segments.find((segment) => segment.id === selectedId),
@@ -318,7 +310,7 @@ export function useCanvas({
   };
 
   const moveContour = (
-    segment: SegmentWithPoints,
+    segment: SegmentClassWithPoints,
     contourIndex: number,
     dx: number,
     dy: number
@@ -332,7 +324,7 @@ export function useCanvas({
   };
 
   const moveVertex = (
-    segment: SegmentWithPoints,
+    segment: SegmentClassWithPoints,
     contourIndex: number,
     vertexIndex: number,
     nextPoint: number[]
@@ -347,7 +339,11 @@ export function useCanvas({
     );
   };
 
-  const removeVertex = (segment: SegmentWithPoints, contourIndex: number, vertexIndex: number) => {
+  const removeVertex = (
+    segment: SegmentClassWithPoints,
+    contourIndex: number,
+    vertexIndex: number
+  ) => {
     updateContour(
       segment.id,
       contourIndex,
@@ -356,13 +352,13 @@ export function useCanvas({
     );
   };
 
-  const selectContour = (segment: SegmentWithPoints, contourIndex: number) => {
+  const selectContour = (segment: SegmentClassWithPoints, contourIndex: number) => {
     onSelect(segment.id);
     onSelectContour(contourIndex);
   };
 
   const insertVertexIntoContour = (
-    segment: SegmentWithPoints,
+    segment: SegmentClassWithPoints,
     contourIndex: number,
     insertion: { index: number; point: number[] }
   ) => {
@@ -459,31 +455,32 @@ export function useCanvas({
     return { x: cx * sc + sx, y: cy * sc + sy };
   };
 
-  const getGroupBound = (seg: SegmentWithPoints, ci: number) => (pos: { x: number; y: number }) => {
-    const stage = stageRef.current;
-    const sc = stage.scaleX();
-    const sx = stage.x();
-    const sy = stage.y();
-    const lx = (pos.x - sx) / sc;
-    const ly = (pos.y - sy) / sc;
+  const getGroupBound =
+    (seg: SegmentClassWithPoints, ci: number) => (pos: { x: number; y: number }) => {
+      const stage = stageRef.current;
+      const sc = stage.scaleX();
+      const sx = stage.x();
+      const sy = stage.y();
+      const lx = (pos.x - sx) / sc;
+      const ly = (pos.y - sy) / sc;
 
-    const pts = seg.points[ci].map(([x, y]) => toCanvas(x, y));
-    const xs = pts.map(([x]) => x);
-    const ys = pts.map(([, y]) => y);
+      const pts = seg.points[ci].map(([x, y]) => toCanvas(x, y));
+      const xs = pts.map(([x]) => x);
+      const ys = pts.map(([, y]) => y);
 
-    const cx = clamp(
-      lx,
-      imageRect.offsetX - Math.min(...xs),
-      imageRect.offsetX + imageRect.width - Math.max(...xs)
-    );
-    const cy = clamp(
-      ly,
-      imageRect.offsetY - Math.min(...ys),
-      imageRect.offsetY + imageRect.height - Math.max(...ys)
-    );
+      const cx = clamp(
+        lx,
+        imageRect.offsetX - Math.min(...xs),
+        imageRect.offsetX + imageRect.width - Math.max(...xs)
+      );
+      const cy = clamp(
+        ly,
+        imageRect.offsetY - Math.min(...ys),
+        imageRect.offsetY + imageRect.height - Math.max(...ys)
+      );
 
-    return { x: cx * sc + sx, y: cy * sc + sy };
-  };
+      return { x: cx * sc + sx, y: cy * sc + sy };
+    };
 
   return {
     viewport: {

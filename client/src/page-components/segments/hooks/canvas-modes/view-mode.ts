@@ -1,4 +1,4 @@
-import { SegmentWithPoints } from "@/types/contracts";
+import { SegmentClassWithPoints } from "@/types/contracts";
 import { RefObject } from "react";
 import type {
   CanvasLineNode,
@@ -48,9 +48,9 @@ export function createViewMode({
   clearPreviewState: () => void;
   onSelect: (id: string | null) => void;
   onSelectContour: (index: number | null) => void;
-  selectContour: (segment: SegmentWithPoints, contourIndex: number) => void;
+  selectContour: (segment: SegmentClassWithPoints, contourIndex: number) => void;
   insertVertexIntoContour: (
-    segment: SegmentWithPoints,
+    segment: SegmentClassWithPoints,
     contourIndex: number,
     insertion: ContourInsertTarget
   ) => void;
@@ -59,14 +59,23 @@ export function createViewMode({
     px: number,
     py: number
   ) => ContourInsertTarget | null;
-  moveContour: (segment: SegmentWithPoints, contourIndex: number, dx: number, dy: number) => void;
+  moveContour: (
+    segment: SegmentClassWithPoints,
+    contourIndex: number,
+    dx: number,
+    dy: number
+  ) => void;
   moveVertex: (
-    segment: SegmentWithPoints,
+    segment: SegmentClassWithPoints,
     contourIndex: number,
     vertexIndex: number,
     nextPoint: number[]
   ) => void;
-  removeVertex: (segment: SegmentWithPoints, contourIndex: number, vertexIndex: number) => void;
+  removeVertex: (
+    segment: SegmentClassWithPoints,
+    contourIndex: number,
+    vertexIndex: number
+  ) => void;
   updateLine: (
     lineNodes: Array<CanvasLineNode | null | undefined>,
     canvasPts: number[][],

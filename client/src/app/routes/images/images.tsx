@@ -1,15 +1,18 @@
 import { SplitLayout } from "@/components/layouts/split-layout/split-layout";
 import { QueryBoundary } from "@/components/ui/query-boundary/query-boundary";
 import { BASE_URL } from "@/lib/api-client";
-import { queryKeys } from "@/lib/query-keys";
-import { useAnnotateSegmentClass } from "@/page-components/segments/api/annotate-segment";
+import {
+  AnnotateSegmentClassInput,
+  annotateSegmentClassMutationKey,
+  useAnnotateSegmentClass,
+} from "@/page-components/segments/api/annotate-segment";
 import { useRefineContour } from "@/page-components/segments/api/refine-contour";
 import Canvas from "@/page-components/segments/components/canvas-surface/canvas-surface";
 import { SegmentHeader } from "@/page-components/segments/components/segment-header/segment-header";
 import { SegmentPanel } from "@/page-components/segments/components/segment-panel/segment-panel";
 import { useGetImage } from "@/page-components/standards/api/get-image";
 import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
-import { SegmentClass, SegmentClassCategory, StandardImageDetail } from "@/types/contracts";
+import { useMutationState } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { paths } from "../../paths";
@@ -20,12 +23,9 @@ type LoaderData = {
   imageId: string;
 };
 
-const buildAllClasses = (
-  categories: SegmentClassCategory[],
-  ungrouped: SegmentClass[]
-): SegmentClass[] => {
-  const grouped = categories.flatMap((category) => category.segment_classes);
-  return [...grouped, ...ungrouped].sort((a, b) => a.name.localeCompare(b.name));
+type PendingAnnotation = {
+  submittedAt: number;
+  variables: AnnotateSegmentClassInput;
 };
 
 export function Component() {
@@ -54,13 +54,31 @@ const ImagesContent = () => {
 
   const annotate = useAnnotateSegmentClass({ groupId, standardId });
   const refine = useRefineContour();
+  const pendingAnnotations = useMutationState<PendingAnnotation>({
+    filters: {
+      mutationKey: annotateSegmentClassMutationKey,
+      status: "pending",
+    },
+    select: (mutation) => ({
+      submittedAt: mutation.state.submittedAt,
+      variables: mutation.state.variables as AnnotateSegmentClassInput,
+    }),
+  });
 
   const categories = standard.segment_class_categories;
   const ungroupedClasses = standard.ungrouped_segment_classes;
-  buildAllClasses(categories, ungroupedClasses);
+  const pendingByClassId: Record<string, number[][][]> = Object.fromEntries(
+    pendingAnnotations
+      .filter((item) => item.variables.imageId === imageId)
+      .sort((a, b) => a.submittedAt - b.submittedAt)
+      .map((item) => [item.variables.segmentClassId, item.variables.points])
+  );
 
-  const imageSegmentClasses = image.segment_classes;
-  const selectedImageSegment =
+  const imageSegmentClasses = image.segment_classes.map((segmentClass) => ({
+    ...segmentClass,
+    points: pendingByClassId[segmentClass.id] ?? segmentClass.points,
+  }));
+  const selectedImageSegmentClass =
     imageSegmentClasses.find((item) => item.id === selectedSegmentClassId) ?? null;
 
   const imageIds = standard.images.map((img) => img.id);
@@ -78,82 +96,70 @@ const ImagesContent = () => {
       : null;
 
   const imageUrl = `${BASE_URL}/storage/${image.image_path}`;
-  const isCurrentAnnotated = image.annotation_count > 0;
+  const isCurrentAnnotated = imageSegmentClasses.some((segmentClass) => segmentClass.points.length);
 
-
-  const handleSaveSegmentContours = (segmentClassId: string, nextContours: number[][][]) => {
-    annotate.mutate
-    qc.setQueryData(queryKeys.standards.image(imageId), (old: StandardImageDetail | undefined) => {
-      if (!old) return old;
-      return {
-        ...old,
-        segments: old.segments.map((segment) =>
-          segment.id === segmentId ? { ...segment, points: nextContours } : segment
-        ),
-      };
+  const saveSegmentContours = (segmentClassId: string, nextContours: number[][][]) => {
+    annotate.mutate({
+      segmentClassId,
+      imageId,
+      points: nextContours,
     });
-
-    annotate.mutate({ segmentId, imageId, points: nextContours });
   };
 
   const handleBack = () => navigate(paths.standardDetail(groupId, standardId));
 
-  const goToImage = (imageId: string) => {
-    navigate(paths.standardImage(groupId, standardId, imageId));
-  };
-
   const handlePrev = () => {
     if (!prevImage) return;
-    goToImage(prevImage.id);
+    navigate(paths.standardImage(groupId, standardId, prevImage.id));
   };
 
   const handleNext = () => {
     if (!nextImage) return;
-    goToImage(nextImage.id);
+    navigate(paths.standardImage(groupId, standardId, nextImage.id));
   };
 
   const handleNextUnannotated = () => {
     if (!nextUnannotatedImage) return;
-    goToImage(nextUnannotatedImage.id);
+    navigate(paths.standardImage(groupId, standardId, nextUnannotatedImage.id));
   };
 
-
   const handleFinishDrawing = (draftContour: number[][]) => {
-    if (!selectedSegmentId) return;
+    if (!selectedSegmentClassId) return;
 
+    const existingContours = selectedImageSegmentClass?.points ?? [];
+    saveSegmentContours(selectedSegmentClassId, [...existingContours, draftContour]);
     setIsDrawMode(false);
-
-    const existingContours = selectedImageSegment?.points ?? [];
-    setSelectedContourIndex(existingContours.length);
-
-    saveSegmentContours(selectedSegmentId, [...existingContours, draftContour]);
   };
 
   const handleRefine = () => {
-    if (!selectedImageSegment?.points.length || selectedContourIndex === null) return;
+    if (!selectedImageSegmentClass?.points.length || selectedContourIndex === null) {
+      return;
+    }
 
-    const selectedContour = selectedImageSegment.points[selectedContourIndex];
+    const selectedContour = selectedImageSegmentClass.points[selectedContourIndex];
 
     refine.mutate(
       { imageId, points: selectedContour },
       {
         onSuccess: (data) => {
-          const nextContours = selectedImageSegment.points.map((points, index) =>
+          const nextContours = selectedImageSegmentClass.points.map((points, index) =>
             index === selectedContourIndex ? data.points : points
           );
 
-          saveSegmentContours(selectedSegmentId!, nextContours);
+          saveSegmentContours(selectedSegmentClassId!, nextContours);
         },
       }
     );
   };
 
   const handleDeleteContour = (contourIndex: number) => {
-    if (!selectedImageSegment) return;
+    if (!selectedImageSegmentClass || !selectedSegmentClassId) return;
 
-    const nextContours = selectedImageSegment.points.filter((_, index) => index !== contourIndex);
+    const nextContours = selectedImageSegmentClass.points.filter(
+      (_, index) => index !== contourIndex
+    );
 
-    saveSegmentContours(selectedSegmentId!, nextContours);
+    saveSegmentContours(selectedSegmentClassId!, nextContours);
     setSelectedContourIndex(null);
   };
 
@@ -170,7 +176,7 @@ const ImagesContent = () => {
             totalImages={standard.stats.images_count}
             isReference={image.is_reference}
             isCurrentAnnotated={isCurrentAnnotated}
-            segmentsCount={standard.stats.segments_count}
+            segmentsCount={standard.stats.segment_classes_count}
             canGoPrev={!!prevImage}
             canGoNext={!!nextImage}
             hasNextUnannotated={!!nextUnannotatedImage}
@@ -184,10 +190,9 @@ const ImagesContent = () => {
         <SplitLayout.Body bare>
           <Canvas
             imageUrl={imageUrl}
-            segmentGroups={segmentGroups}
-            segments={annotatedSegments}
-            selectedId={selectedSegmentId}
-            onSelect={setSelectedSegmentId}
+            segments={imageSegmentClasses}
+            selectedId={selectedSegmentClassId}
+            onSelect={setSelectedSegmentClassId}
             onPointsChange={saveSegmentContours}
             onFinishDrawing={handleFinishDrawing}
             isDrawMode={isDrawMode}
@@ -201,11 +206,11 @@ const ImagesContent = () => {
       <SplitLayout.Panel>
         <SegmentPanel
           standard={standard}
-          segments={standardSegments}
-          segmentGroups={segmentGroups}
-          imageSegments={annotatedSegments}
-          selectedSegmentId={selectedSegmentId}
-          onSelectSegment={setSelectedSegmentId}
+          categories={categories}
+          ungroupedClasses={ungroupedClasses}
+          imageSegmentClasses={imageSegmentClasses}
+          selectedSegmentClassId={selectedSegmentClassId}
+          onSelectSegmentClass={setSelectedSegmentClassId}
           onStartDraw={handleStartDraw}
           onRefine={handleRefine}
           isRefining={refine.isPending || annotate.isPending}

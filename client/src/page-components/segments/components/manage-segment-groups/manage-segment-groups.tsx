@@ -14,72 +14,70 @@ interface Props {
   compact?: boolean;
 }
 
-interface SegmentState {
-  key: string;
-  name: string;
-}
-
-interface GroupState {
+interface ClassState {
   key: string;
   name: string;
   hue: number;
-  collapsed: boolean;
-  segments: SegmentState[];
 }
 
-interface GroupActions {
+interface CategoryState {
+  key: string;
+  name: string;
+  collapsed: boolean;
+  segmentClasses: ClassState[];
+}
+
+interface CategoryActions {
+  add: () => void;
   toggle: (key: string) => void;
   updateName: (key: string, value: string) => void;
-  updateHue: (key: string, value: number) => void;
   remove: (key: string) => void;
 }
 
-interface SegmentActions {
-  add: (groupKey: string) => void;
-  remove: (groupKey: string, segmentKey: string) => void;
-  updateName: (groupKey: string, segmentKey: string, value: string) => void;
+interface ClassActions {
+  addToCategory: (categoryKey: string) => void;
+  addUngrouped: () => void;
+  removeFromCategory: (categoryKey: string, classKey: string) => void;
+  removeUngrouped: (classKey: string) => void;
+  updateName: (categoryKey: string | null, classKey: string, value: string) => void;
+  updateHue: (categoryKey: string | null, classKey: string, value: number) => void;
 }
 
-interface SegmentGroupItemProps {
-  group: GroupState;
+interface ClassRowProps {
+  item: ClassState;
+  categoryKey: string | null;
   isColorOpen: boolean;
-  activeColorKey: string | null;
   toggleColorPicker: (key: string) => void;
   closeColorPicker: () => void;
-  groupActions: GroupActions;
-  segmentActions: SegmentActions;
+  classActions: ClassActions;
 }
 
-const SegmentGroupItem = ({
-  group,
+const ClassRow = ({
+  item,
+  categoryKey,
   isColorOpen,
-  activeColorKey,
   toggleColorPicker,
   closeColorPicker,
-  groupActions,
-  segmentActions,
-}: SegmentGroupItemProps) => {
-  const groupColor = `hsl(${group.hue}, 65%, 55%)`;
+  classActions,
+}: ClassRowProps) => {
+  const color = `hsl(${item.hue}, 65%, 55%)`;
 
-  const handleRemoveGroup = () => {
-    if (activeColorKey === group.key) {
+  const handleRemove = () => {
+    if (isColorOpen) {
       closeColorPicker();
     }
 
-    groupActions.remove(group.key);
+    if (categoryKey) {
+      classActions.removeFromCategory(categoryKey, item.key);
+      return;
+    }
+
+    classActions.removeUngrouped(item.key);
   };
 
   return (
-    <div
-      className={clsx(s.group, group.collapsed && s.collapsed)}
-      style={{ "--group-hue": group.hue } as CSSProperties}
-    >
-      <div className={s.groupRow}>
-        <ChevronRight
-          className={clsx(s.chevron, !group.collapsed && s.expanded)}
-          size={13}
-          onClick={() => groupActions.toggle(group.key)}
-        />
+    <>
+      <div className={s.segmentRow}>
         <div className={s.colorField}>
           <button
             type="button"
@@ -87,31 +85,21 @@ const SegmentGroupItem = ({
             aria-label="Изменить цвет класса"
             onClick={(e) => {
               e.preventDefault();
-              toggleColorPicker(group.key);
+              toggleColorPicker(item.key);
             }}
           >
-            <span className={s.colorSwatch} style={{ background: groupColor }} />
+            <span className={s.colorSwatch} style={{ background: color }} />
           </button>
         </div>
+
         <input
           className={s.nameInput}
-          value={group.name}
+          value={item.name}
           placeholder="Название класса"
-          onChange={(e) => groupActions.updateName(group.key, e.target.value)}
+          onChange={(e) => classActions.updateName(categoryKey, item.key, e.target.value)}
         />
-        <button
-          type="button"
-          className={s.iconButton}
-          title="Добавить сегмент"
-          onClick={() => segmentActions.add(group.key)}
-        >
-          <Plus size={12} />
-        </button>
-        <button
-          type="button"
-          className={clsx(s.iconButton, s.removeButton)}
-          onClick={handleRemoveGroup}
-        >
+
+        <button type="button" className={clsx(s.iconButton, s.removeButton)} onClick={handleRemove}>
           <X size={14} />
         </button>
       </div>
@@ -119,31 +107,128 @@ const SegmentGroupItem = ({
       {isColorOpen && (
         <div className={s.colorPanel}>
           <ColorPicker
-            hue={group.hue}
-            onChange={(nextHue) => groupActions.updateHue(group.key, nextHue)}
+            hue={item.hue}
+            onChange={(nextHue) => classActions.updateHue(categoryKey, item.key, nextHue)}
           />
         </div>
       )}
+    </>
+  );
+};
 
-      {!group.collapsed &&
-        group.segments.map((segment) => (
-          <div key={segment.key} className={s.segmentRow}>
-            <span className={s.segmentDot} style={{ background: groupColor }} />
-            <input
-              className={s.nameInput}
-              value={segment.name}
-              placeholder="Название сегмента"
-              onChange={(e) => segmentActions.updateName(group.key, segment.key, e.target.value)}
-            />
-            <button
-              type="button"
-              className={clsx(s.iconButton, s.removeButton)}
-              onClick={() => segmentActions.remove(group.key, segment.key)}
-            >
-              <X size={14} />
-            </button>
-          </div>
+interface CategoryItemProps {
+  category: CategoryState;
+  activeColorKey: string | null;
+  toggleColorPicker: (key: string) => void;
+  closeColorPicker: () => void;
+  categoryActions: CategoryActions;
+  classActions: ClassActions;
+}
+
+const CategoryItem = ({
+  category,
+  activeColorKey,
+  toggleColorPicker,
+  closeColorPicker,
+  categoryActions,
+  classActions,
+}: CategoryItemProps) => {
+  const accentHue = category.segmentClasses[0]?.hue ?? 210;
+
+  return (
+    <div
+      className={clsx(s.group, category.collapsed && s.collapsed)}
+      style={{ "--group-hue": accentHue } as CSSProperties}
+    >
+      <div className={s.groupRow}>
+        <ChevronRight
+          className={clsx(s.chevron, !category.collapsed && s.expanded)}
+          size={13}
+          onClick={() => categoryActions.toggle(category.key)}
+        />
+
+        <input
+          className={s.nameInput}
+          value={category.name}
+          placeholder="Название категории"
+          onChange={(e) => categoryActions.updateName(category.key, e.target.value)}
+        />
+
+        <button
+          type="button"
+          className={clsx(s.iconButton, s.addButton)}
+          onClick={() => classActions.addToCategory(category.key)}
+        >
+          <Plus size={14} />
+        </button>
+
+        <button
+          type="button"
+          className={clsx(s.iconButton, s.removeButton)}
+          onClick={() => categoryActions.remove(category.key)}
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {!category.collapsed &&
+        category.segmentClasses.map((item) => (
+          <ClassRow
+            key={item.key}
+            item={item}
+            categoryKey={category.key}
+            isColorOpen={activeColorKey === item.key}
+            toggleColorPicker={toggleColorPicker}
+            closeColorPicker={closeColorPicker}
+            classActions={classActions}
+          />
         ))}
+    </div>
+  );
+};
+
+interface UngroupedBlockProps {
+  items: ClassState[];
+  activeColorKey: string | null;
+  toggleColorPicker: (key: string) => void;
+  closeColorPicker: () => void;
+  classActions: ClassActions;
+}
+
+const UngroupedBlock = ({
+  items,
+  activeColorKey,
+  toggleColorPicker,
+  closeColorPicker,
+  classActions,
+}: UngroupedBlockProps) => {
+  const accentHue = items[0]?.hue ?? 210;
+
+  return (
+    <div className={s.group} style={{ "--group-hue": accentHue } as CSSProperties}>
+      <div className={s.groupRow}>
+        <span className={s.nameInput}>Без категории</span>
+
+        <button
+          type="button"
+          className={clsx(s.iconButton, s.addButton)}
+          onClick={classActions.addUngrouped}
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {items.map((item) => (
+        <ClassRow
+          key={item.key}
+          item={item}
+          categoryKey={null}
+          isColorOpen={activeColorKey === item.key}
+          toggleColorPicker={toggleColorPicker}
+          closeColorPicker={closeColorPicker}
+          classActions={classActions}
+        />
+      ))}
     </div>
   );
 };
@@ -163,6 +248,7 @@ export const ManageSegmentGroups = ({ standard, compact }: Props) => (
         )}
       </>
     </Modal.Trigger>
+
     <Modal.Content>
       <ManageSegmentGroupsModal standard={standard} />
     </Modal.Content>
@@ -171,14 +257,16 @@ export const ManageSegmentGroups = ({ standard, compact }: Props) => (
 
 const ManageSegmentGroupsModal = ({ standard }: Props) => {
   const close = useModalClose();
+
   const {
-    groups,
+    categories,
+    ungroupedClasses,
     saving,
     activeColorKey,
     toggleColorPicker,
     closeColorPicker,
-    groupActions,
-    segmentActions,
+    categoryActions,
+    classActions,
     save,
   } = useManageSegmentGroups(standard);
 
@@ -187,33 +275,44 @@ const ManageSegmentGroupsModal = ({ standard }: Props) => {
     if (ok) close();
   };
 
+  const isEmpty = !categories.length && !ungroupedClasses.length;
+
   return (
     <>
-      <Modal.Header>{`Классы эталона ${standard.name}`}</Modal.Header>
+      <Modal.Header>Классы сегментации</Modal.Header>
+
       <Modal.Body>
         <div className={s.content}>
-          <QueryState isEmpty={!groups.length} emptyTitle="Нет классов сегментации">
+          <QueryState isEmpty={isEmpty} emptyTitle="Нет классов сегментации">
             <div className={s.list}>
-              {groups.map((group) => (
-                <SegmentGroupItem
-                  key={group.key}
-                  group={group}
-                  isColorOpen={activeColorKey === group.key}
+              {categories.map((category) => (
+                <CategoryItem
+                  key={category.key}
+                  category={category}
                   activeColorKey={activeColorKey}
                   toggleColorPicker={toggleColorPicker}
                   closeColorPicker={closeColorPicker}
-                  groupActions={groupActions}
-                  segmentActions={segmentActions}
+                  categoryActions={categoryActions}
+                  classActions={classActions}
                 />
               ))}
+
+              <UngroupedBlock
+                items={ungroupedClasses}
+                activeColorKey={activeColorKey}
+                toggleColorPicker={toggleColorPicker}
+                closeColorPicker={closeColorPicker}
+                classActions={classActions}
+              />
             </div>
           </QueryState>
 
-          <Button variant="ghost" size="sm" icon={Plus} onClick={groupActions.add} full>
-            Добавить группу классов
+          <Button variant="ghost" size="sm" icon={Plus} onClick={categoryActions.add} full>
+            Добавить категорию
           </Button>
         </div>
       </Modal.Body>
+
       <Modal.Footer>
         <Button variant="ghost" onClick={close}>
           Отмена

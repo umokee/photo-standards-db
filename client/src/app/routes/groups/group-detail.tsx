@@ -17,8 +17,7 @@ export const useGroupDetailOutletContext = () => {
 
 export function Component() {
   const { groupId } = useLoaderData() as { groupId: string };
-  const groupQuery = useGetGroup(groupId);
-  const group = groupQuery.data;
+  const { data: group } = useGetGroup(groupId);
 
   return (
     <>
@@ -32,8 +31,9 @@ export function Component() {
           meta={[
             `${group.stats.standards_count} эталонов`,
             `${group.stats.images_count} изображений`,
-            `${group.stats.annotated_count} размечено`,
+            `${group.stats.annotated_images_count} размечено`,
             `${group.stats.polygons_count} аннотаций`,
+            `${group.stats.segment_classes_count} классов`,
           ]}
         >
           <ContentHeader.Actions>

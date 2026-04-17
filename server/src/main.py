@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.db import AsyncSessionLocal, dispose_engines
+from app.db import dispose_engines
 from app.exception_handlers import register_exception_handlers
 from app.import_models import import_models
 from app.logging import configure_logging
@@ -10,9 +10,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from infra.queue.procrastinate import procrastinate_app
-from modules.tasks.service import fail_stale_running_tasks
-from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError
 
 
 def ensure_storage_dirs() -> None:
@@ -22,20 +19,10 @@ def ensure_storage_dirs() -> None:
     settings.models_storage_path.mkdir(parents=True, exist_ok=True)
 
 
-async def recover_stale_tasks() -> int:
-    async with AsyncSessionLocal() as db:
-        try:
-            await db.execute(text("SELECT 1 FROM tasks LIMIT 1"))
-            await db.execute(text("SELECT 1 FROM procrastinate_jobs LIMIT 1"))
-        except ProgrammingError:
-            await db.rollback()
-            return 0
-
-        recovered = 0
-        for queue in ("training", "inspection"):
-            recovered += await fail_stale_running_tasks(db, queue=queue)
-
-        return recovered
+async def retry_stalled_procrastinate_jobs_once() -> None:
+    stalled_jobs = await procrastinate_app.job_manager.get_stalled_jobs(queue="gpu")
+    for job in stalled_jobs:
+        await procrastinate_app.job_manager.retry_job(job)
 
 
 @asynccontextmanager
@@ -43,7 +30,7 @@ async def lifespan(app: FastAPI):
     ensure_storage_dirs()
     import_models()
     async with procrastinate_app.open_async():
-        await recover_stale_tasks()
+        await retry_stalled_procrastinate_jobs_once()
         try:
             yield
         finally:

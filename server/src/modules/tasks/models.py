@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from app.db import Base
-from sqlalchemy import ForeignKey, Index, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +12,7 @@ class Task(Base):
     __table_args__ = (
         Index("ix_tasks_type_status", "type", "status"),
         Index("ix_tasks_entity", "entity_type", "entity_id"),
+        Index("ix_tasks_queue_status_priority", "queue", "status", "priority"),
     )
 
     id: Mapped[UUID] = mapped_column(default=uuid4, primary_key=True, index=True)
@@ -52,8 +53,14 @@ class Task(Base):
     external_job_id: Mapped[str | None] = mapped_column(
         String(100), default=None, index=True
     )
-    idempotency_key: Mapped[str | None] = mapped_column(
-        String(100), default=None, unique=True
+
+    abort_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    auto_resume: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    checkpoint_path: Mapped[str | None] = mapped_column(String(500), default=None)
+    run_dir: Mapped[str | None] = mapped_column(String(500), default=None)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=None, index=True
     )
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

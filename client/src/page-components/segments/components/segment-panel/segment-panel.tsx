@@ -1,5 +1,10 @@
 import Button from "@/components/ui/button/button";
-import { Segment, SegmentGroup, SegmentWithPoints, StandardDetail } from "@/types/contracts";
+import {
+  SegmentClass,
+  SegmentClassCategory,
+  SegmentClassWithPoints,
+  StandardDetail,
+} from "@/types/contracts";
 import clsx from "clsx";
 import { Trash2 } from "lucide-react";
 import { ManageSegmentGroups } from "../manage-segment-groups/manage-segment-groups";
@@ -7,13 +12,13 @@ import s from "./segment-panel.module.scss";
 
 interface Props {
   standard?: StandardDetail;
-  segments: Segment[];
-  segmentGroups: SegmentGroup[];
-  imageSegments: SegmentWithPoints[];
-  selectedSegmentId: string | null;
+  categories: SegmentClassCategory[];
+  ungroupedClasses: SegmentClass[];
+  imageSegmentClasses: SegmentClassWithPoints[];
+  selectedSegmentClassId: string | null;
   isRefining: boolean;
   selectedContourIndex: number | null;
-  onSelectSegment: (id: string) => void;
+  onSelectSegmentClass: (id: string) => void;
   onStartDraw: () => void;
   onRefine: () => void;
   onSelectContour: (index: number | null) => void;
@@ -22,25 +27,22 @@ interface Props {
 
 export const SegmentPanel = ({
   standard,
-  segments,
-  segmentGroups,
-  imageSegments,
-  selectedSegmentId,
+  categories,
+  ungroupedClasses,
+  imageSegmentClasses,
+  selectedSegmentClassId,
   isRefining,
   selectedContourIndex,
-  onSelectSegment,
+  onSelectSegmentClass,
   onStartDraw,
   onRefine,
   onSelectContour,
   onDeleteContour,
 }: Props) => {
-  const selectedSeg = segments.find((s) => s.id === selectedSegmentId);
-  const selectedImgSeg = imageSegments.find((s) => s.id === selectedSegmentId);
+  const allClasses = [...categories.flatMap((c) => c.segment_classes), ...ungroupedClasses];
 
-  const groupedSegments = segmentGroups.map((group) => ({
-    group,
-    segments: segments.filter((s) => s.segment_group_id === group.id),
-  }));
+  const selectedSeg = allClasses.find((s) => s.id === selectedSegmentClassId);
+  const selectedImgSeg = imageSegmentClasses.find((s) => s.id === selectedSegmentClassId);
 
   return (
     <div className={s.root}>
@@ -49,41 +51,70 @@ export const SegmentPanel = ({
           <span className={s.sectionTitle}>Классы</span>
           {standard && <ManageSegmentGroups standard={standard} compact />}
         </div>
+
         <div className={s.classes}>
-          {groupedSegments.map(({ group, segments: groupSegs }) => (
-            <div key={group.id} className={s.groupBlock}>
-              <div className={s.groupLabel}>
-                <span
-                  className={s.groupColor}
-                  style={{ background: `hsl(${group.hue}, 70%, 50%)` }}
-                />
-                {group.name}
-              </div>
-              {groupSegs.map((seg) => {
-                const segImgSeg = imageSegments.find((s) => s.id === seg.id);
-                const hasPoints = !!segImgSeg?.points.length;
+          {categories.map((category) => (
+            <div key={category.id} className={s.groupBlock}>
+              <span className={s.groupLabel}>{category.name}</span>
+
+              {category.segment_classes.map((cls) => {
+                const imageItem = imageSegmentClasses.find((c) => c.id === cls.id);
+                const hasPoints = !!imageItem?.points.length;
 
                 return (
                   <div
-                    key={seg.id}
-                    className={clsx(s.classItem, selectedSegmentId === seg.id && s.selected)}
-                    onClick={() => onSelectSegment(seg.id)}
+                    key={cls.id}
+                    className={clsx(s.classItem, selectedSegmentClassId === cls.id && s.selected)}
+                    onClick={() => onSelectSegmentClass(cls.id)}
                   >
-                    <span
+                    <div
                       className={s.classColor}
                       style={{
-                        background: `hsl(${group.hue}, 70%, 50%)`,
+                        background: `hsl(${cls.hue}, 70%, 50%)`,
                       }}
                     />
-                    <span className={s.classLabel}>{seg.name}</span>
+                    <span className={s.classLabel}>{cls.name}</span>
                     <span className={clsx(s.classCount, hasPoints && s.has)}>
-                      {hasPoints ? `${segImgSeg?.points.length} пол.` : "-"}
+                      {hasPoints ? `${imageItem?.points.length} пол.` : "-"}
                     </span>
                   </div>
                 );
               })}
             </div>
           ))}
+
+          {!!ungroupedClasses.length && (
+            <div className={s.groupBlock}>
+              <span className={s.groupLabel}>Без категории</span>
+
+              {ungroupedClasses.map((segmentClass) => {
+                const imageItem = imageSegmentClasses.find((item) => item.id === segmentClass.id);
+                const hasPoints = !!imageItem?.points.length;
+
+                return (
+                  <div
+                    key={segmentClass.id}
+                    className={clsx(
+                      s.classItem,
+                      selectedSegmentClassId === segmentClass.id && s.selected
+                    )}
+                    onClick={() => onSelectSegmentClass(segmentClass.id)}
+                  >
+                    <div
+                      className={s.classColor}
+                      style={{
+                        background: `hsl(${segmentClass.hue}, 70%, 50%)`,
+                      }}
+                    />
+                    <span className={s.classLabel}>{segmentClass.name}</span>
+                    <span className={clsx(s.classCount, hasPoints && s.has)}>
+                      {hasPoints ? `${imageItem?.points.length} пол.` : "-"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -125,15 +156,15 @@ export const SegmentPanel = ({
       </div>
 
       <div className={s.actions}>
-        <Button
+        {/* <Button
           variant="ml"
           size="sm"
           disabled={isRefining || !selectedImgSeg?.points?.length}
           onClick={onRefine}
         >
           Уточнить
-        </Button>
-        <Button variant="ghost" size="sm" disabled={!selectedSegmentId} onClick={onStartDraw}>
+        </Button> */}
+        <Button variant="ghost" size="sm" disabled={!selectedSegmentClassId} onClick={onStartDraw}>
           Добавить разметку
         </Button>
       </div>

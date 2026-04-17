@@ -8,7 +8,14 @@ procrastinate_app = App(
     import_paths=[
         "modules.training.jobs",
         "modules.inspections.jobs",
+        "modules.tasks.jobs",
     ],
+    worker_defaults={
+        "delete_jobs": "successful",
+        "fetch_job_polling_interval": 2.0,
+        "update_heartbeat_interval": 10.0,
+        "stalled_worker_timeout": 30.0,
+    },
 )
 
-app = procrastinate_app
+__all__ = ["procrastinate_app"]

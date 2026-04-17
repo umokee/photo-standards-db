@@ -1,6 +1,6 @@
 import { useCanvas } from "@/page-components/segments/hooks/use-canvas";
 import useImageLayout from "@/page-components/segments/hooks/use-image-layout";
-import { SegmentGroup, SegmentWithPoints } from "@/types/contracts";
+import { SegmentClassWithPoints } from "@/types/contracts";
 import { hasPoints, segmentColor } from "@/utils/canvas";
 import { Group, Layer, Stage } from "react-konva";
 import useImage from "use-image";
@@ -13,8 +13,7 @@ import s from "./canvas-surface.module.scss";
 
 interface Props {
   imageUrl: string | null;
-  segmentGroups: SegmentGroup[];
-  segments: SegmentWithPoints[];
+  segments: SegmentClassWithPoints[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onFinishDrawing: (points: number[][]) => void;
@@ -27,7 +26,6 @@ interface Props {
 
 export default function Canvas({
   imageUrl,
-  segmentGroups,
   segments,
   selectedId,
   onSelect,
@@ -42,7 +40,6 @@ export default function Canvas({
   const { containerRef, size, imageRect, toImage, toCanvas, clampToImage } = useImageLayout(image);
 
   const canvas = useCanvas({
-    segmentGroups,
     segments,
     selectedId,
     selectedContourIndex,

@@ -15,9 +15,9 @@ from modules.groups.models import Group
 from modules.ml_models.models import MlModel
 from modules.segments.models import SegmentAnnotation
 from modules.standards.models import Standard, StandardImage
+from modules.tasks.models import Task
 from modules.tasks.service import (
     create_task,
-    ensure_no_active_task_for_group,
     update_task_status,
 )
 from PIL import Image
@@ -100,13 +100,6 @@ def _build_training_data(
     group: Group,
     standards: list[Standard],
 ) -> TrainingData:
-    """
-    Формирует структуру для обучения. Ключевое:
-    - class_keys = [str(cls.id) ...] — этим именем YOLO будет знать класс.
-      Стабильно относительно переименований.
-    - Порядок классов — по алфавиту name, чтобы YOLO-индексы были
-      предсказуемы между переобучениями (полезно для диффа метрик).
-    """
     sorted_segment_classes = sorted(
         group.segment_classes,
         key=lambda item: item.name.lower(),
@@ -373,9 +366,9 @@ def _build_yolo_lines(
 def build_temp_dataset(
     data: TrainingData,
     split_plan: TrainingSplitPlan,
+    *,
+    dataset_root: Path,
 ) -> DatasetBuildResult:
-    dataset_root = resolve_storage_path(Path("models") / str(data.group_id) / "temp")
-
     if dataset_root.exists():
         shutil.rmtree(dataset_root, ignore_errors=True)
 
@@ -397,7 +390,6 @@ def build_temp_dataset(
 
             dest_img_path = dataset_root / "images" / split / f"{image_id}{suffix}"
             dest_lab_path = dataset_root / "labels" / split / f"{image_id}.txt"
-            dest_img_path.parent.mkdir(parents=True, exist_ok=True)
 
             try:
                 os.symlink(img_src, dest_img_path)
@@ -451,20 +443,23 @@ async def start_training(
     db: AsyncSession,
     data: TrainRequest,
 ):
-    """
-    Создаёт MlModel + Task, ставит Procrastinate-job.
-    При ошибке постановки в очередь MlModel остаётся в БД, но задача помечена
-    failed — чтобы пользователь видел, что обучение не запустилось.
-    """
     group = await db.get(Group, data.group_id)
     if not group:
         raise NotFoundError("Группа", data.group_id)
 
-    await ensure_no_active_task_for_group(
-        db,
-        group_id=data.group_id,
-        type="model_training",
+    existing = await db.execute(
+        select(Task)
+        .where(
+            Task.group_id == data.group_id,
+            Task.type == "model_training",
+            Task.status.in_(
+                ("pending", "queued", "running", "pausing", "resuming", "paused")
+            ),
+        )
+        .limit(1)
     )
+    if existing.scalar_one_or_none():
+        raise ValidationError("Для этой группы уже есть обучение или пауза обучения")
 
     base_weights = training.architectures.base_weights[data.architecture]
     base_weights_rel = (Path("models") / "_basic" / base_weights).as_posix()
@@ -488,56 +483,71 @@ async def start_training(
     db.add(model)
     await db.flush()
 
+    # task-scoped storage
+    task_root_rel = Path("models") / str(data.group_id) / "tasks"
+    dataset_root_rel = (
+        task_root_rel / "DATASET_PLACEHOLDER"
+    ).as_posix()  # заполним после create_task
+
     task = await create_task(
         db,
         type="model_training",
         status="pending",
-        queue="training",
-        payload={
-            "model_id": str(model.id),
-            "group_id": str(data.group_id),
-            "version": version,
-            "architecture": data.architecture,
-            "epochs": data.epochs,
-            "imgsz": data.imgsz,
-            "batch_size": data.batch_size,
-            "train_ratio": data.train_ratio,
-            "val_ratio": data.val_ratio,
-            "base_weights_path": base_weights_rel,
-        },
+        queue="gpu",
+        priority=40,
         entity_type="ml_model",
         entity_id=model.id,
         group_id=data.group_id,
+        auto_resume=True,
     )
+
+    task_root_rel = Path("models") / str(data.group_id) / "tasks" / str(task.id)
+    dataset_root_rel = (task_root_rel / "dataset").as_posix()
+    run_dir_rel = (task_root_rel / "run").as_posix()
+    checkpoint_rel = (task_root_rel / "run" / "weights" / "last.pt").as_posix()
+    best_checkpoint_rel = (task_root_rel / "run" / "weights" / "best.pt").as_posix()
+    final_weights_rel = (
+        Path("models") / str(data.group_id) / f"v{version}.pt"
+    ).as_posix()
+
+    task.payload = {
+        "model_id": str(model.id),
+        "group_id": str(data.group_id),
+        "version": version,
+        "architecture": data.architecture,
+        "epochs": data.epochs,
+        "imgsz": data.imgsz,
+        "batch_size": data.batch_size,
+        "train_ratio": data.train_ratio,
+        "val_ratio": data.val_ratio,
+        "base_weights_path": base_weights_rel,
+        "dataset_root": dataset_root_rel,
+        "run_dir": run_dir_rel,
+        "checkpoint_path": checkpoint_rel,
+        "best_checkpoint_path": best_checkpoint_rel,
+        "final_weights_path": final_weights_rel,
+    }
+    task.run_dir = run_dir_rel
+    task.checkpoint_path = checkpoint_rel
+
+    await db.commit()
+    await db.refresh(task)
     await db.refresh(model)
 
     from .jobs import execute_training
 
-    try:
-        job_id = await execute_training.configure(
-            lock="training",
-            queueing_lock=f"training:{data.group_id}",
-        ).defer_async(task_id=str(task.id))
-    except Exception as exc:
-        # Постановка в очередь упала — модель создана, но её никто не обучит.
-        # Оставляем MlModel в БД (пользователь увидит версию со статусом "не обучена"),
-        # задачу помечаем failed — чтобы на UI была видна причина.
-        await update_task_status(
-            db,
-            task_id=task.id,
-            status="failed",
-            stage="Ошибка постановки в очередь",
-            message="Модель не была отправлена в очередь на обучение",
-            error=str(exc),
-        )
-        raise
+    job = await execute_training.configure(
+        queue="gpu",
+        priority=40,
+        queueing_lock=f"train:{data.group_id}",
+    ).defer_async(task_id=str(task.id))
 
     task = await update_task_status(
         db,
         task_id=task.id,
         status="queued",
         stage="В очереди",
-        message="Модель поставлена в очередь",
-        external_job_id=str(job_id),
+        message="Обучение поставлено в GPU-очередь",
+        external_job_id=str(job.id),
     )
     return task, model
