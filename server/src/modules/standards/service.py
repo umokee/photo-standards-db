@@ -117,13 +117,15 @@ async def delete(
     standard = await _get_standard(db, standard_id)
 
     result = await db.execute(
-        select(StandardImage).where(StandardImage.standard_id == standard_id)
+        select(StandardImage.image_path).where(StandardImage.standard_id == standard_id)
     )
-    for img in result.scalars().all():
-        await file_storage.delete_file(img.image_path)
+    image_paths = [path for (path,) in result.all()]
 
     await db.delete(standard)
     await db.commit()
+
+    for path in image_paths:
+        await file_storage.delete_file(path)
 
 
 async def upload_images(
@@ -131,33 +133,46 @@ async def upload_images(
     standard_id: UUID,
     images: list[UploadFile],
 ) -> list[StandardImage]:
+    from uuid import uuid4
+
     standard = await _get_standard(db, standard_id)
 
-    created_images: list[StandardImage] = []
-    for upload in images:
-        standard_image = StandardImage(
-            standard_id=standard_id,
-            image_path="",
-            is_reference=False,
-        )
-        db.add(standard_image)
-        await db.flush()
+    pending: list[tuple[UUID, str]] = []
+    try:
+        for upload in images:
+            image_id = uuid4()
+            image_path = await file_storage.save_upload(
+                upload,
+                f"standards/{standard.id}",
+                "pending",
+            )
+            pending.append((image_id, image_path))
+    except Exception:
+        for _, path in pending:
+            await file_storage.delete_file(path)
+        raise
 
-        image_path = await file_storage.save_upload(
-            upload,
-            f"standards/{standard.id}",
-            str(standard_image.id),
-        )
-        standard_image.image_path = image_path
-        created_images.append(standard_image)
-
-    image_ids = [image.id for image in created_images]
-    await db.commit()
+    try:
+        for image_id, image_path in pending:
+            db.add(
+                StandardImage(
+                    id=image_id,
+                    standard_id=standard_id,
+                    image_path=image_path,
+                    is_reference=False,
+                )
+            )
+        await db.commit()
+    except Exception:
+        db.rollback()
+        for _, path in pending:
+            await file_storage.delete_file(path)
+        raise
 
     result = await db.execute(
         select(StandardImage)
         .options(selectinload(StandardImage.annotations))
-        .where(StandardImage.id.in_(image_ids))
+        .where(StandardImage.id.in_([pid for pid, _ in pending]))
     )
     return list(result.scalars().all())
 
@@ -170,7 +185,10 @@ async def set_reference(
 
     await db.execute(
         sa_update(StandardImage)
-        .where(StandardImage.standard_id == image.standard_id)
+        .where(
+            StandardImage.standard_id == image.standard_id,
+            StandardImage.id != image.id,
+        )
         .values(is_reference=False)
     )
     image.is_reference = True

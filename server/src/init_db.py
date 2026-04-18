@@ -27,7 +27,6 @@ def bootstrap_database() -> None:
         pool_pre_ping=True,
         future=True,
     )
-
     alembic_cfg = build_alembic_config()
 
     try:
@@ -41,53 +40,26 @@ def bootstrap_database() -> None:
         if not has_any_model_tables:
             Base.metadata.create_all(bind=engine, checkfirst=True)
             command.stamp(alembic_cfg, "head")
-            print(
-                "Бутстрап БД: создана схема через create_all и выполнен stamp до head"
-            )
-            return
-
-        if has_any_model_tables and not has_alembic_version:
+            print("DB bootstrap: create_all + stamp head")
+        elif has_any_model_tables and not has_alembic_version:
             command.stamp(alembic_cfg, "head")
-            print("Бутстрап БД: обнаружена существующая схема, выполнен stamp до head")
-            return
+            print("DB bootstrap: existing schema detected, stamp head")
+        else:
+            command.upgrade(alembic_cfg, "head")
+            print("DB bootstrap: upgrade head")
 
-        command.upgrade(alembic_cfg, "head")
-        print("Бутстрап БД: применены миграции до head")
+        if "procrastinate_jobs" not in existing_tables:
+            with procrastinate_app.open():
+                procrastinate_app.schema_manager.apply_schema()
+            print("Бутстрап Procrastinate: схема создана")
 
     finally:
         engine.dispose()
-
-
-def bootstrap_procrastinate() -> None:
-    engine = create_engine(
-        settings.database_url_sync,
-        pool_pre_ping=True,
-        future=True,
-    )
-
-    try:
-        inspector = inspect(engine)
-        existing_tables = set(inspector.get_table_names())
-
-        if "procrastinate_jobs" in existing_tables:
-            print("Бутстрап Procrastinate: схема уже существует")
-            return
-    finally:
-        engine.dispose()
-
-    procrastinate_app.open()
-    try:
-        procrastinate_app.schema_manager.apply_schema()
-    finally:
-        procrastinate_app.close()
-
-    print("Бутстрап Procrastinate: схема применена")
 
 
 if __name__ == "__main__":
     try:
         bootstrap_database()
-        bootstrap_procrastinate()
     except Exception as exc:
-        print(f"Ошибка бутстрапа: {exc}", file=sys.stderr)
+        print(f"Bootstrap failed: {exc}", file=sys.stderr)
         raise

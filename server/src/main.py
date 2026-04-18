@@ -9,7 +9,6 @@ from app.router import api_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from infra.queue.procrastinate import procrastinate_app
 
 
 def ensure_storage_dirs() -> None:
@@ -19,22 +18,14 @@ def ensure_storage_dirs() -> None:
     settings.models_storage_path.mkdir(parents=True, exist_ok=True)
 
 
-async def retry_stalled_procrastinate_jobs_once() -> None:
-    stalled_jobs = await procrastinate_app.job_manager.get_stalled_jobs(queue="gpu")
-    for job in stalled_jobs:
-        await procrastinate_app.job_manager.retry_job(job)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_storage_dirs()
     import_models()
-    async with procrastinate_app.open_async():
-        await retry_stalled_procrastinate_jobs_once()
-        try:
-            yield
-        finally:
-            await dispose_engines()
+    try:
+        yield
+    finally:
+        await dispose_engines()
 
 
 def create_app() -> FastAPI:
@@ -57,7 +48,6 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(api_router)
     app.mount("/storage", StaticFiles(directory=settings.STORAGE_ROOT), name="storage")
-
     app.state.settings = settings
     return app
 

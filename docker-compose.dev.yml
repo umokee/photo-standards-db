@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: photo-standards
+    ports:
+      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -13,6 +15,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
 
   migrate:
     build:
@@ -33,6 +36,7 @@ services:
       - ./storage:/storage
     command: ["python", "-m", "init_db"]
     restart: "no"
+
 
   server:
     build:
@@ -66,6 +70,7 @@ services:
       retries: 5
     restart: unless-stopped
 
+
   worker-gpu:
     build:
       context: ./server
@@ -83,8 +88,16 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker", "gpu"]
+    command:
+      [
+        "procrastinate",
+        "--app=infra.queue.procrastinate.procrastinate_app",
+        "worker",
+        "-q",
+        "gpu"
+      ]
     restart: unless-stopped
+
 
   worker-cpu:
     build:
@@ -103,8 +116,16 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker", "cpu"]
+    command:
+      [
+        "procrastinate",
+        "--app=infra.queue.procrastinate.procrastinate_app",
+        "worker",
+        "-q",
+        "cpu"
+      ]
     restart: unless-stopped
+
 
   client:
     build:
@@ -120,6 +141,7 @@ services:
     depends_on:
       server:
         condition: service_healthy
+
 
 volumes:
   db-data:

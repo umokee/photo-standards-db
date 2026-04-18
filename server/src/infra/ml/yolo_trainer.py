@@ -27,6 +27,7 @@ class TrainingRunConfig:
     on_status: Callable[[str], None] | None = None
     on_epoch_end: Callable[[int, int], None] | None = None
     on_model_save: Callable[[Path | None, Path | None], None] | None = None
+    on_heartbeat: Callable[[], None] | None = None
     should_stop: Callable[[], bool] | None = None
 
 
@@ -76,6 +77,16 @@ def run_training_sync(
                 raise TrainingInterrupted("Training stop requested")
 
         yolo.add_callback("on_train_epoch_end", _on_epoch_end)
+
+    if config.on_heartbeat or config.should_stop:
+
+        def _on_batch_end(trainer):
+            if config.on_heartbeat:
+                config.on_heartbeat()
+            if config.should_stop and config.should_stop():
+                raise TrainingInterrupted("Training stop requested")
+
+        yolo.add_callback("on_train_batch_end", _on_batch_end)
 
     if config.on_model_save:
         yolo.add_callback(

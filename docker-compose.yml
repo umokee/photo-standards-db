@@ -11,6 +11,24 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       retries: 5
+    restart: unless-stopped
+
+
+  migrate:
+    build: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    volumes:
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "-m", "init_db"]
+    restart: "no"
+
 
   server:
     build: ./server
@@ -18,6 +36,7 @@ services:
       - ./server/.env
     environment:
       DB_HOST: db
+      PYTHONPATH: /app/src
     ports:
       - "3001:3001"
     volumes:
@@ -25,24 +44,64 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  worker:
+
+  worker-gpu:
     build: ./server
     env_file:
       - ./server/.env
     environment:
       DB_HOST: db
+      PYTHONPATH: /app/src
     volumes:
       - ./storage:/storage
     depends_on:
       db:
         condition: service_healthy
-    command: ["procrastinate", "--app=infra.queue.procrastinate.app", "worker"]
+      migrate:
+        condition: service_completed_successfully
+    command:
+      [
+        "procrastinate",
+        "--app=infra.queue.procrastinate.procrastinate_app",
+        "worker",
+        "-q",
+        "gpu"
+      ]
+    restart: unless-stopped
+
+
+  worker-cpu:
+    build: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      DB_HOST: db
+      PYTHONPATH: /app/src
+    volumes:
+      - ./storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    command:
+      [
+        "procrastinate",
+        "--app=infra.queue.procrastinate.procrastinate_app",
+        "worker",
+        "-q",
+        "cpu"
+      ]
+    restart: unless-stopped
 
 
   client:
@@ -51,9 +110,9 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
+      server:
         condition: service_healthy
 
-  
+
 volumes:
   db-data:

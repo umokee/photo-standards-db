@@ -1,433 +1,347 @@
 from __future__ import annotations
 
-import json
-import os
-import random
+import asyncio
 import shutil
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
+from app.db import AsyncSessionLocal, get_sync_session
 from app.exception import NotFoundError, ValidationError
 from constants import training
+from infra.ml.yolo_trainer import (
+    TrainingInterrupted,
+    TrainingRunConfig,
+    TrainingRunResult,
+    run_training_sync,
+)
+from infra.queue.scheduler import (
+    ensure_no_active_task_for_group,
+    schedule_training,
+)
 from infra.storage.file_storage import resolve_storage_path
 from modules.groups.models import Group
 from modules.ml_models.models import MlModel
-from modules.segments.models import SegmentAnnotation
-from modules.standards.models import Standard, StandardImage
+from modules.tasks.constants import (
+    GPU_QUEUE,
+    PRIORITY_TRAINING,
+    STATUS_FAILED,
+    STATUS_PAUSED,
+    STATUS_RESUMING,
+    STATUS_RUNNING,
+    STATUS_SUCCEEDED,
+    TASK_TRAINING,
+)
 from modules.tasks.models import Task
 from modules.tasks.service import (
     create_task,
     update_task_status,
 )
-from PIL import Image
+from modules.training._dataset import (
+    build_temp_dataset,
+    plan_dataset_split,
+    validate_training_data,
+)
+from modules.training._loader import load_training_data
+from modules.training.reporter import TrainingProgressReporter
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
 
 from .schemas import TrainRequest
 
-# -------- Typed training payload --------
-
 
 @dataclass(slots=True)
-class TrainingAnnotation:
-    segment_class_id: UUID
-    class_key: str
-    class_index: int
-    points: list[list[list[float]]]
-
-
-@dataclass(slots=True)
-class TrainingImage:
-    image_id: UUID
-    image_path: str
-    width: int
-    height: int
-    is_annotated: bool
-    annotations: list[TrainingAnnotation]
-
-
-@dataclass(slots=True)
-class TrainingStandard:
-    standard_id: UUID
-    standard_name: str
-    angle: str | None
-    images: list[TrainingImage]
-
-
-@dataclass(slots=True)
-class TrainingData:
-    group_id: UUID
-    group_name: str
-    class_keys: list[str]  # порядок = class_index в YOLO
-    class_meta: list[dict]  # [{"id", "key", "name", "index", "class_group_id"}, ...]
-    standards: list[TrainingStandard]
-
-
-@dataclass(slots=True)
-class TrainingSplitPlan:
-    train: list[UUID]
-    val: list[UUID]
-    test: list[UUID]
-    total: int
-
-
-@dataclass(slots=True)
-class DatasetBuildResult:
+class _TrainingPaths:
+    base_weights: Path
     dataset_root: Path
+    run_dir: Path
+    checkpoint: Path
+    best_checkpoint: Path
+    final_weights: Path
+    final_weights_rel: str
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> _TrainingPaths:
+        return cls(
+            base_weights=resolve_storage_path(payload["base_weights_path"]),
+            dataset_root=resolve_storage_path(payload["dataset_root"]),
+            run_dir=resolve_storage_path(payload["run_dir"]),
+            checkpoint=resolve_storage_path(payload["checkpoint_path"]),
+            best_checkpoint=resolve_storage_path(payload["best_checkpoint_path"]),
+            final_weights=resolve_storage_path(payload["final_weights_path"]),
+            final_weights_rel=payload["final_weights_path"],
+        )
+
+
+@dataclass(slots=True)
+class _TrainingParams:
+    epochs: int
+    imgsz: int
+    batch_size: int
+    train_ratio: int
+    val_ratio: int
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> _TrainingParams:
+        return cls(
+            epochs=int(payload["epochs"]),
+            imgsz=int(payload["imgsz"]),
+            batch_size=int(payload["batch_size"]),
+            train_ratio=int(payload["train_ratio"]),
+            val_ratio=int(payload["val_ratio"]),
+        )
+
+
+@dataclass(slots=True)
+class _DatasetInfo:
+    class_keys: list[str]
+    class_meta: list[dict]
     yaml_path: Path
 
 
-# -------- Loading --------
+async def start_training(db: AsyncSession, data: TrainRequest) -> tuple[Task, MlModel]:
+    group = await db.get(Group, data.group_id)
+    if group is None:
+        raise NotFoundError("Группа", data.group_id)
 
-
-def _standard_load_options():
-    return [
-        selectinload(Standard.images)
-        .selectinload(StandardImage.annotations)
-        .selectinload(SegmentAnnotation.segment_class),
-    ]
-
-
-def _get_image_size(image_path: str) -> tuple[int, int]:
-    abs_path = resolve_storage_path(image_path)
-    with Image.open(abs_path) as image:
-        return image.size
-
-
-def _build_training_data(
-    group: Group,
-    standards: list[Standard],
-) -> TrainingData:
-    sorted_segment_classes = sorted(
-        group.segment_classes,
-        key=lambda item: item.name.lower(),
+    await ensure_no_active_task_for_group(
+        db, group_id=data.group_id, type=TASK_TRAINING
     )
 
-    class_keys = [str(item.id) for item in sorted_segment_classes]
-    class_index_by_id = {
-        item.id: index for index, item in enumerate(sorted_segment_classes)
-    }
-    class_meta = [
-        {
-            "id": str(item.id),
-            "key": str(item.id),
-            "name": item.name,
-            "index": index,
-            "class_group_id": str(item.class_group_id)
-            if item.class_group_id is not None
-            else None,
-        }
-        for index, item in enumerate(sorted_segment_classes)
-    ]
+    base_weights_rel = _base_weights_rel(data.architecture)
+    if not resolve_storage_path(base_weights_rel).is_file():
+        raise ValidationError(f"Базовые веса не найдены: {base_weights_rel}")
 
-    training_standards: list[TrainingStandard] = []
+    version = await _next_version(db, data.group_id)
+    model = _create_ml_model(db, data, version)
+    await db.flush()
 
-    for std in standards:
-        training_images: list[TrainingImage] = []
+    task = await create_task(
+        db,
+        type=TASK_TRAINING,
+        status="pending",
+        queue=GPU_QUEUE,
+        priority=PRIORITY_TRAINING,
+        entity_type="ml_model",
+        entity_id=model.id,
+        group_id=data.group_id,
+        auto_resume=True,
+    )
 
-        for img in std.images:
-            width, height = _get_image_size(img.image_path)
+    payload, run_dir_rel, checkpoint_rel = _build_training_payload(
+        model_id=model.id,
+        group_id=data.group_id,
+        task_id=task.id,
+        version=version,
+        data=data,
+        base_weights_rel=base_weights_rel,
+    )
+    task.payload = payload
+    task.run_dir = run_dir_rel
+    task.checkpoint_path = checkpoint_rel
+    await db.commit()
+    await db.refresh(task)
+    await db.refresh(model)
 
-            annotations: list[TrainingAnnotation] = []
-            for ann in img.annotations:
-                if not ann.points:
-                    continue
-                if ann.segment_class is None:
-                    continue
-                if ann.segment_class.id not in class_index_by_id:
-                    continue
+    task = await schedule_training(db, task)
+    return task, model
 
-                annotations.append(
-                    TrainingAnnotation(
-                        segment_class_id=ann.segment_class.id,
-                        class_key=str(ann.segment_class.id),
-                        class_index=class_index_by_id[ann.segment_class.id],
-                        points=ann.points,
-                    )
-                )
 
-            training_images.append(
-                TrainingImage(
-                    image_id=img.id,
-                    image_path=img.image_path,
-                    width=width,
-                    height=height,
-                    is_annotated=bool(annotations),
-                    annotations=annotations,
-                )
-            )
+async def run_training_task(task_id: str) -> None:
+    task_uuid = UUID(task_id)
 
-        training_standards.append(
-            TrainingStandard(
-                standard_id=std.id,
-                standard_name=std.name,
-                angle=std.angle,
-                images=training_images,
-            )
+    async with AsyncSessionLocal() as db:
+        task = await db.get(Task, task_uuid)
+        if task is None:
+            return
+
+        model = await _load_model_or_fail(db, task)
+        if model is None:
+            return
+
+        paths = _TrainingPaths.from_payload(task.payload or {})
+        params = _TrainingParams.from_payload(task.payload or {})
+        resume = paths.checkpoint.exists()
+
+        await update_task_status(
+            db,
+            task_id=task_uuid,
+            status=STATUS_RESUMING if resume else STATUS_RUNNING,
+            stage="Возобновление" if resume else "Подготовка данных",
+            message="Продолжаем обучение" if resume else "Сбор данных для обучения",
         )
 
-    return TrainingData(
-        group_id=group.id,
-        group_name=group.name,
-        class_keys=class_keys,
-        class_meta=class_meta,
-        standards=training_standards,
-    )
-
-
-async def _load_group_with_segment_classes(
-    db: AsyncSession,
-    group_id: UUID,
-) -> Group:
-    result = await db.execute(
-        select(Group)
-        .options(selectinload(Group.segment_classes))
-        .where(Group.id == group_id)
-    )
-    group = result.scalar_one_or_none()
-    if not group:
-        raise NotFoundError("Группа", group_id)
-    return group
-
-
-def _load_group_with_segment_classes_sync(
-    db: Session,
-    group_id: UUID,
-) -> Group:
-    result = db.execute(
-        select(Group)
-        .options(selectinload(Group.segment_classes))
-        .where(Group.id == group_id)
-    )
-    group = result.scalar_one_or_none()
-    if not group:
-        raise NotFoundError("Группа", group_id)
-    return group
-
-
-async def load_training_data(
-    db: AsyncSession,
-    group_id: UUID,
-) -> TrainingData:
-    group = await _load_group_with_segment_classes(db, group_id)
-
-    result = await db.execute(
-        select(Standard)
-        .options(*_standard_load_options())
-        .where(Standard.group_id == group.id)
-    )
-    standards = list(result.scalars().all())
-    return _build_training_data(group, standards)
-
-
-def load_training_data_sync(
-    db: Session,
-    group_id: UUID,
-) -> TrainingData:
-    group = _load_group_with_segment_classes_sync(db, group_id)
-
-    result = db.execute(
-        select(Standard)
-        .options(*_standard_load_options())
-        .where(Standard.group_id == group.id)
-    )
-    standards = list(result.scalars().all())
-    return _build_training_data(group, standards)
-
-
-# -------- Validation & split --------
-
-
-def validate_training_data(data: TrainingData) -> None:
-    if not data.standards:
-        raise ValidationError("Группа не содержит эталонов")
-    if not data.class_keys:
-        raise ValidationError("Группа не содержит классов")
-
-    has_any_annotated_image = False
-    for std in data.standards:
-        if not std.images:
-            raise ValidationError(f"У эталона «{std.standard_name}» нет фотографий")
-        if not any(img.is_annotated for img in std.images):
-            raise ValidationError(
-                f"У эталона «{std.standard_name}» нет размеченных фотографий"
+        try:
+            dataset_info = await _prepare_dataset(db, model, params, paths)
+            result = await _run_training(
+                db, task_uuid, paths, params, dataset_info, resume
             )
-        has_any_annotated_image = True
+            await _finalize_success(db, task_uuid, model, paths, result, dataset_info)
 
-    if not has_any_annotated_image:
-        raise ValidationError("Группа не содержит аннотаций")
+        except TrainingInterrupted:
+            await _mark_paused(db, task_uuid)
+
+        except Exception as exc:  # noqa: BLE001 — terminal failure handler
+            await _finalize_failure(db, task_uuid, model, paths, exc)
+
+        finally:
+            shutil.rmtree(paths.dataset_root, ignore_errors=True)
 
 
-def plan_dataset_split(
-    data: TrainingData,
-    train_ratio: int,
-    val_ratio: int,
-) -> TrainingSplitPlan:
-    """
-    Делит аннотированные изображения каждого эталона на train/val/test
-    детерминированно по (group_id, standard_id, train_ratio, val_ratio).
-    Каждый эталон получает свою долю отдельно, чтобы val не оказался целиком
-    из одного эталона.
-    """
-    if train_ratio < 0 or val_ratio < 0:
-        raise ValidationError("train и val не могут быть отрицательными")
-    if train_ratio > training.train_ratio.max:
-        raise ValidationError(f"train не может превышать {training.train_ratio.max}%")
-    if val_ratio > training.val_ratio.max:
-        raise ValidationError(f"val не может превышать {training.val_ratio.max}%")
-
-    ratio_sum_max = min(training.ratio_sum_max, 100)
-    if train_ratio + val_ratio > ratio_sum_max:
-        raise ValidationError(f"Сумма train и val не может превышать {ratio_sum_max}%")
-
-    seed = data.group_id.int ^ (train_ratio << 8) ^ (val_ratio << 16)
-    train_ids: list[UUID] = []
-    val_ids: list[UUID] = []
-    test_ids: list[UUID] = []
-    total = 0
-
-    for std in data.standards:
-        image_ids = [img.image_id for img in std.images if img.is_annotated]
-        img_count = len(image_ids)
-
-        if img_count == 0:
-            continue
-        if img_count < training.min_images_to_train:
-            raise ValidationError(
-                f"Минимум {training.min_images_to_train} размеченных фото на эталон "
-                f"(«{std.standard_name}»: {img_count})"
-            )
-
-        randomizer = random.Random(seed ^ std.standard_id.int)  # noqa: S311
-        randomizer.shuffle(image_ids)
-
-        train_count = (
-            max(1, int(img_count * train_ratio / 100)) if train_ratio > 0 else 0
+async def _load_model_or_fail(db: AsyncSession, task: Task) -> MlModel | None:
+    if task.entity_id is None:
+        await update_task_status(
+            db,
+            task_id=task.id,
+            status=STATUS_FAILED,
+            stage="Ошибка",
+            error="В задаче отсутствует ссылка на модель",
         )
-        val_count = max(1, int(img_count * val_ratio / 100)) if val_ratio > 0 else 0
+        return None
+    model = await db.get(MlModel, task.entity_id)
+    if model is None:
+        await update_task_status(
+            db,
+            task_id=task.id,
+            status=STATUS_FAILED,
+            stage="Ошибка",
+            error="Модель не найдена",
+        )
+        return None
+    return model
 
-        if train_count + val_count > img_count:
-            raise ValidationError(
-                f"«{std.standard_name}»: мало фото для split {train_ratio}/{val_ratio}%"
-            )
 
-        train_ids.extend(image_ids[:train_count])
-        val_ids.extend(image_ids[train_count : train_count + val_count])
-        test_ids.extend(image_ids[train_count + val_count :])
-        total += img_count
+async def _prepare_dataset(
+    db: AsyncSession,
+    model: MlModel,
+    params: _TrainingParams,
+    paths: _TrainingPaths,
+) -> _DatasetInfo:
+    training_data = await load_training_data(db, model.group_id)
+    validate_training_data(training_data)
+    split = plan_dataset_split(
+        training_data,
+        train_ratio=params.train_ratio,
+        val_ratio=params.val_ratio,
+    )
+    build_result = build_temp_dataset(
+        training_data, split, dataset_root=paths.dataset_root
+    )
 
-    if not train_ids:
-        raise ValidationError("Не удалось сформировать train split")
-    if val_ratio > 0 and not val_ids:
-        raise ValidationError("Не удалось сформировать val split")
+    model.num_classes = len(training_data.class_keys)
+    model.class_keys = training_data.class_keys
+    model.class_meta = training_data.class_meta
+    model.total_images = split.total
+    model.train_count = len(split.train)
+    model.val_count = len(split.val)
+    model.test_count = len(split.test)
+    await db.commit()
 
-    return TrainingSplitPlan(
-        train=train_ids,
-        val=val_ids,
-        test=test_ids,
-        total=total,
+    return _DatasetInfo(
+        class_keys=training_data.class_keys,
+        class_meta=training_data.class_meta,
+        yaml_path=build_result.yaml_path,
     )
 
 
-# -------- YOLO dataset build --------
+async def _run_training(
+    db: AsyncSession,
+    task_id: UUID,
+    paths: _TrainingPaths,
+    params: _TrainingParams,
+    dataset_info: _DatasetInfo,
+    resume: bool,
+) -> TrainingRunResult:
+    loop = asyncio.get_running_loop()
+    reporter = TrainingProgressReporter(db, task_id, loop)
 
-
-def _normalize_polygon(
-    polygon: list[list[float]],
-    width: int,
-    height: int,
-) -> list[float]:
-    normalized: list[float] = []
-    for x, y in polygon:
-        normalized.append(max(0.0, min(1.0, x / width)))
-        normalized.append(max(0.0, min(1.0, y / height)))
-    return normalized
-
-
-def _build_yolo_lines(
-    annotations: list[TrainingAnnotation],
-    width: int,
-    height: int,
-) -> list[str]:
-    lines: list[str] = []
-    for ann in annotations:
-        for polygon in ann.points:
-            if len(polygon) < 3:
-                continue
-            coords = " ".join(
-                f"{val:.6f}" for val in _normalize_polygon(polygon, width, height)
-            )
-            lines.append(f"{ann.class_index} {coords}")
-    return lines
-
-
-def build_temp_dataset(
-    data: TrainingData,
-    split_plan: TrainingSplitPlan,
-    *,
-    dataset_root: Path,
-) -> DatasetBuildResult:
-    if dataset_root.exists():
-        shutil.rmtree(dataset_root, ignore_errors=True)
-
-    for split in ("train", "val", "test"):
-        (dataset_root / "images" / split).mkdir(parents=True, exist_ok=True)
-        (dataset_root / "labels" / split).mkdir(parents=True, exist_ok=True)
-
-    img_map = {img.image_id: img for std in data.standards for img in std.images}
-
-    for split, ids in (
-        ("train", split_plan.train),
-        ("val", split_plan.val),
-        ("test", split_plan.test),
-    ):
-        for image_id in ids:
-            img = img_map[image_id]
-            img_src = resolve_storage_path(img.image_path)
-            suffix = img_src.suffix or ".jpg"
-
-            dest_img_path = dataset_root / "images" / split / f"{image_id}{suffix}"
-            dest_lab_path = dataset_root / "labels" / split / f"{image_id}.txt"
-
-            try:
-                os.symlink(img_src, dest_img_path)
-            except OSError:
-                shutil.copy2(img_src, dest_img_path)
-
-            lines = _build_yolo_lines(
-                annotations=img.annotations,
-                width=img.width,
-                height=img.height,
-            )
-            dest_lab_path.write_text(
-                "\n".join(lines) + ("\n" if lines else ""),
-                encoding="utf-8",
-            )
-
-    yaml_path = dataset_root / "data.yaml"
-    yaml_path.write_text(
-        "\n".join(
-            [
-                f"path: {dataset_root}",
-                "train: images/train",
-                "val: images/val",
-                "test: images/test",
-                f"nc: {len(data.class_keys)}",
-                f"names: {json.dumps(data.class_keys, ensure_ascii=False)}",
-            ]
-        ),
-        encoding="utf-8",
+    config = TrainingRunConfig(
+        yaml_path=dataset_info.yaml_path,
+        base_weights_path=paths.base_weights,
+        checkpoint_path=paths.checkpoint,
+        best_checkpoint_path=paths.best_checkpoint,
+        output_weights_path=paths.final_weights,
+        run_dir=paths.run_dir,
+        epochs=params.epochs,
+        imgsz=params.imgsz,
+        batch_size=params.batch_size,
+        resume=resume,
+        save_period=1,
+        on_status=reporter.on_status,
+        on_epoch_end=reporter.on_epoch_end,
+        on_model_save=reporter.on_model_save,
+        on_heartbeat=reporter.on_heartbeat,
+        should_stop=lambda: _is_stop_requested(task_id),
     )
+    return await asyncio.to_thread(run_training_sync, config)
 
-    return DatasetBuildResult(
-        dataset_root=dataset_root,
-        yaml_path=yaml_path,
+
+async def _finalize_success(
+    db: AsyncSession,
+    task_id: UUID,
+    model: MlModel,
+    paths: _TrainingPaths,
+    result: TrainingRunResult,
+    dataset_info: _DatasetInfo,
+) -> None:
+    model.weights_path = paths.final_weights_rel
+    model.metrics = result.metrics
+    model.trained_at = datetime.now(UTC).replace(tzinfo=None)
+    await db.commit()
+
+    await update_task_status(
+        db,
+        task_id=task_id,
+        status=STATUS_SUCCEEDED,
+        stage="Готово",
+        message="Обучение завершено",
+        result={
+            "model_id": str(model.id),
+            "weights_path": model.weights_path,
+            "class_keys": dataset_info.class_keys,
+            "class_meta": dataset_info.class_meta,
+            "metrics": result.metrics,
+        },
     )
 
 
-# -------- Start training --------
+async def _finalize_failure(
+    db: AsyncSession,
+    task_id: UUID,
+    model: MlModel,
+    paths: _TrainingPaths,
+    exc: Exception,
+) -> None:
+    paths.final_weights.unlink(missing_ok=True)
+    model.weights_path = None
+    model.metrics = None
+    model.trained_at = None
+    await db.commit()
+
+    await update_task_status(
+        db,
+        task_id=task_id,
+        status=STATUS_FAILED,
+        stage="Ошибка",
+        message="Обучение прервано из-за ошибки",
+        error=str(exc),
+    )
+
+
+async def _mark_paused(db: AsyncSession, task_id: UUID) -> None:
+    await update_task_status(
+        db,
+        task_id=task_id,
+        status=STATUS_PAUSED,
+        stage="Приостановлено",
+        message="Обучение остановлено и будет продолжено позже",
+    )
+
+
+def _base_weights_rel(architecture: str) -> str:
+    name = training.architectures.base_weights[architecture]
+    return (Path("models") / "_basic" / name).as_posix()
 
 
 async def _next_version(db: AsyncSession, group_id: UUID) -> int:
@@ -439,36 +353,7 @@ async def _next_version(db: AsyncSession, group_id: UUID) -> int:
     return int(result.scalar_one()) + 1
 
 
-async def start_training(
-    db: AsyncSession,
-    data: TrainRequest,
-):
-    group = await db.get(Group, data.group_id)
-    if not group:
-        raise NotFoundError("Группа", data.group_id)
-
-    existing = await db.execute(
-        select(Task)
-        .where(
-            Task.group_id == data.group_id,
-            Task.type == "model_training",
-            Task.status.in_(
-                ("pending", "queued", "running", "pausing", "resuming", "paused")
-            ),
-        )
-        .limit(1)
-    )
-    if existing.scalar_one_or_none():
-        raise ValidationError("Для этой группы уже есть обучение или пауза обучения")
-
-    base_weights = training.architectures.base_weights[data.architecture]
-    base_weights_rel = (Path("models") / "_basic" / base_weights).as_posix()
-    base_weights_abs = resolve_storage_path(base_weights_rel)
-    if not base_weights_abs.is_file():
-        raise ValidationError(f"Базовые веса не найдены: {base_weights}")
-
-    version = await _next_version(db, data.group_id)
-
+def _create_ml_model(db: AsyncSession, data: TrainRequest, version: int) -> MlModel:
     model = MlModel(
         group_id=data.group_id,
         architecture=data.architecture,
@@ -481,38 +366,28 @@ async def start_training(
         test_ratio=100 - data.train_ratio - data.val_ratio,
     )
     db.add(model)
-    await db.flush()
+    return model
 
-    # task-scoped storage
-    task_root_rel = Path("models") / str(data.group_id) / "tasks"
-    dataset_root_rel = (
-        task_root_rel / "DATASET_PLACEHOLDER"
-    ).as_posix()  # заполним после create_task
 
-    task = await create_task(
-        db,
-        type="model_training",
-        status="pending",
-        queue="gpu",
-        priority=40,
-        entity_type="ml_model",
-        entity_id=model.id,
-        group_id=data.group_id,
-        auto_resume=True,
-    )
+def _build_training_payload(
+    *,
+    model_id: UUID,
+    group_id: UUID,
+    task_id: UUID,
+    version: int,
+    data: TrainRequest,
+    base_weights_rel: str,
+) -> tuple[dict, str, str]:
+    task_root = Path("models") / str(group_id) / "tasks" / str(task_id)
+    dataset_root_rel = (task_root / "dataset").as_posix()
+    run_dir_rel = (task_root / "run").as_posix()
+    checkpoint_rel = (task_root / "run" / "weights" / "last.pt").as_posix()
+    best_checkpoint_rel = (task_root / "run" / "weights" / "best.pt").as_posix()
+    final_weights_rel = (Path("models") / str(group_id) / f"v{version}.pt").as_posix()
 
-    task_root_rel = Path("models") / str(data.group_id) / "tasks" / str(task.id)
-    dataset_root_rel = (task_root_rel / "dataset").as_posix()
-    run_dir_rel = (task_root_rel / "run").as_posix()
-    checkpoint_rel = (task_root_rel / "run" / "weights" / "last.pt").as_posix()
-    best_checkpoint_rel = (task_root_rel / "run" / "weights" / "best.pt").as_posix()
-    final_weights_rel = (
-        Path("models") / str(data.group_id) / f"v{version}.pt"
-    ).as_posix()
-
-    task.payload = {
-        "model_id": str(model.id),
-        "group_id": str(data.group_id),
+    payload = {
+        "model_id": str(model_id),
+        "group_id": str(group_id),
         "version": version,
         "architecture": data.architecture,
         "epochs": data.epochs,
@@ -527,27 +402,12 @@ async def start_training(
         "best_checkpoint_path": best_checkpoint_rel,
         "final_weights_path": final_weights_rel,
     }
-    task.run_dir = run_dir_rel
-    task.checkpoint_path = checkpoint_rel
+    return payload, run_dir_rel, checkpoint_rel
 
-    await db.commit()
-    await db.refresh(task)
-    await db.refresh(model)
 
-    from .jobs import execute_training
-
-    job = await execute_training.configure(
-        queue="gpu",
-        priority=40,
-        queueing_lock=f"train:{data.group_id}",
-    ).defer_async(task_id=str(task.id))
-
-    task = await update_task_status(
-        db,
-        task_id=task.id,
-        status="queued",
-        stage="В очереди",
-        message="Обучение поставлено в GPU-очередь",
-        external_job_id=str(job.id),
-    )
-    return task, model
+def _is_stop_requested(task_id: UUID) -> bool:
+    with get_sync_session() as db:
+        task = db.get(Task, task_id)
+        if task is None:
+            return True
+        return bool(task.abort_requested or task.status == "cancelled")

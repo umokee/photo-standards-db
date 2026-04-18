@@ -1,14 +1,18 @@
 from app.config import settings
+from app.import_models import import_models
 from procrastinate import App, PsycopgConnector
+
+import_models()
 
 procrastinate_app = App(
     connector=PsycopgConnector(
         conninfo=settings.database_url_conninfo,
     ),
     import_paths=[
+        "infra.queue.reconciler",
+        "infra.queue.maintenance",
         "modules.training.jobs",
         "modules.inspections.jobs",
-        "modules.tasks.jobs",
     ],
     worker_defaults={
         "delete_jobs": "successful",

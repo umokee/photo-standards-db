@@ -11,7 +11,7 @@ import { clamp, EDGE_HIT_RADIUS, projectOnEdge, SNAP_RADIUS } from "@/utils/canv
 import type { Stage as KonvaStage } from "konva/lib/Stage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-export type CanvasMode = { type: "view" } | { type: "draw-polygon" };
+export type CanvasMode = { type: "view" } | { type: "draw-polygon" } | { type: "draw-scissors" };
 
 const isEditable = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false;

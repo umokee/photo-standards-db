@@ -63,3 +63,6 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+__all__ = ["settings"]

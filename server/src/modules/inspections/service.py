@@ -1,182 +1,133 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
-from app.config import settings
-from app.exception import ConflictError, NotFoundError, ValidationError
-from constants import inspections
+from app.db import AsyncSessionLocal
+from app.exception import NotFoundError, ValidationError
+from constants import inspections as inspections_constants
 from fastapi import UploadFile
+from infra.ml.yolo_inspector import run_inference
+from infra.queue.scheduler import (
+    maybe_resume_paused_training,
+    request_training_pause_for_inspection,
+    schedule_inspection,
+)
+from infra.storage.file_storage import resolve_storage_path
 from modules.groups.models import Group
-from modules.inspections.models import InspectionResult, InspectionSegmentResult
 from modules.ml_models.models import MlModel
 from modules.segments.models import SegmentAnnotation, SegmentClass
 from modules.standards.models import Standard, StandardImage
+from modules.tasks.constants import (
+    GPU_QUEUE,
+    PRIORITY_INSPECTION,
+    STATUS_FAILED,
+    STATUS_RUNNING,
+    STATUS_SUCCEEDED,
+    TASK_INSPECTION,
+)
 from modules.tasks.models import Task
-from modules.tasks.service import create_task, update_task_status
+from modules.tasks.service import (
+    create_task,
+    update_task_progress,
+    update_task_status,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from .matcher import (
+    ExpectedItem,
+    InferenceCounts,
+    SegmentCheck,
+    all_ok,
+    build_expected_items,
+    compare,
+    summarize,
+)
+from .models import InspectionResult, InspectionSegmentResult
 
 ALLOWED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 
 
 @dataclass(slots=True)
-class InspectionContext:
+class _InspectionContext:
     standard: Standard
-    reference_image: StandardImage
-    selected_segment_classes: list[SegmentClass]
-    annotation_by_class_id: dict[UUID, SegmentAnnotation]
     model: MlModel
-
-
-# -------- getters --------
+    reference_image: StandardImage
+    selected_classes: list[SegmentClass]
 
 
 async def get_inspection(
     db: AsyncSession,
+    *,
     inspection_id: UUID,
 ) -> InspectionResult:
     inspection = await db.get(InspectionResult, inspection_id)
     if not inspection:
-        raise NotFoundError("Проверка", inspection_id)
+        raise NotFoundError("Результат проверки", inspection_id)
     return inspection
 
 
-async def load_inspection_context(
+async def save_inspection(
     db: AsyncSession,
     *,
-    standard_id: UUID,
-    selected_segment_class_ids: list[UUID],
-) -> InspectionContext:
-    """
-    Валидация всех предпосылок для проверки, до постановки задачи в очередь.
-    Именно здесь отлавливаем "модель не знает этих классов", чтобы не гонять
-    воркер ради ошибки.
-    """
-    if not selected_segment_class_ids:
-        raise ValidationError("Нужно выбрать хотя бы один класс для проверки")
+    task_id: UUID,
+    serial_number: str | None,
+    notes: str | None,
+) -> InspectionResult:
+    task = await db.get(Task, task_id)
+    if not task:
+        raise NotFoundError("Задача", task_id)
+    if task.status != STATUS_SUCCEEDED or not task.result:
+        raise ValidationError("Задача еще не завершена или не содержит результата")
 
-    result = await db.execute(
-        select(Standard)
-        .options(
-            selectinload(Standard.images)
-            .selectinload(StandardImage.annotations)
-            .selectinload(SegmentAnnotation.segment_class),
-            selectinload(Standard.group)
-            .selectinload(Group.segment_classes)
-            .selectinload(SegmentClass.class_group),
-        )
-        .where(Standard.id == standard_id)
+    data = task.result
+    inspection = InspectionResult(
+        standard_id=UUID(data["standard_id"]),
+        model_id=UUID(data["model_id"]),
+        camera_id=UUID(data["camera_id"]) if data.get("camera_id") else None,
+        image_path=data["image_path"],
+        result_image_path=None,
+        status=data["inspection_status"],
+        mode=data["mode"],
+        total_segments=data["total"],
+        matched_segments=data["matched"],
+        serial_number=serial_number,
+        notes=notes,
     )
-    standard = result.scalar_one_or_none()
-    if not standard:
-        raise NotFoundError("Эталон", standard_id)
+    db.add(inspection)
+    await db.flush()
 
-    reference_image = next((img for img in standard.images if img.is_reference), None)
-    if not reference_image:
-        raise ValidationError("У эталона нет reference-изображения")
-
-    annotation_by_class_id = {
-        ann.segment_class_id: ann
-        for ann in reference_image.annotations
-        if ann.points and ann.segment_class_id is not None
-    }
-
-    classes_by_id = {
-        segment_class.id: segment_class
-        for segment_class in standard.group.segment_classes
-    }
-    missing_class_ids = [
-        class_id
-        for class_id in selected_segment_class_ids
-        if class_id not in classes_by_id
-    ]
-    if missing_class_ids:
-        raise ValidationError("Часть выбранных классов не принадлежит группе эталона")
-
-    selected_segment_classes = [
-        classes_by_id[class_id] for class_id in selected_segment_class_ids
-    ]
-
-    result = await db.execute(
-        select(MlModel)
-        .where(
-            MlModel.group_id == standard.group_id,
-            MlModel.is_active.is_(True),
+    for detail in data["details"]:
+        db.add(
+            InspectionSegmentResult(
+                inspection_id=inspection.id,
+                segment_class_id=(
+                    UUID(detail["segment_class_id"])
+                    if detail.get("segment_class_id")
+                    else None
+                ),
+                segment_class_group_id=(
+                    UUID(detail["segment_class_group_id"])
+                    if detail.get("segment_class_group_id")
+                    else None
+                ),
+                class_key=detail["class_key"],
+                name=detail["name"],
+                is_found=detail["status"] == "ok",
+                confidence=detail["confidence"],
+                expected_count=detail["expected_count"],
+                detected_count=detail["detected_count"],
+                delta=detail["delta"],
+                status=detail["status"],
+            )
         )
-        .limit(1)
-    )
-    model = result.scalar_one_or_none()
-    if not model:
-        raise ValidationError("Для группы нет активной модели")
-    if not model.weights_path:
-        raise ValidationError("У активной модели отсутствует путь к весам")
-
-    model_class_keys = set(model.class_keys or [])
-    unknown = [
-        cls.name
-        for cls in selected_segment_classes
-        if str(cls.id) not in model_class_keys
-    ]
-    if unknown:
-        raise ValidationError(
-            "Активная модель не обучена на классах: "
-            f"{', '.join(sorted(unknown))}. Переобучите модель."
-        )
-
-    return InspectionContext(
-        standard=standard,
-        reference_image=reference_image,
-        selected_segment_classes=selected_segment_classes,
-        annotation_by_class_id=annotation_by_class_id,
-        model=model,
-    )
-
-
-# -------- expected items (pure) --------
-
-
-def build_expected_items(
-    *,
-    segment_classes: list[SegmentClass],
-    annotation_by_class_id: dict[UUID, SegmentAnnotation],
-) -> list[dict]:
-    """
-    Для каждого выбранного класса считаем, сколько инстансов мы ждём на кадре,
-    исходя из разметки reference-изображения _этого эталона_.
-
-    expected_count = число полигонов в SegmentAnnotation.points (list[list[[x,y]]]).
-    Если класс выбран, но у него нет аннотации на reference — ждём 0 (класс на этом
-    ракурсе не виден и его не должно быть).
-
-    class_key = str(segment_class.id) — стабильный ML-ключ, именно этим именем
-    модель училась, именно его YOLO вернёт в class_name на инференсе.
-    """
-    items: list[dict] = []
-
-    for cls in segment_classes:
-        annotation = annotation_by_class_id.get(cls.id)
-        expected_count = (
-            len(annotation.points) if annotation and annotation.points else 0
-        )
-
-        items.append(
-            {
-                "segment_class_id": cls.id,
-                "segment_class_group_id": cls.class_group_id,
-                "class_key": str(cls.id),
-                "name": cls.name,
-                "hue": cls.hue,
-                "expected_count": expected_count,
-            }
-        )
-
-    return items
-
-
-# -------- start --------
+    await db.commit()
+    await db.refresh(inspection)
+    return inspection
 
 
 async def start_inspection(
@@ -190,189 +141,282 @@ async def start_inspection(
     notes: str | None,
     image: UploadFile,
 ) -> Task:
-    if mode not in inspections.modes:
+    if mode not in inspections_constants.modes:
         raise ValidationError("Некорректный режим проверки")
 
-    context = await load_inspection_context(
+    ctx = await _load_context(
         db,
         standard_id=standard_id,
         selected_segment_class_ids=selected_segment_class_ids,
     )
 
-    from modules.tasks.service import request_training_pause_for_inspection
+    await request_training_pause_for_inspection(db)
 
-    await request_training_pause_for_inspection(
+    task = await create_task(
         db,
-        message="Обучение приостановлено ради приоритетной проверки",
+        type=TASK_INSPECTION,
+        status="pending",
+        queue=GPU_QUEUE,
+        priority=PRIORITY_INSPECTION,
+        entity_type="standard",
+        entity_id=ctx.standard.id,
+        group_id=ctx.standard.group_id,
+        payload=_build_inspection_payload(
+            ctx=ctx,
+            camera_id=camera_id,
+            mode=mode,
+            serial_number=serial_number,
+            notes=notes,
+            image=image,
+            selected_segment_class_ids=selected_segment_class_ids,
+        ),
     )
 
+    image_path = await _persist_upload(image, task_id=task.id)
+    task.payload = {**(task.payload or {}), "image_path": image_path}
+    await db.commit()
+    await db.refresh(task)
+
+    return await schedule_inspection(db, task)
+
+
+async def run_inspection_task(task_id: str) -> None:
+    task_uuid = UUID(task_id)
+
+    async with AsyncSessionLocal() as db:
+        task = await db.get(Task, task_uuid)
+        if task is None:
+            return
+
+        try:
+            payload = task.payload or {}
+            selected_ids = [
+                UUID(cid) for cid in payload.get("selected_segment_class_ids", [])
+            ]
+            ctx = await _load_context(
+                db,
+                standard_id=UUID(payload["standard_id"]),
+                selected_segment_class_ids=selected_ids,
+            )
+
+            await update_task_status(
+                db,
+                task_id=task_uuid,
+                status=STATUS_RUNNING,
+                stage="Инференс",
+                message="Модель выполняет проверку",
+            )
+
+            expected = build_expected_items(
+                ctx.reference_image, {c.id for c in ctx.selected_classes}
+            )
+            inference = await _run_inference(ctx, payload, expected)
+
+            await update_task_progress(
+                db,
+                task_id=task_uuid,
+                current=2,
+                total=3,
+                stage="Сравнение с эталоном",
+            )
+
+            checks = compare(expected, inference)
+            total, matched, mismatched = summarize(checks)
+            inspection_status = (
+                inspections_constants.statuses.passed
+                if all_ok(checks)
+                else inspections_constants.statuses.failed
+            )
+
+            await update_task_status(
+                db,
+                task_id=task_uuid,
+                status=STATUS_SUCCEEDED,
+                stage="Готово",
+                message="Проверка завершена",
+                result=_build_result_payload(
+                    ctx=ctx,
+                    payload=payload,
+                    checks=checks,
+                    inspection_status=inspection_status,
+                    total=total,
+                    matched=matched,
+                    mismatched=mismatched,
+                ),
+            )
+
+        except Exception as exc:  # noqa: BLE001
+            await update_task_status(
+                db,
+                task_id=task_uuid,
+                status=STATUS_FAILED,
+                stage="Ошибка",
+                message="Проверка прервана из-за ошибки",
+                error=str(exc),
+            )
+
+        finally:
+            await maybe_resume_paused_training(db, exclude_inspection_task_id=task_uuid)
+
+
+async def _load_context(
+    db: AsyncSession,
+    *,
+    standard_id: UUID,
+    selected_segment_class_ids: list[UUID],
+) -> _InspectionContext:
+    result = await db.execute(
+        select(Standard)
+        .options(
+            selectinload(Standard.images)
+            .selectinload(StandardImage.annotations)
+            .selectinload(SegmentAnnotation.segment_class),
+            selectinload(Standard.group)
+            .selectinload(Group.segment_classes)
+            .selectinload(SegmentClass.class_group),
+        )
+        .where(Standard.id == standard_id)
+    )
+    standard = result.scalar_one_or_none()
+    if standard is None:
+        raise NotFoundError("Эталон", standard_id)
+
+    reference_image = next((img for img in standard.images if img.is_reference), None)
+    if reference_image is None:
+        raise ValidationError("У эталона нет reference-фото")
+    if not reference_image.annotations:
+        raise ValidationError("Reference-фото не содержит аннотаций")
+
+    selected_set = set(selected_segment_class_ids)
+    selected_classes = [
+        c for c in standard.group.segment_classes if c.id in selected_set
+    ]
+    if not selected_classes:
+        raise ValidationError("Не выбраны классы для проверки")
+
+    model = await _get_active_model(db, standard.group_id)
+    return _InspectionContext(
+        standard=standard,
+        model=model,
+        reference_image=reference_image,
+        selected_classes=selected_classes,
+    )
+
+
+async def _get_active_model(db: AsyncSession, group_id: UUID) -> MlModel:
+    result = await db.execute(
+        select(MlModel).where(
+            MlModel.group_id == group_id,
+            MlModel.is_active.is_(True),
+        )
+    )
+    model = result.scalar_one_or_none()
+    if model is None:
+        raise ValidationError("Для группы нет активной модели")
+    if not model.weights_path:
+        raise ValidationError("У активной модели нет пути к весам")
+    if not resolve_storage_path(model.weights_path).exists():
+        raise ValidationError(f"Файл весов не найден: {model.weights_path}")
+    return model
+
+
+async def _run_inference(
+    ctx: _InspectionContext,
+    payload: dict,
+    expected: list[ExpectedItem],
+) -> InferenceCounts:
+    allowed_keys = {item.class_key for item in expected}
+    raw = await asyncio.to_thread(
+        run_inference,
+        weights_path=resolve_storage_path(ctx.model.weights_path),
+        image_path=resolve_storage_path(payload["image_path"]),
+        imgsz=ctx.model.imgsz,
+        allowed_class_keys=allowed_keys,
+    )
+    return InferenceCounts(
+        counts=dict(raw.counts),
+        raw_counts=dict(raw.raw_counts),
+        avg_confidence=dict(raw.avg_confidence),
+    )
+
+
+async def _persist_upload(
+    image: UploadFile,
+    *,
+    task_id: UUID,
+) -> str:
     suffix = Path(image.filename).suffix.lower() if image.filename else ".jpg"
     if suffix not in ALLOWED_IMAGE_SUFFIXES:
         suffix = ".jpg"
 
-    task = await create_task(
-        db,
-        type="inspection_run",
-        status="pending",
-        queue="gpu",
-        priority=100,
-        entity_type="standard",
-        entity_id=context.standard.id,
-        group_id=context.standard.group_id,
-        payload={
-            "standard_id": str(context.standard.id),
-            "group_id": str(context.standard.group_id),
-            "camera_id": str(camera_id) if camera_id else None,
-            "mode": mode,
-            "serial_number": serial_number,
-            "notes": notes,
-            "filename": image.filename,
-            "content_type": image.content_type,
-            "model_id": str(context.model.id),
-            "weights_path": context.model.weights_path,
-            "imgsz": context.model.imgsz,
-            "selected_segment_class_ids": [
-                str(class_id) for class_id in selected_segment_class_ids
-            ],
-        },
-    )
-
-    relative_path = f"inspections/source/{task.id}{suffix}"
-    absolute_path = settings.STORAGE_ROOT / relative_path
-    absolute_path.parent.mkdir(parents=True, exist_ok=True)
-    absolute_path.write_bytes(await image.read())
-
-    task.payload = {**(task.payload or {}), "image_path": relative_path}
-    await db.commit()
-    await db.refresh(task)
-
-    from .jobs import execute_inspection
-
-    job = await execute_inspection.configure(
-        queue="gpu",
-        priority=100,
-    ).defer_async(task_id=str(task.id))
-
-    return await update_task_status(
-        db,
-        task_id=task.id,
-        status="queued",
-        stage="В очереди",
-        message="Проверка поставлена в GPU-очередь",
-        external_job_id=str(job.id),
-    )
+    relative = f"inspections/source/{task_id}{suffix}"
+    absolute = resolve_storage_path(relative)
+    absolute.parent.mkdir(parents=True, exist_ok=True)
+    absolute.write_bytes(await image.read())
+    return relative
 
 
-# -------- persist result --------
-
-
-async def save_inspection_result(
-    db: AsyncSession,
+def _build_inspection_payload(
     *,
-    task_id: UUID,
+    ctx: _InspectionContext,
+    camera_id: UUID | None,
+    mode: str,
     serial_number: str | None,
     notes: str | None,
-) -> InspectionResult:
-    """
-    Переносит результат из Task.result в постоянную таблицу inspection_results.
-    Идемпотентно: повторный вызов для уже сохранённой задачи вернёт ту же запись.
-    """
-    task = await db.get(Task, task_id)
-    if not task:
-        raise NotFoundError("Задача", task_id)
+    image: UploadFile,
+    selected_segment_class_ids: list[UUID],
+) -> dict:
+    return {
+        "standard_id": str(ctx.standard.id),
+        "group_id": str(ctx.standard.group_id),
+        "camera_id": str(camera_id) if camera_id else None,
+        "mode": mode,
+        "serial_number": serial_number,
+        "notes": notes,
+        "filename": image.filename,
+        "content_type": image.content_type,
+        "model_id": str(ctx.model.id),
+        "weights_path": ctx.model.weights_path,
+        "imgsz": ctx.model.imgsz,
+        "selected_segment_class_ids": [str(cid) for cid in selected_segment_class_ids],
+    }
 
-    if task.type != "inspection_run":
-        raise ValidationError("Указанная задача не относится к проверке")
-    if task.status != "succeeded":
-        raise ConflictError("Сначала дождитесь завершения проверки")
 
-    payload = task.payload or {}
-    result = task.result or {}
+def _build_result_payload(
+    *,
+    ctx: _InspectionContext,
+    payload: dict,
+    checks: list[SegmentCheck],
+    inspection_status: str,
+    total: int,
+    matched: int,
+    mismatched: list[str],
+) -> dict:
+    return {
+        "inspection_status": inspection_status,
+        "matched": matched,
+        "total": total,
+        "missing": mismatched,
+        "details": [_check_to_dict(c) for c in checks],
+        "standard_id": str(ctx.standard.id),
+        "model_id": str(ctx.model.id),
+        "camera_id": payload.get("camera_id"),
+        "mode": payload["mode"],
+        "image_path": payload["image_path"],
+    }
 
-    existing_inspection_id = result.get("inspection_id")
-    if existing_inspection_id:
-        inspection = await db.get(InspectionResult, UUID(str(existing_inspection_id)))
-        if inspection:
-            return inspection
-        raise ConflictError("Результат уже был сохранён, но запись не найдена")
 
-    standard_id = payload.get("standard_id")
-    model_id = payload.get("model_id")
-    camera_id = payload.get("camera_id")
-    image_path = payload.get("image_path")
-    mode = result.get("mode") or payload.get("mode")
-    status = result.get("status")
-    total = result.get("total")
-    matched = result.get("matched")
-    details = result.get("details")
-
-    if not standard_id or not image_path or not mode or not status:
-        raise ValidationError("В задаче отсутствуют данные для сохранения результата")
-    if not isinstance(total, int) or not isinstance(matched, int):
-        raise ValidationError("В задаче отсутствует итоговая статистика проверки")
-    if not isinstance(details, list):
-        raise ValidationError(
-            "В задаче отсутствуют детализированные результаты проверки"
-        )
-
-    inspection = InspectionResult(
-        standard_id=UUID(str(standard_id)),
-        model_id=UUID(str(model_id)) if model_id else None,
-        camera_id=UUID(str(camera_id)) if camera_id else None,
-        user_id=task.created_by_id,
-        image_path=str(image_path),
-        result_image_path=None,
-        status=str(status),
-        mode=str(mode),
-        total_segments=total,
-        matched_segments=matched,
-        serial_number=serial_number,
-        notes=notes,
-    )
-    db.add(inspection)
-    await db.flush()
-
-    for item in details:
-        if not isinstance(item, dict):
-            continue
-
-        segment_class_id_raw = item.get("segment_class_id")
-        segment_class_group_id_raw = item.get("segment_class_group_id")
-        confidence = item.get("confidence")
-        expected_count = item.get("expected_count")
-        detected_count = item.get("detected_count")
-        delta = item.get("delta")
-        item_status = str(item.get("status") or "")
-        # is_found = "хотя бы одна деталь этого класса найдена",
-        # в отличие от status == "ok" (= ровно столько, сколько ждали).
-        is_found = isinstance(detected_count, int) and detected_count > 0
-
-        db.add(
-            InspectionSegmentResult(
-                inspection_id=inspection.id,
-                segment_class_id=UUID(str(segment_class_id_raw))
-                if segment_class_id_raw
-                else None,
-                segment_class_group_id=UUID(str(segment_class_group_id_raw))
-                if segment_class_group_id_raw
-                else None,
-                class_key=str(item.get("class_key") or ""),
-                name=str(item.get("name") or ""),
-                is_found=is_found,
-                confidence=float(confidence) if confidence is not None else None,
-                expected_count=int(expected_count)
-                if expected_count is not None
-                else None,
-                detected_count=int(detected_count)
-                if detected_count is not None
-                else None,
-                delta=int(delta) if delta is not None else None,
-                status=item_status,
-            )
-        )
-
-    task.result = {**result, "inspection_id": str(inspection.id)}
-
-    await db.commit()
-    await db.refresh(inspection)
-    return inspection
+def _check_to_dict(c: SegmentCheck) -> dict:
+    return {
+        "segment_class_id": str(c.segment_class_id) if c.segment_class_id else None,
+        "segment_class_group_id": str(c.segment_class_group_id)
+        if c.segment_class_group_id
+        else None,
+        "class_key": c.class_key,
+        "name": c.name,
+        "status": c.status,
+        "expected_count": c.expected_count,
+        "detected_count": c.detected_count,
+        "delta": c.delta,
+        "confidence": c.confidence,
+    }

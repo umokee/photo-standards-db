@@ -108,28 +108,23 @@ async def get_group(
     db: DbSession,
     group_id: UUID,
 ) -> GroupDetailResponse:
-    (
-        group,
-        stats,
-        standards,
-        active_model,
-        categories,
-        ungrouped_classes,
-    ) = await service.get_group(db, group_id)
+    detail = await service.get_group(db, group_id)
 
-    sorted_categories = sorted(categories, key=lambda item: item.name.lower())
-    sorted_ungrouped = sorted(ungrouped_classes, key=lambda item: item.name.lower())
+    sorted_categories = sorted(detail.categories, key=lambda item: item.name.lower())
+    sorted_ungrouped = sorted(
+        detail.ungrouped_classes, key=lambda item: item.name.lower()
+    )
 
     return GroupDetailResponse(
-        id=group.id,
-        name=group.name,
-        description=group.description,
-        created_at=group.created_at,
-        stats=_build_group_stats_response(stats),
-        standards=[_build_group_standard_response(item) for item in standards],
+        id=detail.group.id,
+        name=detail.group.name,
+        description=detail.group.description,
+        created_at=detail.group.created_at,
+        stats=_build_group_stats_response(detail.stats),
+        standards=[_build_group_standard_response(item) for item in detail.standards],
         active_model=(
-            GroupActiveModelResponse.model_validate(active_model)
-            if active_model is not None
+            GroupActiveModelResponse.model_validate(detail.active_model)
+            if detail.active_model is not None
             else None
         ),
         segment_class_categories=[

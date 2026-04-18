@@ -35,25 +35,21 @@ async def activate(
     model_id: UUID,
 ) -> MlModel:
     model = await db.get(MlModel, model_id)
-    if not model:
+    if model is None:
         raise NotFoundError("Модель", model_id)
 
     if not model.trained_at:
         raise ValidationError("Активировать можно только обученную модель")
-
     if not model.weights_path:
         raise ValidationError("У модели отсутствует путь к весам")
-
-    weights_path = resolve_storage_path(model.weights_path)
-    if not weights_path.is_file():
+    if not resolve_storage_path(model.weights_path).is_file():
         raise ValidationError("Файл весов не найден")
 
     await db.execute(
         update(MlModel)
-        .where(MlModel.group_id == model.group_id)
+        .where(MlModel.group_id == model.group_id, MlModel.id != model.id)
         .values(is_active=False)
     )
-
     model.is_active = True
     await db.commit()
     await db.refresh(model)
@@ -70,9 +66,7 @@ async def delete_model(
         raise ConflictError("Нельзя удалить активную модель")
 
     weights_path = (
-        resolve_storage_path(model.weights_path)
-        if model.weights_path
-        else None
+        resolve_storage_path(model.weights_path) if model.weights_path else None
     )
 
     await db.delete(model)
