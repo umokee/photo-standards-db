@@ -1,0 +1,47 @@
+@use "@/styles/variables" as *;
+
+.root {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: $space-3;
+  width: 100%;
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+  }
+}
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-3;
+  min-width: 0;
+
+  .item {
+    padding: $space-2 $space-3;
+    border: 1px solid $line-soft;
+    border-radius: $radius;
+    background: $surface;
+
+    &.active {
+      color: $text-white;
+      background: $primary;
+      font-weight: $fw-bold;
+    }
+  }
+}
+
+@media (max-width: 1023px) {
+  .root {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .root {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

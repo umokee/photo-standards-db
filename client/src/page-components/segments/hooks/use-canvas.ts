@@ -1,6 +1,8 @@
 import { createDrawPolygonMode } from "@/page-components/segments/hooks/canvas-modes/draw-polygon-mode";
+import { useDrawScissors } from "@/page-components/segments/hooks/canvas-modes/draw-scissors-mode";
 import type {
   CanvasLineNode,
+  CanvasModeDefinition,
   CanvasPointerEvent,
   CanvasStageNode,
   CanvasTargetNode,
@@ -11,11 +13,11 @@ import { clamp, EDGE_HIT_RADIUS, projectOnEdge, SNAP_RADIUS } from "@/utils/canv
 import type { Stage as KonvaStage } from "konva/lib/Stage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+export type DrawMode = "polygon" | "scissors" | null;
 export type CanvasMode = { type: "view" } | { type: "draw-polygon" } | { type: "draw-scissors" };
 
 const isEditable = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false;
-
   const tag = target.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
 };
@@ -24,7 +26,7 @@ type Params = {
   segments: SegmentClassWithPoints[];
   selectedId: string | null;
   selectedContourIndex: number | null;
-  isDrawMode: boolean;
+  drawMode: DrawMode;
   image: HTMLImageElement | null;
   imageRect: {
     width: number;
@@ -46,7 +48,7 @@ export function useCanvas({
   segments,
   selectedId,
   selectedContourIndex,
-  isDrawMode,
+  drawMode,
   image,
   imageRect,
   toImage,
@@ -82,14 +84,18 @@ export function useCanvas({
     (y - stage.y()) / stage.scaleY(),
   ];
 
+  // Синхронизация внешнего drawMode → внутренний CanvasMode
   useEffect(() => {
-    setMode(isDrawMode ? { type: "draw-polygon" } : { type: "view" });
+    if (drawMode === "polygon") setMode({ type: "draw-polygon" });
+    else if (drawMode === "scissors") setMode({ type: "draw-scissors" });
+    else setMode({ type: "view" });
 
-    if (!isDrawMode) {
+    // polygon-драфт сбрасываем во всех случаях, кроме входа именно в polygon-режим
+    if (drawMode !== "polygon") {
       setDraftPoints([]);
       setDraftPreviewPoint(null);
     }
-  }, [isDrawMode]);
+  }, [drawMode]);
 
   useEffect(() => {
     setDraftPoints([]);
@@ -103,10 +109,13 @@ export function useCanvas({
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         isSpaceDown.current = true;
-
         if (stageRef.current) {
           stageRef.current.container().style.cursor = "grab";
         }
+      }
+
+      if (e.code === "Escape" && isDrawing) {
+        onCancelDraw();
       }
     };
 
@@ -115,7 +124,6 @@ export function useCanvas({
 
       if (e.code === "Space") {
         isSpaceDown.current = false;
-
         if (stageRef.current) {
           stageRef.current.container().style.cursor = isDrawing ? "crosshair" : "default";
         }
@@ -129,11 +137,10 @@ export function useCanvas({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [isDrawing]);
+  }, [isDrawing, onCancelDraw]);
 
   useLayoutEffect(() => {
     if (!pendingResetNode.current) return;
-
     const node = pendingResetNode.current;
     pendingResetNode.current = null;
     node.x(0);
@@ -247,7 +254,6 @@ export function useCanvas({
     const stage = e.target.getStage();
     const raw = stage.getPointerPosition();
     const [px, py] = screenToStage(stage, raw.x, raw.y);
-
     return { stage, px, py };
   };
 
@@ -411,8 +417,24 @@ export function useCanvas({
     toImage,
   });
 
-  const activeMode =
-    mode.type === "view" ? viewMode : mode.type === "draw-polygon" ? drawPolygonMode : null;
+  const scissors = useDrawScissors({
+    isActive: mode.type === "draw-scissors",
+    image,
+    selectedId,
+    readCanvasPointer,
+    clampToImage,
+    toCanvas,
+    toImage,
+    onFinishDrawing,
+    onExit: onCancelDraw,
+  });
+
+  const activeMode: CanvasModeDefinition =
+    mode.type === "view"
+      ? viewMode
+      : mode.type === "draw-polygon"
+        ? drawPolygonMode
+        : scissors.mode;
 
   const modeLabel = activeMode.label;
   const hintText = activeMode.hint;
@@ -430,6 +452,12 @@ export function useCanvas({
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    // Мод может реализовать свой right-click (например, ножницы откатывают seed).
+    if (activeMode.stage.handleRightClick) {
+      activeMode.stage.handleRightClick();
+      return;
+    }
 
     if (draftPoints.length > 0) {
       setDraftPoints([]);
@@ -501,6 +529,12 @@ export function useCanvas({
       draftPreviewPoint,
       setDraftPreviewPoint,
       isDragging,
+    },
+    scissors: {
+      seeds: scissors.seeds,
+      committedSegments: scissors.committedSegments,
+      livePath: scissors.livePath,
+      engineStatus: scissors.engineStatus,
     },
     isDrawing,
     draftStroke,

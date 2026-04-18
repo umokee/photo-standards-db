@@ -9,7 +9,11 @@ import {
 import { useRefineContour } from "@/page-components/segments/api/refine-contour";
 import Canvas from "@/page-components/segments/components/canvas-surface/canvas-surface";
 import { SegmentHeader } from "@/page-components/segments/components/segment-header/segment-header";
-import { SegmentPanel } from "@/page-components/segments/components/segment-panel/segment-panel";
+import {
+  DrawKind,
+  SegmentPanel,
+} from "@/page-components/segments/components/segment-panel/segment-panel";
+import { DrawMode } from "@/page-components/segments/hooks/use-canvas";
 import { useGetImage } from "@/page-components/standards/api/get-image";
 import { useGetStandardDetail } from "@/page-components/standards/api/get-standard";
 import { useMutationState } from "@tanstack/react-query";
@@ -47,7 +51,7 @@ const ImagesContent = () => {
 
   const [selectedSegmentClassId, setSelectedSegmentClassId] = useState<string | null>(null);
   const [selectedContourIndex, setSelectedContourIndex] = useState<number | null>(null);
-  const [isDrawMode, setIsDrawMode] = useState(false);
+  const [drawMode, setDrawMode] = useState<DrawMode>(null);
 
   const { data: standard } = useGetStandardDetail(standardId);
   const { data: image } = useGetImage(imageId);
@@ -83,7 +87,7 @@ const ImagesContent = () => {
 
   const imageIds = standard.images.map((img) => img.id);
   const currentIndex = imageIds.indexOf(imageId);
-  const safeIndex = currentIndex >= 0 ? currentIndex + 1 : 1;
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
 
   const prevImage = currentIndex > 0 ? standard.images[currentIndex - 1] : null;
   const nextImage =
@@ -92,7 +96,10 @@ const ImagesContent = () => {
       : null;
   const nextUnannotatedImage =
     currentIndex >= 0
-      ? standard.images.slice(currentIndex + 1).find((img) => img.annotation_count === 0)
+      ? standard.images
+          .slice(currentIndex + 1)
+          .concat(standard.images.slice(0, currentIndex))
+          .find((img) => img.annotation_count === 0) ?? null
       : null;
 
   const imageUrl = `${BASE_URL}/storage/${image.image_path}`;
@@ -128,7 +135,7 @@ const ImagesContent = () => {
 
     const existingContours = selectedImageSegmentClass?.points ?? [];
     saveSegmentContours(selectedSegmentClassId, [...existingContours, draftContour]);
-    setIsDrawMode(false);
+    setDrawMode(null);
   };
 
   const handleRefine = () => {
@@ -163,8 +170,8 @@ const ImagesContent = () => {
     setSelectedContourIndex(null);
   };
 
-  const handleStartDraw = () => setIsDrawMode(true);
-  const handleCancelDraw = () => setIsDrawMode(false);
+  const handleStartDraw = (kind: DrawKind) => setDrawMode(kind);
+  const handleCancelDraw = () => setDrawMode(null);
 
   return (
     <SplitLayout>
@@ -173,7 +180,7 @@ const ImagesContent = () => {
           <SegmentHeader
             standardName={standard.name}
             currentIndex={safeIndex}
-            totalImages={standard.stats.images_count}
+            totalImages={imageIds.length}
             isReference={image.is_reference}
             isCurrentAnnotated={isCurrentAnnotated}
             segmentsCount={standard.stats.segment_classes_count}
@@ -195,7 +202,7 @@ const ImagesContent = () => {
             onSelect={setSelectedSegmentClassId}
             onPointsChange={saveSegmentContours}
             onFinishDrawing={handleFinishDrawing}
-            isDrawMode={isDrawMode}
+            drawMode={drawMode}
             onCancelDraw={handleCancelDraw}
             selectedContourIndex={selectedContourIndex}
             onSelectContour={setSelectedContourIndex}

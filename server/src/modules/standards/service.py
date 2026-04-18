@@ -144,7 +144,7 @@ async def upload_images(
             image_path = await file_storage.save_upload(
                 upload,
                 f"standards/{standard.id}",
-                "pending",
+                str(image_id),
             )
             pending.append((image_id, image_path))
     except Exception:

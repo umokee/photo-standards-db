@@ -10,6 +10,8 @@ import { Trash2 } from "lucide-react";
 import { ManageSegmentGroups } from "../manage-segment-groups/manage-segment-groups";
 import s from "./segment-panel.module.scss";
 
+export type DrawKind = "polygon" | "scissors";
+
 interface Props {
   standard?: StandardDetail;
   categories: SegmentClassCategory[];
@@ -19,7 +21,7 @@ interface Props {
   isRefining: boolean;
   selectedContourIndex: number | null;
   onSelectSegmentClass: (id: string) => void;
-  onStartDraw: () => void;
+  onStartDraw: (kind: DrawKind) => void;
   onRefine: () => void;
   onSelectContour: (index: number | null) => void;
   onDeleteContour: (contourIndex: number) => void;
@@ -31,11 +33,9 @@ export const SegmentPanel = ({
   ungroupedClasses,
   imageSegmentClasses,
   selectedSegmentClassId,
-  isRefining,
   selectedContourIndex,
   onSelectSegmentClass,
   onStartDraw,
-  onRefine,
   onSelectContour,
   onDeleteContour,
 }: Props) => {
@@ -164,8 +164,21 @@ export const SegmentPanel = ({
         >
           Уточнить
         </Button> */}
-        <Button variant="ghost" size="sm" disabled={!selectedSegmentClassId} onClick={onStartDraw}>
-          Добавить разметку
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!selectedSegmentClassId}
+          onClick={() => onStartDraw("polygon")}
+        >
+          Полигон
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!selectedSegmentClassId}
+          onClick={() => onStartDraw("scissors")}
+        >
+          Умные ножницы
         </Button>
       </div>
     </div>

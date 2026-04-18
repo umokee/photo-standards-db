@@ -55,6 +55,7 @@ export type CanvasPointerEvent = {
 export type CanvasStageHandlers = {
   handleStageClick: (e: CanvasPointerEvent) => void;
   handleMouseMove: (e: CanvasPointerEvent) => void;
+  handleRightClick?: () => void;
 };
 
 export type CanvasEditHandlers = {

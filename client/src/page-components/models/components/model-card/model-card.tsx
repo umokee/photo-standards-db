@@ -1,5 +1,5 @@
-import Button from "@/components/ui/button/button";
 import { Badge } from "@/components/ui/badge/badge";
+import Button from "@/components/ui/button/button";
 import { GroupDetail, Metric, MlModel, TaskResponse, TrainingStatus } from "@/types/contracts";
 import { formatDate } from "@/utils/formatDate";
 import { architectureLabel, metricLabel, trainingStatusLabel } from "@/utils/labels";
@@ -20,6 +20,7 @@ type Props = {
   expanded: boolean;
   onToggle: () => void;
   onActivate?: (modelId: string) => void;
+  onCancel?: (modelId: string) => void;
   isActivating?: boolean;
 };
 
@@ -39,6 +40,7 @@ export const ModelCard = ({
   expanded,
   onToggle,
   onActivate,
+  onCancel,
   isActivating = false,
 }: Props) => {
   const status = getTrainingStatus(model, task);
@@ -129,6 +131,7 @@ interface DetailProps {
   task?: TaskResponse | null;
   group?: GroupDetail | null;
   onActivate?: (modelId: string) => void;
+  onCancel?: (modelId: string) => void;
   isActivating?: boolean;
 }
 
@@ -143,7 +146,13 @@ const getModelClassLabels = (model: MlModel) => {
   return model.class_meta?.map((item) => item.name) ?? model.class_keys ?? [];
 };
 
-const ModelCardDetail = ({ model, task, onActivate, isActivating = false }: DetailProps) => {
+const ModelCardDetail = ({
+  model,
+  task,
+  onActivate,
+  onCancel,
+  isActivating = false,
+}: DetailProps) => {
   const isFailed = isTrainingFailedModel(model, task ?? null);
   const isTraining = isTrainingModel(model, task ?? null);
   const canActivate = !!onActivate && !model.is_active && !!model.trained_at && !isTraining;
@@ -247,6 +256,9 @@ const ModelCardDetail = ({ model, task, onActivate, isActivating = false }: Deta
               onClick={() => onActivate(model.id)}
             >
               {isActivating ? "Активация..." : "Сделать активной"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onCancel(model.id)}>
+              Отменить
             </Button>
             <div className={s.emptyText}>
               После активации именно эта модель будет использоваться в inspection для группы.
